@@ -1,17 +1,18 @@
-import { ReactNode, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ComponentType, ReactNode, useState } from "react";
+import { ChevronDown, LucideProps } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
   title: string;
   subtitle?: string;
   step: number;
+  icon?: ComponentType<LucideProps>;
   children: ReactNode;
   defaultOpen?: boolean;
   active?: boolean;
 }
 
-export function Section({ title, subtitle, step, children, defaultOpen = true, active }: Props) {
+export function Section({ title, subtitle, step, icon: Icon, children, defaultOpen = true, active }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section
@@ -28,8 +29,11 @@ export function Section({ title, subtitle, step, children, defaultOpen = true, a
         aria-expanded={open}
       >
         <div className="flex items-center gap-4">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            {step}
+          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            {Icon ? <Icon className="h-4 w-4" /> : <span className="text-xs font-semibold">{step}</span>}
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-background text-[10px] font-semibold text-foreground ring-1 ring-border">
+              {step}
+            </span>
           </span>
           <div>
             <h3 className="font-display text-lg font-semibold leading-tight">{title}</h3>
