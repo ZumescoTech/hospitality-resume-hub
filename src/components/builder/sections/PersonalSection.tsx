@@ -1,6 +1,6 @@
 import { ResumeData, PersonalDetails } from "@/types/resume";
-import { TextField, Field } from "./Field";
-import { PhotoUpload } from "./PhotoUpload";
+import { TextField, Field } from "../Field";
+import { PhotoUpload } from "../PhotoUpload";
 import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
