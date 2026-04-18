@@ -83,7 +83,7 @@ export const emptyResume: ResumeData = {
     allergens: false,
     foodSafety: "",
   },
-  templateId: "claret",
+  templateId: "bistro",
 };
 
 export const sampleResume: ResumeData = {
@@ -149,5 +149,5 @@ export const sampleResume: ResumeData = {
     allergens: true,
     foodSafety: "Level 2 Food Safety",
   },
-  templateId: "claret",
+  templateId: "cellar",
 };

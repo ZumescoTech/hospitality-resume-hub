@@ -3,6 +3,13 @@ import { ResumeData } from "@/types/resume";
 import { TEMPLATES, getTemplate } from "@/components/templates/registry";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Maximize2, Minimize2, Printer } from "lucide-react";
 
 interface Props {
@@ -19,12 +26,32 @@ export function PreviewPanel({ data, onTemplateChange }: Props) {
     <div className="flex h-full flex-col">
       {/* Template picker */}
       <div className="no-print border-b border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="font-display text-sm font-semibold">Templates</p>
-            <p className="text-xs text-muted-foreground">{TEMPLATES.length} designs · click to switch</p>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-sm font-semibold">Template</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {tpl.name} — {tpl.description}
+            </p>
           </div>
-          <div className="flex items-center gap-1">
+          <Select value={data.templateId} onValueChange={onTemplateChange}>
+            <SelectTrigger className="h-9 w-[210px] shrink-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TEMPLATES.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-3 w-5 overflow-hidden rounded-sm">
+                      <span className="flex-1" style={{ background: t.swatch[0] }} />
+                      <span className="w-1/3" style={{ background: t.swatch[1] }} />
+                    </span>
+                    {t.name}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex shrink-0 items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}>
               <Minimize2 className="h-4 w-4" />
             </Button>
