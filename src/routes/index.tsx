@@ -35,12 +35,12 @@ export const Route = createFileRoute("/")({
 });
 
 const STEPS = [
-  { id: "personal", label: "Personal" },
-  { id: "experience", label: "Experience" },
-  { id: "education", label: "Education" },
-  { id: "skills", label: "Skills" },
-  { id: "certifications", label: "Certifications" },
-  { id: "hospitality", label: "Hospitality" },
+  { id: "personal", label: "Personal", icon: User },
+  { id: "experience", label: "Experience", icon: Briefcase },
+  { id: "education", label: "Education", icon: GraduationCap },
+  { id: "skills", label: "Skills", icon: Star },
+  { id: "certifications", label: "Certifications", icon: Award },
+  { id: "hospitality", label: "Hospitality", icon: Wine },
 ];
 
 function BuilderPage() {
@@ -133,8 +133,11 @@ function BuilderPage() {
             <div>
               <h1 className="font-display text-2xl font-bold sm:text-3xl">Build your resume</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Fill in each section. The preview updates as you type — and your work is auto-saved locally.
+                Fill in each section. The preview updates as you type.
               </p>
+              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                <Check className="h-3 w-3" /> Auto-saved locally
+              </span>
             </div>
 
             <StepProgress steps={STEPS} current={step} onJump={setStep} />
@@ -145,6 +148,7 @@ function BuilderPage() {
                   key={s.id}
                   step={i + 1}
                   title={s.label}
+                  icon={s.icon}
                   subtitle={subtitleFor(s.id)}
                   defaultOpen={i === step}
                   active={i === step}
