@@ -22,12 +22,14 @@ export function PersonalSection({ data, onChange }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
           label="Full name"
+          required
           value={data.personal.fullName}
           onChange={(e) => set({ fullName: e.target.value })}
           placeholder="Elena Marchetti"
         />
         <TextField
           label="Job title"
+          required
           value={data.personal.title}
           onChange={(e) => set({ title: e.target.value })}
           placeholder="Head Sommelier"
@@ -35,6 +37,7 @@ export function PersonalSection({ data, onChange }: Props) {
         <TextField
           label="Email"
           type="email"
+          required
           value={data.personal.email}
           onChange={(e) => set({ email: e.target.value })}
           placeholder="elena@example.com"

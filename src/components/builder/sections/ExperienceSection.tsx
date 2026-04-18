@@ -44,12 +44,14 @@ export function ExperienceSection({ data, onChange }: Props) {
           <div className="grid gap-3 sm:grid-cols-2">
             <TextField
               label="Role"
+              required
               value={exp.role}
               onChange={(e) => update(i, { role: e.target.value })}
               placeholder="Head Sommelier"
             />
             <TextField
               label="Venue / Restaurant"
+              required
               value={exp.venue}
               onChange={(e) => update(i, { venue: e.target.value })}
               placeholder="Maison Laurent"
