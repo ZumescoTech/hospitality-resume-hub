@@ -12,7 +12,7 @@ import { SkillsSection } from "@/components/builder/sections/SkillsSection";
 import { CertificationsSection } from "@/components/builder/sections/CertificationsSection";
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Download, RefreshCw, Sparkles, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
