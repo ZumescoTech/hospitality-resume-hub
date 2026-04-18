@@ -1,14 +1,14 @@
 import { ResumeData } from "@/types/resume";
-import { ClaretTemplate } from "./templates/ClaretTemplate";
-import { BistroTemplate } from "./templates/BistroTemplate";
-import { ManhattanTemplate } from "./templates/ManhattanTemplate";
-import { CellarTemplate } from "./templates/CellarTemplate";
-import { ProvenceTemplate } from "./templates/ProvenceTemplate";
-import { TokyoTemplate } from "./templates/TokyoTemplate";
-import { BrasserieTemplate } from "./templates/BrasserieTemplate";
-import { CoastalTemplate } from "./templates/CoastalTemplate";
-import { TerracottaTemplate } from "./templates/TerracottaTemplate";
-import { NoirTemplate } from "./templates/NoirTemplate";
+import { ClaretTemplate } from "./ClaretTemplate";
+import { BistroTemplate } from "./BistroTemplate";
+import { ManhattanTemplate } from "./ManhattanTemplate";
+import { CellarTemplate } from "./CellarTemplate";
+import { ProvenceTemplate } from "./ProvenceTemplate";
+import { TokyoTemplate } from "./TokyoTemplate";
+import { BrasserieTemplate } from "./BrasserieTemplate";
+import { CoastalTemplate } from "./CoastalTemplate";
+import { TerracottaTemplate } from "./TerracottaTemplate";
+import { NoirTemplate } from "./NoirTemplate";
 
 export interface TemplateMeta {
   id: string;
