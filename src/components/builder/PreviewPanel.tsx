@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { ResumeData } from "@/types/resume";
 import { TEMPLATES } from "@/components/templates/registry";
 import { ResumeRenderer } from "@/components/templates/ResumeRenderer";
-import { PDFDownloadButton } from "@/lib/pdf/PDFDownloadButton";
+const PDFDownloadButton = lazy(() =>
+  import("@/lib/pdf/PDFDownloadButton").then((m) => ({ default: m.PDFDownloadButton }))
+);
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -118,13 +120,15 @@ export function PreviewPanel({ data, onTemplateChange }: Props) {
               </Tooltip>
             </TooltipProvider>
 
-            {/* ATS-safe PDF download */}
-            <PDFDownloadButton
-              data={data}
-              variant="default"
-              size="sm"
-              className="ml-1"
-            />
+            {/* ATS-safe PDF download — lazy-loaded to avoid SSR issues */}
+            <Suspense fallback={null}>
+              <PDFDownloadButton
+                data={data}
+                variant="default"
+                size="sm"
+                className="ml-1"
+              />
+            </Suspense>
           </div>
         </div>
 

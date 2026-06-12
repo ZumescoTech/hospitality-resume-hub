@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -25,6 +25,15 @@ jobs:
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: cab0badf554c2a6e5d4f09a5587cc937
+
+      - name: Set Worker secrets
+        run: |
+          echo "${{ secrets.ANTHROPIC_API_KEY }}" | npx wrangler secret put ANTHROPIC_API_KEY --name hospitality-resume-hub
+          echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name hospitality-resume-hub
+          echo "${{ secrets.GOOGLE_SHEETS_LEAD_WEBHOOK_URL }}" | npx wrangler secret put GOOGLE_SHEETS_LEAD_WEBHOOK_URL --name hospitality-resume-hub
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: cab0badf554c2a6e5d4f09a5587cc937
