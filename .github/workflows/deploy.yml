@@ -23,8 +23,8 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy .output/public --project-name hospitality-resume-hub --branch main --commit-dirty=true
+      - name: Deploy to Cloudflare Workers
+        run: npx wrangler deploy --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: cab0badf554c2a6e5d4f09a5587cc937

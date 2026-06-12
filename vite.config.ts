@@ -6,8 +6,8 @@ import tsConfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
   plugins: [
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tanstackStart(),
+    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
     tsConfigPaths({ projects: ['./tsconfig.json'] }),
   ],
