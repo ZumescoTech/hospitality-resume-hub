@@ -8,14 +8,50 @@ interface Props {
   name?: string;
 }
 
+/** Max dimension (px) for stored profile photo. Keeps data URL under ~30 KB. */
+const MAX_PX = 400;
+
+/**
+ * Resize an image file to MAX_PX × MAX_PX (preserving aspect ratio) and
+ * return a JPEG data URL at 85% quality. This prevents localStorage quota
+ * errors when users upload high-resolution photos.
+ */
+function resizeToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, MAX_PX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not supported")); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = reject;
+    img.src = objectUrl;
+  });
+}
+
 export function PhotoUpload({ value, onChange, name }: Props) {
   const input = useRef<HTMLInputElement>(null);
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await resizeToDataUrl(file);
+      onChange(dataUrl);
+    } catch {
+      // Fallback: read as-is (rare canvas failure)
+      const reader = new FileReader();
+      reader.onload = () => onChange(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const initials = (name ?? "")

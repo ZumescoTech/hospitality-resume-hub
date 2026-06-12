@@ -30,14 +30,14 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Plate & Pen — Hospitality CV Studio" },
+      { name: "description", content: "Build a beautiful, ATS-optimised CV tailored for hospitality professionals — waiters, sommeliers, bartenders and chefs. Live preview, 11 editorial templates, PDF export." },
+      { name: "author", content: "Plate & Pen" },
+      { property: "og:title", content: "Plate & Pen — Hospitality CV Studio" },
+      { property: "og:description", content: "The resume builder built for hospitality. Live preview, 11 templates, PDF export." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@plateandpen" },
     ],
     links: [
       {

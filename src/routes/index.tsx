@@ -11,8 +11,9 @@ import { EducationSection } from "@/components/builder/sections/EducationSection
 import { SkillsSection } from "@/components/builder/sections/SkillsSection";
 import { CertificationsSection } from "@/components/builder/sections/CertificationsSection";
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
+import { PDFDownloadButton } from "@/lib/pdf/PDFDownloadButton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Download, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -44,12 +45,13 @@ const STEPS = [
 ];
 
 function BuilderPage() {
-  const { data, setData, reset, loadSample, hydrated } = useResumeStore();
+  const { data, setData, reset, loadSample, hydrated, syncing, resumeId } = useResumeStore();
   const [step, setStep] = useState(0);
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
 
   const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
 
+  /** Backup export — downloads the raw JSON for data portability. */
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -58,7 +60,7 @@ function BuilderPage() {
     a.download = `${(data.personal.fullName || "resume").replace(/\s+/g, "_")}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Resume JSON downloaded");
+    toast.success("Resume data exported as JSON");
   };
 
   const sectionProps = { data, onChange: onPatch };
@@ -101,9 +103,12 @@ function BuilderPage() {
             <Button variant="ghost" size="sm" onClick={() => { reset(); toast.message("Cleared"); }} className="hidden sm:inline-flex">
               <RefreshCw className="mr-2 h-4 w-4" /> Reset
             </Button>
-            <Button variant="default" size="sm" onClick={downloadJSON}>
-              <Download className="mr-2 h-4 w-4" /> Export JSON
+            {/* JSON export — secondary / data backup */}
+            <Button variant="outline" size="sm" onClick={downloadJSON} className="hidden md:inline-flex">
+              JSON
             </Button>
+            {/* Primary CTA: ATS-safe PDF download */}
+            <PDFDownloadButton data={data} variant="default" size="sm" />
           </div>
         </div>
       </header>
@@ -135,9 +140,16 @@ function BuilderPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Fill in each section. The preview updates as you type.
               </p>
-              <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
-                <Check className="h-3 w-3" /> Auto-saved locally
-              </span>
+              {syncing ? (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+                </span>
+              ) : (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                  {resumeId ? <Cloud className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                  {resumeId ? "Saved to cloud" : "Auto-saved locally"}
+                </span>
+              )}
             </div>
 
             <StepProgress steps={STEPS} current={step} onJump={setStep} />

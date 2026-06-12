@@ -83,7 +83,7 @@ export const emptyResume: ResumeData = {
     allergens: false,
     foodSafety: "",
   },
-  templateId: "bistro",
+  templateId: "classic",
 };
 
 export const sampleResume: ResumeData = {

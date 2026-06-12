@@ -1,4 +1,5 @@
 import { ResumeData } from "@/types/resume";
+import { ClassicTemplate } from "./ClassicTemplate";
 import { ClaretTemplate } from "./ClaretTemplate";
 import { BistroTemplate } from "./BistroTemplate";
 import { ManhattanTemplate } from "./ManhattanTemplate";
@@ -15,10 +16,12 @@ export interface TemplateMeta {
   name: string;
   description: string;
   swatch: [string, string];
-  Component: React.ComponentType<{ data: ResumeData }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Component: (props: { data: ResumeData }) => any;
 }
 
 export const TEMPLATES: TemplateMeta[] = [
+  { id: "classic", name: "Classic", description: "Clean two-column professional", swatch: ["#1a1a2e", "#2563eb"], Component: ClassicTemplate },
   { id: "bistro", name: "Classic Professional", description: "For waiters & front-of-house", swatch: ["#2a2218", "#a07b3c"], Component: BistroTemplate },
   { id: "tokyo", name: "Modern Minimal", description: "For bartenders & mixologists", swatch: ["#111111", "#e7e3dc"], Component: TokyoTemplate },
   { id: "cellar", name: "Elegant Sommelier", description: "Wine-focused roles", swatch: ["#241016", "#a0743a"], Component: CellarTemplate },
