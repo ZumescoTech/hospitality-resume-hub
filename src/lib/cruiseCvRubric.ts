@@ -36,14 +36,6 @@ export const GENERAL_RUBRIC_CATEGORIES = [
       "even to an experienced hospitality candidate.",
   },
   {
-    id: "certifications",
-    name: "Seafarer Certifications",
-    check:
-      "Does the CV mention STCW Basic Safety Training, ENG1 Medical Certificate, and/or Seaman's " +
-      "Discharge Book status? Cross-reference against the role-specific 'certifications' list below — " +
-      "flag any commonly-required certs that are missing.",
-  },
-  {
     id: "photo",
     name: "Professional Photo",
     check:
@@ -57,27 +49,6 @@ export const GENERAL_RUBRIC_CATEGORIES = [
       "For each past role, does the CV give scale/context a recruiter unfamiliar with the employer " +
       "would need — e.g. covers per service, number of rooms/beds, star rating, type of service " +
       "(plate/silver service)? Generic 'Worked as a waiter at X' with no context is a red flag.",
-  },
-  {
-    id: "languages",
-    name: "Language Proficiency",
-    check:
-      "Are languages listed with proficiency levels (fluent/intermediate/basic)? Compare against the " +
-      "role's language requirements below.",
-  },
-  {
-    id: "cover_letter",
-    name: "Cover Letter",
-    check:
-      "Was a cover letter provided alongside the CV? Many cruise recruiters reject on a missing or " +
-      "weak cover letter even when the CV itself is strong.",
-  },
-  {
-    id: "availability_statement",
-    name: "Contract Availability Statement",
-    check:
-      "Does the CV state availability for long contracts (e.g. 6-9 months) and willingness to share " +
-      "a cabin? Absence of this is a minor but common gap.",
   },
   {
     id: "structure_length",

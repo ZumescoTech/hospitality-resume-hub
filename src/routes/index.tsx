@@ -446,16 +446,12 @@ function LandingPage() {
 
                 {/* Right — categories list */}
                 <div className="bg-primary/5 border-l border-border p-10 lg:p-14 flex flex-col justify-center">
-                  <p className="text-xs font-semibold text-accent uppercase tracking-[0.2em] mb-5">9 categories checked</p>
+                  <p className="text-xs font-semibold text-accent uppercase tracking-[0.2em] mb-5">5 categories checked</p>
                   <ul className="space-y-2.5">
                     {[
                       "Personal information block",
-                      "STCW & seafarer certifications",
                       "Professional photo",
                       "Quantified experience",
-                      "Language proficiency",
-                      "Cover letter",
-                      "Contract availability",
                       "Structure & length",
                       "Role keyword match",
                     ].map((cat) => (
