@@ -2,7 +2,6 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -155,7 +154,6 @@ function CategoryRow({ cat }: { cat: CvCheckCategoryResult }) {
 function CruiseCvCheckerPage() {
   const [cvText, setCvText] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
-  const [jobAdText, setJobAdText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvCheckResult | null>(null);
   const [email, setEmail] = useState('');
@@ -194,7 +192,7 @@ function CruiseCvCheckerPage() {
     setFullReportUnlocked(false);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug, jobAdText: jobAdText.trim() || undefined } } as any);
+      const data = await checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug } } as any);
       setResult(data);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
@@ -301,21 +299,6 @@ function CruiseCvCheckerPage() {
                 accept=".txt,.text,.docx,.pdf"
                 className="hidden"
                 onChange={handleFileChange}
-              />
-            </div>
-
-            {/* Optional job ad */}
-            <div className="space-y-1.5">
-              <Label htmlFor="jobAd" className="text-sm font-medium text-foreground">
-                Specific job ad <span className="text-muted-foreground font-normal">(optional — improves accuracy)</span>
-              </Label>
-              <Textarea
-                id="jobAd"
-                value={jobAdText}
-                onChange={(e) => setJobAdText(e.target.value)}
-                placeholder="Paste the job ad text here…"
-                rows={4}
-                className="resize-none text-sm"
               />
             </div>
 
