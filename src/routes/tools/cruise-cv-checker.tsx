@@ -282,7 +282,7 @@ function CruiseCvCheckerPage() {
               <Label htmlFor="cvText" className="text-sm font-medium text-foreground">
                 Your CV text <span className="text-destructive">*</span>
               </Label>
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
@@ -291,7 +291,9 @@ function CruiseCvCheckerPage() {
                   <Upload className="h-3.5 w-3.5" />
                   Upload CV (.pdf, .docx, .txt)
                 </button>
-                <span className="text-xs text-muted-foreground">or paste below</span>
+                {cvText && (
+                  <span className="text-xs text-muted-foreground">CV loaded ✓</span>
+                )}
               </div>
               <input
                 ref={fileRef}
@@ -300,17 +302,6 @@ function CruiseCvCheckerPage() {
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <Textarea
-                id="cvText"
-                value={cvText}
-                onChange={(e) => setCvText(e.target.value)}
-                placeholder="Paste your full CV here — personal details, work history, certifications, languages…"
-                rows={10}
-                className="resize-none text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                For PDF/DOCX: open in your editor, select all, copy, paste above.
-              </p>
             </div>
 
             {/* Optional job ad */}
