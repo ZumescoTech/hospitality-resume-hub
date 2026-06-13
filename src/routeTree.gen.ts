@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BuilderRouteImport } from './routes/builder'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToolsCruiseCvCheckerRouteImport } from './routes/tools/cruise-cv-checker'
 
@@ -25,9 +27,19 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuilderRoute = BuilderRouteImport.update({
+  id: '/builder',
+  path: '/builder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,14 +55,18 @@ const ToolsCruiseCvCheckerRoute = ToolsCruiseCvCheckerRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/builder': typeof BuilderRoute
   '/dashboard': typeof DashboardRoute
+  '/landing': typeof LandingRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/tools/cruise-cv-checker': typeof ToolsCruiseCvCheckerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/builder': typeof BuilderRoute
   '/dashboard': typeof DashboardRoute
+  '/landing': typeof LandingRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/tools/cruise-cv-checker': typeof ToolsCruiseCvCheckerRoute
@@ -58,7 +74,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/builder': typeof BuilderRoute
   '/dashboard': typeof DashboardRoute
+  '/landing': typeof LandingRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/tools/cruise-cv-checker': typeof ToolsCruiseCvCheckerRoute
@@ -67,16 +85,27 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/builder'
     | '/dashboard'
+    | '/landing'
     | '/sign-in'
     | '/sign-up'
     | '/tools/cruise-cv-checker'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/sign-in' | '/sign-up' | '/tools/cruise-cv-checker'
+  to:
+    | '/'
+    | '/builder'
+    | '/dashboard'
+    | '/landing'
+    | '/sign-in'
+    | '/sign-up'
+    | '/tools/cruise-cv-checker'
   id:
     | '__root__'
     | '/'
+    | '/builder'
     | '/dashboard'
+    | '/landing'
     | '/sign-in'
     | '/sign-up'
     | '/tools/cruise-cv-checker'
@@ -84,7 +113,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BuilderRoute: typeof BuilderRoute
   DashboardRoute: typeof DashboardRoute
+  LandingRoute: typeof LandingRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ToolsCruiseCvCheckerRoute: typeof ToolsCruiseCvCheckerRoute
@@ -106,11 +137,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/builder': {
+      id: '/builder'
+      path: '/builder'
+      fullPath: '/builder'
+      preLoaderRoute: typeof BuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -132,7 +177,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BuilderRoute: BuilderRoute,
   DashboardRoute: DashboardRoute,
+  LandingRoute: LandingRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ToolsCruiseCvCheckerRoute: ToolsCruiseCvCheckerRoute,
