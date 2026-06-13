@@ -132,7 +132,13 @@ function LandingPage() {
                 Build CV
               </Link>
               <Link
-                to="/builder"
+                to="/tools/cruise-cv-checker"
+                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
+              >
+                CV Checker
+              </Link>
+              <Link
+                to="/tools/cruise-cv-checker"
                 className="btn-wine inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold"
               >
                 Check My CV Free
@@ -173,7 +179,7 @@ function LandingPage() {
 
               <div className="anim-fade-up-d2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <Link
-                  to="/builder"
+                  to="/tools/cruise-cv-checker"
                   className="btn-brass inline-flex items-center gap-2 px-8 py-4 rounded-full text-base font-semibold"
                 >
                   Check My CV Free
@@ -389,6 +395,85 @@ function LandingPage() {
           </div>
         </section>
 
+        {/* ── CV CHECKER CTA ───────────────────────────────── */}
+        <section className="bg-background py-24 px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-muted border border-border rounded-3xl overflow-hidden">
+              <div className="grid md:grid-cols-2 gap-0">
+                {/* Left — copy */}
+                <div className="p-10 lg:p-14">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-8 h-0.5 bg-accent" />
+                    <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">Free Tool</span>
+                  </div>
+                  <h2 className="font-display text-[clamp(1.8rem,3.5vw,2.8rem)] font-bold text-foreground leading-tight mb-4">
+                    See exactly where your CV fails — before you apply.
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed mb-8">
+                    Paste your CV, select your role, get an instant AI score against real cruise recruiter criteria.
+                    No account. No credit card. Results in under 60 seconds.
+                  </p>
+
+                  {/* What you get free */}
+                  <ul className="space-y-3 mb-10">
+                    {[
+                      "Overall ATS score (0–100)",
+                      "Risk level — High / Medium / Low",
+                      "Your top 2–4 rejection triggers",
+                      "Full category breakdown (email unlock)",
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-center gap-3 text-sm text-foreground">
+                        <span className="w-5 h-5 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                            <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link
+                    to="/tools/cruise-cv-checker"
+                    className="btn-wine inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold"
+                  >
+                    Check My CV — It&apos;s Free
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </Link>
+                </div>
+
+                {/* Right — categories list */}
+                <div className="bg-primary/5 border-l border-border p-10 lg:p-14 flex flex-col justify-center">
+                  <p className="text-xs font-semibold text-accent uppercase tracking-[0.2em] mb-5">9 categories checked</p>
+                  <ul className="space-y-2.5">
+                    {[
+                      "Personal information block",
+                      "STCW & seafarer certifications",
+                      "Professional photo",
+                      "Quantified experience",
+                      "Language proficiency",
+                      "Cover letter",
+                      "Contract availability",
+                      "Structure & length",
+                      "Role keyword match",
+                    ].map((cat) => (
+                      <li key={cat} className="flex items-center gap-2.5 text-sm text-foreground/70">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
+                        {cat}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-6 text-xs text-muted-foreground">
+                    Covers 13 cruise ship roles including waiter, bartender, cabin steward, chef, spa therapist and more.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── FINAL CTA ────────────────────────────────────── */}
         <section className="wine-section relative py-28 px-6 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--color-accent)/10_0%,_transparent_70%)] pointer-events-none" />
@@ -409,7 +494,7 @@ function LandingPage() {
             </p>
 
             <Link
-              to="/builder"
+              to="/tools/cruise-cv-checker"
               className="btn-brass inline-flex items-center gap-3 px-10 py-5 rounded-full text-lg font-semibold mb-6"
             >
               Check My CV — It&apos;s Free
@@ -452,6 +537,9 @@ function LandingPage() {
               Built for cruise ship &amp; luxury hospitality professionals.
             </p>
             <div className="flex items-center gap-6 text-sm text-cream/40">
+              <Link to="/tools/cruise-cv-checker" className="hover:text-cream/70 transition-colors">
+                CV Checker
+              </Link>
               <Link to="/builder" className="hover:text-cream/70 transition-colors">
                 Builder
               </Link>
