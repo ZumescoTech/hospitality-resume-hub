@@ -454,6 +454,7 @@ function LandingPage() {
                       "Quantified experience",
                       "Structure & length",
                       "Role keyword match",
+                      "Job ad match (optional)",
                     ].map((cat) => (
                       <li key={cat} className="flex items-center gap-2.5 text-sm text-foreground/70">
                         <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
