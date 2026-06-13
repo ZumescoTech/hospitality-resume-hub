@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { checkCruiseCv, saveCvLead, getRoleOptions } from '@/lib/cruise-cv-check';
 import type { CvCheckResult, CvCheckCategoryResult } from '@/lib/cruiseCvRubric';
+import { extractTextFromFile } from '@/lib/extractCvText';
 
 export const Route = createFileRoute('/tools/cruise-cv-checker')({
   head: () => ({
@@ -164,15 +165,17 @@ function CruiseCvCheckerPage() {
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.slug === roleSlug);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setCvText((ev.target?.result as string) ?? '');
-      reader.readAsText(file);
-    } else {
-      toast.info('For PDF or DOCX files, please copy and paste your CV text into the box below.');
+    try {
+      const text = await extractTextFromFile(file);
+      setCvText(text);
+      toast.success('CV text extracted successfully.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not read this file.');
+      // Reset the input so the same file can be retried after fixing it
+      e.target.value = '';
     }
   }
 
@@ -286,14 +289,14 @@ function CruiseCvCheckerPage() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent/10 hover:text-foreground hover:border-accent/40 transition-colors"
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  Upload .txt file
+                  Upload CV (.pdf, .docx, .txt)
                 </button>
                 <span className="text-xs text-muted-foreground">or paste below</span>
               </div>
               <input
                 ref={fileRef}
                 type="file"
-                accept=".txt,.text"
+                accept=".txt,.text,.docx,.pdf"
                 className="hidden"
                 onChange={handleFileChange}
               />
