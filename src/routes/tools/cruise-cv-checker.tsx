@@ -3,6 +3,7 @@ import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -172,6 +173,7 @@ function CategoryScoreRow({
 function CruiseCvCheckerPage() {
   const [cvText, setCvText] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvScoreResult | null>(null);
   const [email, setEmail] = useState('');
@@ -209,7 +211,7 @@ function CruiseCvCheckerPage() {
     setFullReportUnlocked(false);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug } } as any);
+      const data = await checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any);
       setResult(data);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
@@ -324,6 +326,24 @@ function CruiseCvCheckerPage() {
                 className="hidden"
                 onChange={handleFileChange}
               />
+            </div>
+
+            {/* Job description (optional) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="jobDesc" className="text-sm font-medium text-foreground">
+                Job description <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Textarea
+                id="jobDesc"
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Paste the job description here to improve keyword matching accuracy for this specific role…"
+                rows={4}
+                className="resize-none text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                If pasted, any skills mentioned in the job ad that appear in your CV will be highlighted as matched keywords.
+              </p>
             </div>
 
             <Button

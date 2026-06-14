@@ -81,6 +81,7 @@ export interface BuildPromptInput {
   matchedKeywords: string[];
   missingKeywords: string[];
   matchRatio: number;
+  jobDescription?: string;
 }
 
 export function buildCvCheckPrompt({
@@ -90,6 +91,7 @@ export function buildCvCheckPrompt({
   matchedKeywords,
   missingKeywords,
   matchRatio,
+  jobDescription,
 }: BuildPromptInput): { system: string; user: string } {
   const system = `You are an expert cruise ship hotel-department recruiter scoring a CV for the role of "${role.role}".
 
@@ -144,7 +146,12 @@ Suspect garbled/merged text: ${signals.suspectGarbledText ? 'YES — may affect 
 ${cvText.slice(0, 6000)}
 """
 
-Score this CV now.`;
+${jobDescription?.trim() ? `--- SPECIFIC JOB DESCRIPTION (use to inform keywordAlignment context) ---
+"""
+${jobDescription.trim().slice(0, 1500)}
+"""
+
+` : ''}Score this CV now.`;
 
   return { system, user };
 }

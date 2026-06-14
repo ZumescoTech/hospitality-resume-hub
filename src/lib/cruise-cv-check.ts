@@ -16,6 +16,7 @@ const rolesData = cruiseRolesRaw as CruiseRolesData;
 const CvCheckSchema = z.object({
   cvText: z.string().min(50, 'CV text must be at least 50 characters'),
   roleSlug: z.string().min(1, 'Role is required'),
+  jobDescription: z.string().optional(),
 });
 
 const SaveLeadSchema = z.object({
@@ -49,6 +50,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const { matchedKeywords, missingKeywords, matchRatio } = scoreKeywordAlignment(
     parsed.cvText,
     role.keywords,
+    parsed.jobDescription,
   );
 
   // 3. Build prompt
@@ -59,6 +61,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     matchedKeywords,
     missingKeywords,
     matchRatio,
+    jobDescription: parsed.jobDescription,
   });
 
   // 4. Call Groq
