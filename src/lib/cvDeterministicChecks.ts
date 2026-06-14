@@ -2,6 +2,23 @@
 // Pure functions for extracting structured signals from CV text.
 // Run server-side before the LLM call; results feed into the prompt as context.
 
+// @ts-ignore — JSON import
+import SYNONYM_GROUPS from '@/data/hospitality-synonyms.json';
+
+// Build a map: lowercase term → all other terms in its synonym group (lowercase)
+function buildSynonymMap(groups: string[][]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const group of groups) {
+    const lower = group.map((t) => t.toLowerCase());
+    for (const term of lower) {
+      map.set(term, lower.filter((t) => t !== term));
+    }
+  }
+  return map;
+}
+
+const SYNONYM_MAP = buildSynonymMap(SYNONYM_GROUPS as string[][]);
+
 export interface DeterministicSignals {
   hasContactInfo: boolean;
   hasSummarySection: boolean;
@@ -55,7 +72,18 @@ export function scoreKeywordAlignment(
   const missing: string[] = [];
 
   for (const kw of roleKeywords) {
-    (lower.includes(kw.toLowerCase()) ? matched : missing).push(kw);
+    const kwLower = kw.toLowerCase();
+    if (lower.includes(kwLower)) {
+      // Direct match
+      matched.push(kw);
+    } else {
+      // Synonym match: check if any synonym from the same group appears in the CV.
+      // Always use the original role keyword (not the synonym) in the returned list,
+      // so the UI shows terms in the role's expected language.
+      const synonyms = SYNONYM_MAP.get(kwLower) ?? [];
+      const hasSynonymMatch = synonyms.some((s) => lower.includes(s));
+      (hasSynonymMatch ? matched : missing).push(kw);
+    }
   }
 
   const matchRatio = roleKeywords.length > 0 ? matched.length / roleKeywords.length : 0;
