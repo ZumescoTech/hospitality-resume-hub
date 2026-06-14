@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useResumeStore } from "@/lib/resume-store";
 import { ResumeData } from "@/types/resume";
 import { Section } from "@/components/builder/Section";
@@ -12,8 +12,10 @@ import { SkillsSection } from "@/components/builder/sections/SkillsSection";
 import { CertificationsSection } from "@/components/builder/sections/CertificationsSection";
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud } from "lucide-react";
+import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { extractTextFromFile } from "@/lib/extractCvText";
+import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
 
 export const Route = createFileRoute("/builder")({
   head: () => ({
@@ -47,6 +49,39 @@ function BuilderPage() {
   const { data, setData, reset, loadSample, hydrated, syncing, resumeId } = useResumeStore();
   const [step, setStep] = useState(0);
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
+  const [importing, setImporting] = useState(false);
+  const [importedFile, setImportedFile] = useState<string | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleImportCv(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so re-uploading same file triggers onChange
+    e.target.value = "";
+
+    // Warn if user has real work in progress (not just sample/empty state)
+    if (data.personal.fullName && !window.confirm(
+      "Importing a CV will replace your current builder content. Continue?"
+    )) return;
+
+    setImporting(true);
+    setImportedFile(null);
+    try {
+      const cvText = await extractTextFromFile(file);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = await parseCvForBuilder({ data: { cvText } } as any);
+      // Preserve current template selection
+      setData({ ...parsed, templateId: data.templateId });
+      setImportedFile(file.name);
+      setStep(0);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not read this file — please try a .docx or .txt version.");
+      // Fall back to empty rather than leaving sample data
+      setData({ ...data });
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
 
@@ -96,6 +131,26 @@ function BuilderPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => importFileRef.current?.click()}
+              disabled={importing}
+              className="hidden sm:inline-flex"
+            >
+              {importing ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reading CV…</>
+              ) : (
+                <><Upload className="mr-2 h-4 w-4" /> Import CV</>
+              )}
+            </Button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".txt,.text,.docx,.pdf"
+              className="hidden"
+              onChange={handleImportCv}
+            />
             <Button variant="ghost" size="sm" onClick={loadSample} className="hidden sm:inline-flex">
               <Sparkles className="mr-2 h-4 w-4" /> Sample
             </Button>
@@ -137,6 +192,23 @@ function BuilderPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Fill in each section. The preview updates as you type.
               </p>
+              {importedFile && (
+                <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm text-foreground">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span className="flex-1">
+                    <span className="font-medium">CV imported from {importedFile}.</span>{" "}
+                    Review each section and edit as needed — some fields may need manual entry.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setImportedFile(null)}
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               {syncing ? (
                 <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" /> Saving…
