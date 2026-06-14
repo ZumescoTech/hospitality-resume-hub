@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useMemo, useState } from "react";
 import { useResumeStore } from "@/lib/resume-store";
 import { ResumeData } from "@/types/resume";
 import { Section } from "@/components/builder/Section";
@@ -11,9 +11,6 @@ import { EducationSection } from "@/components/builder/sections/EducationSection
 import { SkillsSection } from "@/components/builder/sections/SkillsSection";
 import { CertificationsSection } from "@/components/builder/sections/CertificationsSection";
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
-const PDFDownloadButton = lazy(() =>
-  import("@/lib/pdf/PDFDownloadButton").then((m) => ({ default: m.PDFDownloadButton }))
-);
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud } from "lucide-react";
 import { toast } from "sonner";
@@ -109,10 +106,6 @@ function BuilderPage() {
             <Button variant="outline" size="sm" onClick={downloadJSON} className="hidden md:inline-flex">
               JSON
             </Button>
-            {/* Primary CTA: ATS-safe PDF download — lazy-loaded to avoid SSR issues */}
-            <Suspense fallback={null}>
-              <PDFDownloadButton data={data} variant="default" size="sm" />
-            </Suspense>
           </div>
         </div>
       </header>
