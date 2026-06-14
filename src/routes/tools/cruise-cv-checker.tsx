@@ -13,19 +13,19 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
   Upload,
   Loader2,
   Anchor,
   ArrowRight,
   ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { checkCruiseCv, saveCvLead, getRoleOptions } from '@/lib/cruise-cv-check';
-import type { CvCheckResult, CvCheckCategoryResult } from '@/lib/cruiseCvRubric';
+import type { CvScoreResult, CategoryKey } from '@/lib/cruiseCvRubric';
+import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
 
 export const Route = createFileRoute('/tools/cruise-cv-checker')({
@@ -61,13 +61,14 @@ function ScoreGauge({ score }: { score: number }) {
       ? ''
       : `M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${fillX} ${fillY}`;
 
-  // Use design token colors via CSS variables
   const color =
-    score >= 70
+    score >= 85
       ? 'var(--color-brass)'
-      : score >= 40
-        ? 'oklch(0.72 0.18 70)'
-        : 'var(--color-destructive)';
+      : score >= 70
+        ? 'var(--color-brass)'
+        : score >= 50
+          ? 'oklch(0.72 0.18 70)'
+          : 'var(--color-destructive)';
 
   return (
     <svg width="160" height="95" viewBox="0 0 160 95" aria-label={`Score: ${score} out of 100`}>
@@ -85,49 +86,72 @@ function ScoreGauge({ score }: { score: number }) {
   );
 }
 
-// ─── Risk badge ────────────────────────────────────────────────────────────────
+// ─── Tier badge ────────────────────────────────────────────────────────────────
 
-function RiskBadge({ level }: { level: 'high' | 'medium' | 'low' }) {
-  const map = {
-    high: { label: 'High Risk', cls: 'bg-destructive/10 text-destructive border-destructive/20' },
-    medium: { label: 'Medium Risk', cls: 'bg-accent/10 text-accent border-accent/20' },
-    low: { label: 'Low Risk', cls: 'bg-primary/10 text-primary border-primary/20' },
+function TierBadge({ tier }: { tier: CvScoreResult['tier'] }) {
+  const map: Record<CvScoreResult['tier'], { cls: string }> = {
+    Strong:      { cls: 'bg-primary/10 text-primary border-primary/20' },
+    Good:        { cls: 'bg-primary/10 text-primary border-primary/20' },
+    'Needs Work':{ cls: 'bg-accent/10 text-accent border-accent/20' },
+    'Major Gaps':{ cls: 'bg-destructive/10 text-destructive border-destructive/20' },
   };
-  const { label, cls } = map[level];
+  const { cls } = map[tier];
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold', cls)}>
       <ShieldCheck className="h-3.5 w-3.5" />
-      {label}
+      {tier}
     </span>
   );
 }
 
-// ─── Category row ──────────────────────────────────────────────────────────────
+// ─── Category score row ────────────────────────────────────────────────────────
 
-function CategoryRow({ cat }: { cat: CvCheckCategoryResult }) {
+function CategoryScoreRow({
+  categoryKey,
+  score,
+  weight,
+  feedback,
+}: {
+  categoryKey: CategoryKey;
+  score: number;
+  weight: number;
+  feedback: string;
+}) {
   const [open, setOpen] = useState(false);
 
-  const icons = {
-    pass: <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />,
-    warning: <AlertTriangle className="h-5 w-5 text-accent shrink-0" />,
-    fail: <XCircle className="h-5 w-5 text-destructive shrink-0" />,
-  };
-
-  const borders = {
-    pass: 'border-primary/20',
-    warning: 'border-accent/30',
-    fail: 'border-destructive/20',
-  };
+  const barColor =
+    score >= 70
+      ? 'bg-primary'
+      : score >= 50
+        ? 'bg-accent'
+        : 'bg-destructive';
 
   return (
-    <div className={cn('rounded-xl border bg-card', borders[cat.status])}>
+    <div className="rounded-xl border border-border bg-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
       >
-        {icons[cat.status]}
-        <span className="flex-1 text-sm font-medium text-foreground">{cat.name}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-sm font-medium text-foreground">
+              {CATEGORY_LABELS[categoryKey]}
+            </span>
+            <div className="flex items-center gap-2 shrink-0 ml-3">
+              <span className="text-xs text-muted-foreground">
+                {Math.round(weight * 100)}% weight
+              </span>
+              <span className="text-sm font-bold text-foreground w-8 text-right">{score}</span>
+            </div>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-border">
+            <div
+              className={cn('h-1.5 rounded-full transition-all', barColor)}
+              style={{ width: `${score}%` }}
+            />
+          </div>
+        </div>
         {open ? (
           <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
         ) : (
@@ -135,14 +159,8 @@ function CategoryRow({ cat }: { cat: CvCheckCategoryResult }) {
         )}
       </button>
       {open && (
-        <div className="border-t border-border px-4 py-3 space-y-2">
-          <p className="text-sm text-muted-foreground">{cat.feedback}</p>
-          {cat.status !== 'pass' && (
-            <div className="rounded-lg bg-primary/5 border border-primary/15 px-3 py-2.5">
-              <p className="text-xs font-semibold text-primary mb-1 uppercase tracking-wide">How to fix</p>
-              <p className="text-sm text-foreground">{cat.fix}</p>
-            </div>
-          )}
+        <div className="border-t border-border px-4 py-3">
+          <p className="text-sm text-muted-foreground">{feedback}</p>
         </div>
       )}
     </div>
@@ -155,7 +173,7 @@ function CruiseCvCheckerPage() {
   const [cvText, setCvText] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<CvCheckResult | null>(null);
+  const [result, setResult] = useState<CvScoreResult | null>(null);
   const [email, setEmail] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [fullReportUnlocked, setFullReportUnlocked] = useState(false);
@@ -172,7 +190,6 @@ function CruiseCvCheckerPage() {
       toast.success('CV text extracted successfully.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not read this file.');
-      // Reset the input so the same file can be retried after fixing it
       e.target.value = '';
     }
   }
@@ -207,7 +224,7 @@ function CruiseCvCheckerPage() {
     setEmailSubmitting(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await saveCvLead({ data: { email, roleSlug, overall_score: result.overall_score, risk_level: result.risk_level, top_issues: result.top_issues, categories: result.categories } } as any);
+      await saveCvLead({ data: { email, roleSlug, overallScore: result.overallScore, tier: result.tier, topFixes: result.topFixes } } as any);
       setFullReportUnlocked(true);
       toast.success('Full report unlocked!');
     } catch {
@@ -216,6 +233,13 @@ function CruiseCvCheckerPage() {
       setEmailSubmitting(false);
     }
   }
+
+  const tierSummary: Record<CvScoreResult['tier'], string> = {
+    Strong: 'Strong CV — a few final tweaks and you\'re ready to apply.',
+    Good: 'Good CV — address the gaps below to strengthen your application.',
+    'Needs Work': 'Your CV needs work before it will pass cruise recruiter screening.',
+    'Major Gaps': 'Your CV has critical gaps that will likely cause instant rejection.',
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -275,10 +299,10 @@ function CruiseCvCheckerPage() {
               </Select>
             </div>
 
-            {/* CV text */}
+            {/* CV upload */}
             <div className="space-y-1.5">
               <Label htmlFor="cvText" className="text-sm font-medium text-foreground">
-                Your CV text <span className="text-destructive">*</span>
+                Your CV <span className="text-destructive">*</span>
               </Label>
               <div className="flex items-center gap-2">
                 <button
@@ -334,27 +358,23 @@ function CruiseCvCheckerPage() {
             <div className="rounded-2xl bg-card border border-border shadow-soft p-6">
               <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
                 <div className="flex flex-col items-center gap-2">
-                  <ScoreGauge score={result.overall_score} />
-                  <RiskBadge level={result.risk_level} />
+                  <ScoreGauge score={result.overallScore} />
+                  <TierBadge tier={result.tier} />
                 </div>
                 <div className="flex-1">
                   <h2 className="font-display text-xl font-bold text-foreground mb-1">
                     {selectedRole?.label ?? 'CV'} Analysis
                   </h2>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {result.overall_score >= 70
-                      ? 'Strong CV — a few tweaks and you\'re ready to apply.'
-                      : result.overall_score >= 40
-                        ? 'Your CV needs work before it will pass cruise recruiter screening.'
-                        : 'Your CV has critical gaps that will likely cause instant rejection.'}
+                    {tierSummary[result.tier]}
                   </p>
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Top issues</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Top 2 fixes</p>
                     <ul className="space-y-1.5">
-                      {result.top_issues.map((issue, i) => (
+                      {result.topFixes.map((fix, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-foreground">
                           <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                          {issue}
+                          {fix}
                         </li>
                       ))}
                     </ul>
@@ -373,7 +393,7 @@ function CruiseCvCheckerPage() {
                   See Your Full Breakdown
                 </h3>
                 <p className="text-sm text-primary-foreground/70 mb-5">
-                  Enter your email to unlock the detailed category-by-category report with specific fixes for each issue.
+                  Enter your email to unlock the detailed category-by-category report with your keyword matches.
                 </p>
                 <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
                   <Input
@@ -395,13 +415,56 @@ function CruiseCvCheckerPage() {
                 <p className="mt-2 text-xs text-primary-foreground/40">No spam. Unsubscribe any time.</p>
               </div>
             ) : (
-              <div className="space-y-2.5">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">
-                  Detailed Breakdown
-                </h3>
-                {result.categories.map((cat) => (
-                  <CategoryRow key={cat.id} cat={cat} />
-                ))}
+              <div className="space-y-4">
+                {/* Category breakdown */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">
+                    Score Breakdown
+                  </h3>
+                  {(Object.keys(CATEGORY_WEIGHTS) as CategoryKey[]).map((key) => (
+                    <CategoryScoreRow
+                      key={key}
+                      categoryKey={key}
+                      score={result.categories[key].score}
+                      weight={result.categories[key].weight}
+                      feedback={result.categories[key].feedback}
+                    />
+                  ))}
+                </div>
+
+                {/* Keyword lists */}
+                {(result.matchedKeywords.length > 0 || result.missingKeywords.length > 0) && (
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                      Role Keywords
+                    </h3>
+                    {result.missingKeywords.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-destructive mb-1.5">Missing from your CV</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {result.missingKeywords.map((kw) => (
+                            <span key={kw} className="rounded-md bg-destructive/8 border border-destructive/20 px-2 py-0.5 text-xs text-destructive">
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {result.matchedKeywords.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-primary mb-1.5">Found in your CV</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {result.matchedKeywords.slice(0, 15).map((kw) => (
+                            <span key={kw} className="inline-flex items-center gap-1 rounded-md bg-primary/8 border border-primary/20 px-2 py-0.5 text-xs text-primary">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

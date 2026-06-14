@@ -1,11 +1,10 @@
 // cruiseCvRubric.ts
-//
-// Combines the general "cruise hotel CV" rubric (things that apply to every
-// hotel-department role) with the per-role reference data scraped into
-// cruise-roles.json, to build a single prompt for Claude Haiku.
-//
-// Drop this file anywhere in your server-side code (e.g. src/lib/) and
-// import buildCvCheckPrompt + types into your API route handler.
+// Defines types, weighted scoring constants, prompt builder, response parser,
+// and deterministic score computation for the cruise CV checker.
+
+import type { DeterministicSignals } from './cvDeterministicChecks';
+
+// ─── Role types ───────────────────────────────────────────────────────────────
 
 export interface CruiseRole {
   slug: string;
@@ -24,147 +23,199 @@ export interface CruiseRolesData {
   roles: CruiseRole[];
 }
 
-// --- General rubric: applies to every hotel-department cruise role ---
-// These are the "instant regret" triggers that aren't role-specific.
-export const GENERAL_RUBRIC_CATEGORIES = [
-  {
-    id: "personal_info_block",
-    name: "Personal Information Block",
-    check:
-      "Does the CV include date of birth, nationality, marital status, and passport validity? " +
-      "Cruise recruiters expect this block near the top — its absence reads as 'not maritime-ready' " +
-      "even to an experienced hospitality candidate.",
-  },
-  {
-    id: "photo",
-    name: "Professional Photo",
-    check:
-      "Is there a photo on the CV? If an image is present, briefly note whether it looks like a " +
-      "professional headshot (neutral background, business attire, smiling) vs. a casual/cropped photo.",
-  },
-  {
-    id: "quantified_experience",
-    name: "Quantified Experience Context",
-    check:
-      "For each past role, does the CV give scale/context a recruiter unfamiliar with the employer " +
-      "would need — e.g. covers per service, number of rooms/beds, star rating, type of service " +
-      "(plate/silver service)? Generic 'Worked as a waiter at X' with no context is a red flag.",
-  },
-  {
-    id: "structure_length",
-    name: "Structure & Length",
-    check:
-      "Is the CV 1-2 pages, well-organized, and easy to scan? Overly long, dense, or poorly formatted " +
-      "CVs get skipped in high-volume screening.",
-  },
-  {
-    id: "keyword_match",
-    name: "Role Keyword Match",
-    check:
-      "Compare the CV's language against the role's master keyword list (and the job ad, if provided). " +
-      "Flag important missing keywords that an ATS would scan for.",
-  },
-] as const;
+// ─── Score types ──────────────────────────────────────────────────────────────
 
-// --- Prompt builder ---
+export interface CvCategoryScore {
+  score: number;   // 0–100
+  weight: number;  // decimal weight, e.g. 0.25
+  feedback: string;
+}
+
+export interface CvScoreResult {
+  overallScore: number;
+  tier: 'Strong' | 'Good' | 'Needs Work' | 'Major Gaps';
+  categories: {
+    keywordAlignment: CvCategoryScore;        // 25%
+    atsParseability: CvCategoryScore;         // 15%
+    quantifiedAchievements: CvCategoryScore;  // 15%
+    experienceDepth: CvCategoryScore;         // 15%
+    jobTitleAlignment: CvCategoryScore;       // 10%
+    qualifications: CvCategoryScore;          // 10%
+    readabilityAndSummary: CvCategoryScore;   // 10%
+  };
+  topFixes: string[];
+  matchedKeywords: string[];
+  missingKeywords: string[];
+}
+
+// ─── Weights & labels ─────────────────────────────────────────────────────────
+
+export const CATEGORY_WEIGHTS = {
+  keywordAlignment: 0.25,
+  atsParseability: 0.15,
+  quantifiedAchievements: 0.15,
+  experienceDepth: 0.15,
+  jobTitleAlignment: 0.10,
+  qualifications: 0.10,
+  readabilityAndSummary: 0.10,
+} as const;
+
+export type CategoryKey = keyof typeof CATEGORY_WEIGHTS;
+
+export const CATEGORY_LABELS: Record<CategoryKey, string> = {
+  keywordAlignment: 'Keyword Alignment',
+  atsParseability: 'ATS Parseability',
+  quantifiedAchievements: 'Quantified Achievements',
+  experienceDepth: 'Experience Depth',
+  jobTitleAlignment: 'Job Title Alignment',
+  qualifications: 'Qualifications',
+  readabilityAndSummary: 'Readability & Summary',
+};
+
+// ─── Prompt builder ───────────────────────────────────────────────────────────
 
 export interface BuildPromptInput {
   cvText: string;
   role: CruiseRole;
-  jobAdText?: string;
+  signals: DeterministicSignals;
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  matchRatio: number;
 }
 
-export function buildCvCheckPrompt({ cvText, role, jobAdText }: BuildPromptInput): {
-  system: string;
-  user: string;
-} {
-  const system = `You are an expert cruise ship hotel-department recruiter screening CVs for the role of "${role.role}".
-You evaluate CVs the way real cruise line / crewing agency recruiters do during a fast, high-volume screening pass.
+export function buildCvCheckPrompt({
+  cvText,
+  role,
+  signals,
+  matchedKeywords,
+  missingKeywords,
+  matchRatio,
+}: BuildPromptInput): { system: string; user: string } {
+  const system = `You are an expert cruise ship hotel-department recruiter scoring a CV for the role of "${role.role}".
 
-Respond with ONLY valid JSON matching this exact schema, no other text, no markdown fences:
+Score the CV on 7 categories. For each, give a score 0-100 and 1-2 sentences of specific, actionable feedback.
 
+IMPORTANT — do NOT mention or evaluate: seafarer certifications, language proficiency, cover letters, or contract availability. These are out of scope.
+
+For keywordAlignment and atsParseability, base your scores heavily on the pre-computed data provided in the user message — do not re-derive them from scratch.
+
+Respond with ONLY valid JSON, no markdown fences, no other text:
 {
-  "overall_score": number (0-100),
-  "risk_level": "high" | "medium" | "low",
-  "categories": [
-    {
-      "id": string,
-      "name": string,
-      "status": "pass" | "warning" | "fail",
-      "feedback": string,
-      "fix": string
-    }
-  ],
-  "top_issues": string[] (2-4 items, most important first)
+  "keywordAlignment": { "score": number, "feedback": "string" },
+  "atsParseability": { "score": number, "feedback": "string" },
+  "quantifiedAchievements": { "score": number, "feedback": "string" },
+  "experienceDepth": { "score": number, "feedback": "string" },
+  "jobTitleAlignment": { "score": number, "feedback": "string" },
+  "qualifications": { "score": number, "feedback": "string" },
+  "readabilityAndSummary": { "score": number, "feedback": "string" },
+  "topFixes": ["string", "string"]
 }
 
-Evaluate every category listed below. For each, set status to "fail" if the issue would likely cause an
-instant rejection, "warning" if it's a missed opportunity but not disqualifying, and "pass" if it's
-handled well. "feedback" should explain what you found and why it matters to a cruise recruiter.
-"fix" should be a specific, actionable instruction the candidate can follow.
+Category scoring guidance:
+- keywordAlignment (25%): How well does the CV use the role's required vocabulary? Use the pre-computed keyword match data.
+- atsParseability (15%): How cleanly will this parse through an ATS? Use the pre-computed signals. Factor in: standard headings present, contact info findable, no garbled text, consistent date formats.
+- quantifiedAchievements (15%): Do bullet points include measurable scale/context — covers, guests, revenue, team size, property star rating?
+- experienceDepth (15%): Does the work history show progression and sufficient tenure in roles relevant to cruise hospitality?
+- jobTitleAlignment (10%): Do past job titles closely match the target role?
+- qualifications (10%): Does the CV list relevant formal qualifications — food safety, bar certifications, hospitality management, POS system training? (Not seafarer certs.)
+- readabilityAndSummary (10%): Is there a strong summary/profile paragraph? Is formatting clean and easy to scan in under 10 seconds?
 
-General categories to evaluate:
-${GENERAL_RUBRIC_CATEGORIES.map((c) => `- ${c.id} ("${c.name}"): ${c.check}`).join("\n")}
+topFixes: exactly 2 strings — the two highest-impact changes the candidate should make right now.`;
 
-Role-specific reference data for "${role.role}":
-- Role summary: ${role.summary}
-- Common experience requirements seen in real job postings:
-${role.experienceRequirements.map((r) => `  - ${r}`).join("\n")}
-- Common CV expectations seen in real job postings:
-${role.cvExpectations.map((r) => `  - ${r}`).join("\n")}
-- Certifications commonly required for this role:
-${role.certifications.map((r) => `  - ${r}`).join("\n")}
-- Language requirements: ${role.languages}
-- Master keyword list for ATS matching: ${role.keywords.join(", ")}
-${jobAdText ? `\nThe candidate also provided a specific job ad they're applying to. Add an extra category with id "job_ad_match" comparing the CV against this job ad's specific language and requirements, in addition to the general role data above.` : ""}`;
+  const user = `ROLE: ${role.role}
+ROLE SUMMARY: ${role.summary}
+COMMON EXPERIENCE REQUIREMENTS: ${role.experienceRequirements.slice(0, 5).join('; ')}
 
-  const user = `CANDIDATE CV TEXT:
+--- PRE-COMPUTED KEYWORD DATA (use this for keywordAlignment score) ---
+Match ratio: ${Math.round(matchRatio * 100)}% (${matchedKeywords.length} of ${matchedKeywords.length + missingKeywords.length} role keywords found)
+Matched: ${matchedKeywords.slice(0, 15).join(', ') || 'none'}
+Missing: ${missingKeywords.slice(0, 12).join(', ') || 'none'}
+
+--- PRE-COMPUTED ATS SIGNALS (use this for atsParseability score) ---
+Section headings found: ${signals.headingsFound.length > 0 ? signals.headingsFound.join(', ') : 'none detected'}
+Contact info in body: ${signals.hasContactInfo ? 'yes' : 'no'}
+Summary/profile section: ${signals.hasSummarySection ? 'present' : 'absent'}
+Word count: ${signals.wordCount}
+Lines with quantified metrics: ${signals.quantifiedBulletCount}
+Suspect garbled/merged text: ${signals.suspectGarbledText ? 'YES — may affect ATS parsing' : 'no'}
+
+--- CV TEXT ---
 """
-${cvText}
+${cvText.slice(0, 6000)}
 """
-${
-  jobAdText
-    ? `\nJOB AD TEXT THE CANDIDATE IS APPLYING TO:
-"""
-${jobAdText}
-"""`
-    : ""
-}
 
-Evaluate this CV now and return the JSON response.`;
+Score this CV now.`;
 
   return { system, user };
 }
 
-// --- Response type, for parsing the Haiku output ---
+// ─── Response parser ──────────────────────────────────────────────────────────
 
-export interface CvCheckCategoryResult {
-  id: string;
-  name: string;
-  status: "pass" | "warning" | "fail";
-  feedback: string;
-  fix: string;
-}
+type RawCategory = { score: number; feedback: string };
+export type RawLlmResponse = Record<CategoryKey, RawCategory> & { topFixes: string[] };
 
-export interface CvCheckResult {
-  overall_score: number;
-  risk_level: "high" | "medium" | "low";
-  categories: CvCheckCategoryResult[];
-  top_issues: string[];
-}
+export function parseCvCheckResponse(raw: string): RawLlmResponse {
+  const cleaned = raw.replace(/```json\s*|\s*```/g, '').trim();
+  const parsed = JSON.parse(cleaned) as RawLlmResponse;
 
-export function parseCvCheckResponse(raw: string): CvCheckResult {
-  // Strip markdown fences if the model adds them despite instructions
-  const cleaned = raw.replace(/```json\s*|\s*```/g, "").trim();
-  const parsed = JSON.parse(cleaned);
+  const required: CategoryKey[] = [
+    'keywordAlignment',
+    'atsParseability',
+    'quantifiedAchievements',
+    'experienceDepth',
+    'jobTitleAlignment',
+    'qualifications',
+    'readabilityAndSummary',
+  ];
 
-  if (
-    typeof parsed.overall_score !== "number" ||
-    !Array.isArray(parsed.categories) ||
-    !Array.isArray(parsed.top_issues)
-  ) {
-    throw new Error("Unexpected CV check response shape");
+  for (const key of required) {
+    if (typeof parsed[key]?.score !== 'number') {
+      throw new Error(`Missing or invalid category in LLM response: ${key}`);
+    }
   }
 
-  return parsed as CvCheckResult;
+  if (!Array.isArray(parsed.topFixes)) parsed.topFixes = [];
+
+  return parsed;
+}
+
+// ─── Score computation (fully deterministic, no LLM) ─────────────────────────
+
+function toTier(score: number): CvScoreResult['tier'] {
+  if (score >= 85) return 'Strong';
+  if (score >= 70) return 'Good';
+  if (score >= 50) return 'Needs Work';
+  return 'Major Gaps';
+}
+
+export function computeCvScore(
+  parsed: RawLlmResponse,
+  matchedKeywords: string[],
+  missingKeywords: string[],
+): CvScoreResult {
+  const keys = Object.keys(CATEGORY_WEIGHTS) as CategoryKey[];
+
+  let overallScore = 0;
+  for (const key of keys) {
+    overallScore += (parsed[key]?.score ?? 50) * CATEGORY_WEIGHTS[key];
+  }
+  overallScore = Math.round(overallScore);
+
+  const categories = {} as CvScoreResult['categories'];
+  for (const key of keys) {
+    categories[key] = {
+      score: Math.min(100, Math.max(0, Math.round(parsed[key]?.score ?? 50))),
+      weight: CATEGORY_WEIGHTS[key],
+      feedback: parsed[key]?.feedback ?? '',
+    };
+  }
+
+  return {
+    overallScore,
+    tier: toTier(overallScore),
+    categories,
+    topFixes: parsed.topFixes.slice(0, 2),
+    matchedKeywords,
+    missingKeywords,
+  };
 }
