@@ -12,7 +12,7 @@ import { SkillsSection } from "@/components/builder/sections/SkillsSection";
 import { CertificationsSection } from "@/components/builder/sections/CertificationsSection";
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/extractCvText";
 import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
@@ -52,6 +52,10 @@ function BuilderPage() {
   const [importing, setImporting] = useState(false);
   const [importedFile, setImportedFile] = useState<string | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
+  // Paste-text fallback — shown when a scanned/image PDF is uploaded
+  const [showPasteFallback, setShowPasteFallback] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [parsingPaste, setParsingPaste] = useState(false);
 
   async function handleImportCv(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -75,11 +79,37 @@ function BuilderPage() {
       setImportedFile(file.name);
       setStep(0);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not read this file — please try a .docx or .txt version.");
-      // Fall back to empty rather than leaving sample data
-      setData({ ...data });
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("scanned image") || msg.includes("encrypted or corrupted")) {
+        // Show paste-text fallback instead of a dead-end error toast
+        setShowPasteFallback(true);
+      } else {
+        toast.error(msg || "Could not read this file — please try a .docx or .txt version.");
+      }
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handlePasteImport() {
+    const text = pasteText.trim();
+    if (text.length < 50) {
+      toast.error("Please paste more text — at least a few lines of your CV.");
+      return;
+    }
+    setParsingPaste(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = await parseCvForBuilder({ data: { cvText: text } } as any);
+      setData({ ...parsed, templateId: data.templateId });
+      setImportedFile("pasted text");
+      setShowPasteFallback(false);
+      setPasteText("");
+      setStep(0);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not parse the CV text. Please check the content and try again.");
+    } finally {
+      setParsingPaste(false);
     }
   }
 
@@ -192,6 +222,57 @@ function BuilderPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Fill in each section. The preview updates as you type.
               </p>
+
+              {/* Paste-text fallback — shown when a scanned/image PDF is detected */}
+              {showPasteFallback && (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <ClipboardPaste className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900">
+                          This PDF appears to be a scanned image
+                        </p>
+                        <p className="mt-0.5 text-xs text-amber-700">
+                          We can't extract text from image-based PDFs. Open your CV in Word or Google Docs, select all, copy, and paste it below — or upload a .docx version instead.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setShowPasteFallback(false); setPasteText(""); }}
+                      className="shrink-0 text-amber-500 hover:text-amber-800"
+                      aria-label="Dismiss"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <textarea
+                    className="mt-2 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    rows={8}
+                    placeholder="Paste your CV text here…"
+                    value={pasteText}
+                    onChange={(ev) => setPasteText(ev.target.value)}
+                  />
+                  <div className="mt-2 flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handlePasteImport}
+                      disabled={parsingPaste || pasteText.trim().length < 50}
+                    >
+                      {parsingPaste ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Parsing…</>
+                      ) : (
+                        <><ClipboardPaste className="mr-2 h-4 w-4" />Import from text</>
+                      )}
+                    </Button>
+                    <span className="text-xs text-amber-600">
+                      {pasteText.trim().length < 50 ? `${pasteText.trim().length} / 50 chars minimum` : "Ready to import"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {importedFile && (
                 <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm text-foreground">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
