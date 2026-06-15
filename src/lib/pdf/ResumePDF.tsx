@@ -18,7 +18,26 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { ResumeData } from "@/types/resume";
+import type { FormattingSettings } from "@/types/formatting";
+import { defaultFormatting } from "@/types/formatting";
 import { dateRange } from "@/components/templates/utils";
+
+// react-pdf only has Helvetica, Courier, Times-Roman built in.
+// We map user-facing font names to the closest available equivalent.
+const PDF_FONT_MAP: Record<FormattingSettings["fontFamily"], string> = {
+  Calibri:   "Helvetica",
+  Arial:     "Helvetica",
+  Helvetica: "Helvetica",
+  Cambria:   "Times-Roman",
+  Garamond:  "Times-Roman",
+};
+const PDF_FONT_BOLD_MAP: Record<FormattingSettings["fontFamily"], string> = {
+  Calibri:   "Helvetica-Bold",
+  Arial:     "Helvetica-Bold",
+  Helvetica: "Helvetica-Bold",
+  Cambria:   "Times-Bold",
+  Garamond:  "Times-Bold",
+};
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -30,95 +49,90 @@ const C = {
   white:  "#ffffff",
 } as const;
 
-// ─── StyleSheet ───────────────────────────────────────────────────────────────
-// react-pdf uses a subset of CSS. All dimensions are in points unless noted.
-// Flexbox defaults to column direction (same as React Native).
-const s = StyleSheet.create({
-  // ── Page ──
-  page: {
-    fontFamily: "Helvetica",
-    fontSize: 9,
-    color: C.ink,
-    paddingTop: 42,
-    paddingBottom: 42,
-    paddingHorizontal: 46,
-    lineHeight: 1.5,
-    backgroundColor: C.white,
-  },
+// ─── Dynamic StyleSheet ────────────────────────────────────────────────────────
+// Builds react-pdf styles from user formatting settings.
+// react-pdf dimensions are in pt (1 inch = 72pt).
+function buildStyles(fmt: FormattingSettings) {
+  const font     = PDF_FONT_MAP[fmt.fontFamily];
+  const fontBold = PDF_FONT_BOLD_MAP[fmt.fontFamily];
+  const body     = fmt.bodyFontSize;
+  const heading  = fmt.headingFontSize;
+  const margin   = fmt.marginInches * 72; // inches → pt
+  const lh       = fmt.lineSpacing;
 
-  // ── Header ──
-  header:       { flexDirection: "row", alignItems: "flex-start", marginBottom: 20, gap: 14 },
-  photo:        { width: 64, height: 64, borderRadius: 32 },
-  headerInfo:   { flex: 1 },
-  name:         { fontSize: 22, fontFamily: "Helvetica-Bold", color: C.ink, letterSpacing: -0.2 },
-  jobTitle:     { fontSize: 9.5, color: C.accent, marginTop: 3, letterSpacing: 1.1, textTransform: "uppercase" },
-  contactRow:   { flexDirection: "row", flexWrap: "wrap", marginTop: 7, gap: 10 },
-  contactItem:  { fontSize: 8, color: C.muted },
-  contactLink:  { fontSize: 8, color: C.accent, textDecoration: "none" },
+  // Sub-sizes derived from the user's body size choice
+  const small  = Math.max(body - 1.5, 7.5);
+  const medium = body - 0.5;
 
-  // ── Section container ──
-  section:      { marginBottom: 14 },
-  sectionLabel: {
-    fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    color: C.accent,
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-    marginBottom: 3,
-  },
-  sectionRule:  { height: 0.75, backgroundColor: C.rule, marginBottom: 8 },
+  return StyleSheet.create({
+    page: {
+      fontFamily: font,
+      fontSize: body,
+      color: C.ink,
+      paddingTop: margin,
+      paddingBottom: margin,
+      paddingHorizontal: margin,
+      lineHeight: lh,
+      backgroundColor: C.white,
+    },
 
-  // ── Summary ──
-  summaryText: { fontSize: 9, color: C.ink, lineHeight: 1.65 },
+    header:       { flexDirection: "row", alignItems: "flex-start", marginBottom: 20, gap: 14 },
+    photo:        { width: 64, height: 64, borderRadius: 32 },
+    headerInfo:   { flex: 1 },
+    name:         { fontSize: heading + 8, fontFamily: fontBold, color: C.ink, letterSpacing: -0.2 },
+    jobTitle:     { fontSize: medium, color: C.accent, marginTop: 3, letterSpacing: 1.1, textTransform: "uppercase" },
+    contactRow:   { flexDirection: "row", flexWrap: "wrap", marginTop: 7, gap: 10 },
+    contactItem:  { fontSize: small, color: C.muted },
+    contactLink:  { fontSize: small, color: C.accent, textDecoration: "none" },
 
-  // ── Experience ──
-  expEntry:  { marginBottom: 10 },
-  expTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  expRole:   { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: C.ink },
-  expDates:  { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: C.accent, textTransform: "uppercase", letterSpacing: 0.5 },
-  expVenue:  { fontSize: 8.5, color: C.muted, marginTop: 1 },
-  expDesc:   { fontSize: 8.5, color: C.ink, marginTop: 3, lineHeight: 1.55 },
+    section:      { marginBottom: 14 },
+    sectionLabel: {
+      fontSize: heading,
+      fontFamily: fontBold,
+      color: C.accent,
+      textTransform: "uppercase",
+      letterSpacing: 1.1,
+      marginBottom: 3,
+    },
+    sectionRule:  { height: 0.75, backgroundColor: C.rule, marginBottom: 8 },
 
-  // ── Education ──
-  eduEntry:  { marginBottom: 8 },
-  eduTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  eduDegree: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: C.ink },
-  eduDates:  { fontSize: 7.5, color: C.muted },
-  eduSchool: { fontSize: 8.5, color: C.muted, fontFamily: "Helvetica-Oblique", marginTop: 1 },
-  eduDesc:   { fontSize: 8.5, color: C.ink, marginTop: 3, lineHeight: 1.5 },
+    summaryText: { fontSize: body, color: C.ink, lineHeight: lh + 0.1 },
 
-  // ── Skills ──
-  skillsRow:  { flexDirection: "row", flexWrap: "wrap", gap: 5, marginTop: 2 },
-  skillPill:  {
-    fontSize: 8,
-    color: C.ink,
-    backgroundColor: C.pill,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 3,
-  },
+    expEntry:  { marginBottom: 10 },
+    expTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+    expRole:   { fontSize: body + 0.5, fontFamily: fontBold, color: C.ink },
+    expDates:  { fontSize: small, fontFamily: fontBold, color: C.accent, textTransform: "uppercase", letterSpacing: 0.5 },
+    expVenue:  { fontSize: medium, color: C.muted, marginTop: 1 },
+    expDesc:   { fontSize: body, color: C.ink, marginTop: 3, lineHeight: lh },
 
-  // ── Certifications ──
-  certEntry: { marginBottom: 6 },
-  certName:  { fontSize: 9, fontFamily: "Helvetica-Bold", color: C.ink },
-  certMeta:  { fontSize: 7.5, color: C.muted },
+    eduEntry:  { marginBottom: 8 },
+    eduTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+    eduDegree: { fontSize: body + 0.5, fontFamily: fontBold, color: C.ink },
+    eduDates:  { fontSize: small, color: C.muted },
+    eduSchool: { fontSize: medium, color: C.muted, marginTop: 1 },
+    eduDesc:   { fontSize: body, color: C.ink, marginTop: 3, lineHeight: lh },
 
-  // ── Hospitality Profile ──
-  hospRow:   { flexDirection: "row", marginBottom: 4 },
-  hospLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: C.ink, width: 96 },
-  hospValue: { fontSize: 8, color: C.muted, flex: 1 },
-});
+    skillsRow:  { flexDirection: "row", flexWrap: "wrap", gap: 5, marginTop: 2 },
+    skillPill:  {
+      fontSize: small,
+      color: C.ink,
+      backgroundColor: C.pill,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 3,
+    },
+
+    certEntry: { marginBottom: 6 },
+    certName:  { fontSize: body, fontFamily: fontBold, color: C.ink },
+    certMeta:  { fontSize: small, color: C.muted },
+
+    hospRow:   { flexDirection: "row", marginBottom: 4 },
+    hospLabel: { fontSize: small, fontFamily: fontBold, color: C.ink, width: 96 },
+    hospValue: { fontSize: small, color: C.muted, flex: 1 },
+  });
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function SectionHead({ label }: { label: string }) {
-  return (
-    <>
-      <Text style={s.sectionLabel}>{label}</Text>
-      <View style={s.sectionRule} />
-    </>
-  );
-}
 
 /** Prepend https:// if the link has no scheme, so react-pdf's Link works. */
 function toHref(url: string) {
@@ -127,7 +141,19 @@ function toHref(url: string) {
 
 // ─── Document ─────────────────────────────────────────────────────────────────
 
-export function ResumePDF({ data }: { data: ResumeData }) {
+export function ResumePDF({ data, formatting }: { data: ResumeData; formatting?: FormattingSettings }) {
+  const fmt = formatting ?? data.formatting ?? defaultFormatting;
+  const s = buildStyles(fmt);
+
+  function SectionHead({ label }: { label: string }) {
+    return (
+      <>
+        <Text style={s.sectionLabel}>{label}</Text>
+        <View style={s.sectionRule} />
+      </>
+    );
+  }
+
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
   const hasHospitality =

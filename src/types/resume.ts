@@ -55,6 +55,7 @@ export interface ResumeData {
   certifications: Certification[];
   hospitality: Hospitality;
   templateId: string;
+  formatting?: import("./formatting").FormattingSettings;
 }
 
 export const STORAGE_KEY = "hospitality-resume-v1";

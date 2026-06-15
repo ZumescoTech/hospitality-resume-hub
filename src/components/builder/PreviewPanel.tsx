@@ -1,7 +1,10 @@
 import { useState, lazy, Suspense } from "react";
 import { ResumeData } from "@/types/resume";
+import { FormattingSettings } from "@/types/formatting";
+import { defaultFormatting } from "@/types/formatting";
 import { TEMPLATES } from "@/components/templates/registry";
 import { ResumeRenderer } from "@/components/templates/ResumeRenderer";
+import { FormattingPanel } from "@/components/builder/FormattingPanel";
 const PDFDownloadButton = lazy(() =>
   import("@/lib/pdf/PDFDownloadButton").then((m) => ({ default: m.PDFDownloadButton }))
 );
@@ -20,29 +23,33 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Maximize2, Minimize2, Printer } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Maximize2, Minimize2, Printer, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 interface Props {
   data: ResumeData;
   onTemplateChange: (id: string) => void;
+  onFormattingChange: (formatting: FormattingSettings) => void;
 }
 
 /**
  * PreviewPanel
  *
- * Renders the right-hand live preview pane. It contains:
- *  - A toolbar with a template Select dropdown + zoom controls + print button.
- *  - A scrollable swatch gallery for quick template switching.
- *  - A <ResumeRenderer /> that renders the A4-proportioned resume.
- *
- * Template state is owned by the parent (BuilderPage) via `data.templateId`.
- * PreviewPanel is purely presentational — all state changes bubble up through
- * `onTemplateChange`.
+ * Renders the right-hand live preview pane. Contains:
+ *  - Template selector dropdown + swatch gallery
+ *  - Collapsible FormattingPanel for typography/layout controls
+ *  - Zoom controls + print + PDF download
+ *  - Live A4-proportioned resume preview
  */
-export function PreviewPanel({ data, onTemplateChange }: Props) {
+export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Props) {
   const [zoom, setZoom] = useState(0.78);
+  const [formattingOpen, setFormattingOpen] = useState(false);
 
-  // Derive selected template metadata for the header label
+  const fmt = data.formatting ?? defaultFormatting;
   const activeTpl = TEMPLATES.find((t) => t.id === data.templateId) ?? TEMPLATES[0];
 
   return (
@@ -124,6 +131,7 @@ export function PreviewPanel({ data, onTemplateChange }: Props) {
             <Suspense fallback={null}>
               <PDFDownloadButton
                 data={data}
+                formatting={fmt}
                 variant="default"
                 size="sm"
                 className="ml-1"
@@ -157,16 +165,43 @@ export function PreviewPanel({ data, onTemplateChange }: Props) {
             </button>
           ))}
         </div>
+
+        {/* ── Formatting controls ─────────────────────────────── */}
+        <Collapsible open={formattingOpen} onOpenChange={setFormattingOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              className={cn(
+                "mt-3 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors",
+                formattingOpen
+                  ? "border-primary/40 bg-primary/5 text-foreground"
+                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span className="font-medium">Format</span>
+                <span className="text-xs opacity-60">
+                  {fmt.fontFamily} · {fmt.bodyFontSize}pt · {fmt.marginInches}" margins
+                </span>
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  formattingOpen && "rotate-180",
+                )}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 rounded-lg border border-border bg-background">
+              <FormattingPanel settings={fmt} onChange={onFormattingChange} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {/* ── Live preview ─────────────────────────────────────── */}
       <div className="flex-1 overflow-auto bg-muted/40 p-4 sm:p-8">
-        {/*
-         * ResumeRenderer owns all A4-sizing + template resolution logic.
-         * `data.templateId` drives which template is shown.
-         * Passing `template` prop explicitly keeps the renderer self-contained,
-         * but it also reads data.templateId as a fallback internally.
-         */}
         <ResumeRenderer
           data={data}
           template={data.templateId}

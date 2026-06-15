@@ -267,7 +267,11 @@ function BuilderPage() {
         <div
           className={`bg-muted/30 lg:sticky lg:top-[60px] lg:h-[calc(100vh-60px)] ${mobileTab === "preview" ? "block" : "hidden lg:block"}`}
         >
-          <PreviewPanel data={data} onTemplateChange={(id) => onPatch({ templateId: id })} />
+          <PreviewPanel
+            data={data}
+            onTemplateChange={(id) => onPatch({ templateId: id })}
+            onFormattingChange={(formatting) => onPatch({ formatting })}
+          />
         </div>
       </main>
     </div>

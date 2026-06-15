@@ -15,9 +15,11 @@ import { Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumePDF } from "@/lib/pdf/ResumePDF";
 import type { ResumeData } from "@/types/resume";
+import type { FormattingSettings } from "@/types/formatting";
 
 interface Props {
   data: ResumeData;
+  formatting?: FormattingSettings;
   variant?: "default" | "outline" | "ghost";
   size?: "sm" | "default";
   className?: string;
@@ -35,12 +37,12 @@ const sizeClasses: Record<NonNullable<Props["size"]>, string> = {
   default: "h-10 rounded-md px-4 py-2 text-sm",
 };
 
-export function PDFDownloadButton({ data, variant = "default", size = "sm", className }: Props) {
+export function PDFDownloadButton({ data, formatting, variant = "default", size = "sm", className }: Props) {
   const fileName = `${(data.personal.fullName || "resume").replace(/\s+/g, "_")}_CV.pdf`;
 
   return (
     <PDFDownloadLink
-      document={<ResumePDF data={data} />}
+      document={<ResumePDF data={data} formatting={formatting ?? data.formatting} />}
       fileName={fileName}
       className={cn(
         // Base button styles
