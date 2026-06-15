@@ -29,8 +29,6 @@ export function ResumeRenderer({ data, template, scale = 1 }: ResumeRendererProp
   const TemplateComponent = tpl.Component;
 
   const fmt = data.formatting ?? defaultFormatting;
-  // 1 inch = 96px at screen resolution
-  const paddingPx = fmt.marginInches * 96;
 
   return (
     <div
@@ -42,10 +40,12 @@ export function ResumeRenderer({ data, template, scale = 1 }: ResumeRendererProp
         transformOrigin: "top center",
         // Collapse the extra vertical space created by scale-down
         marginBottom: scale < 1 ? `${(scale - 1) * 1123}px` : 0,
+        // Font hints — templates can override with their own fontFamily inline style.
+        // Margin/padding is intentionally NOT applied here; each template owns its own
+        // internal padding. Margin settings only apply to the PDF export layer.
         fontFamily: `"${fmt.fontFamily}", sans-serif`,
         fontSize: `${fmt.bodyFontSize}pt`,
         lineHeight: fmt.lineSpacing,
-        padding: paddingPx,
       }}
     >
       <TemplateComponent data={data} />

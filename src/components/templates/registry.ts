@@ -10,6 +10,7 @@ import { BrasserieTemplate } from "./BrasserieTemplate";
 import { CoastalTemplate } from "./CoastalTemplate";
 import { TerracottaTemplate } from "./TerracottaTemplate";
 import { NoirTemplate } from "./NoirTemplate";
+import { EditorialSidebarTemplate } from "./EditorialSidebarTemplate";
 
 export interface TemplateMeta {
   id: string;
@@ -32,6 +33,9 @@ export const TEMPLATES: TemplateMeta[] = [
   { id: "coastal", name: "Coastal", description: "Light & airy", swatch: ["#1f3a4a", "#dce7ec"], Component: CoastalTemplate },
   { id: "terracotta", name: "Terracotta", description: "Earthy & warm", swatch: ["#3a1f12", "#d8825a"], Component: TerracottaTemplate },
   { id: "noir", name: "Noir", description: "Dark & dramatic", swatch: ["#0a0a0a", "#bfa46f"], Component: NoirTemplate },
+  // ⚠ Visual/portfolio template — two-column layout may not parse correctly in ATS systems.
+  // Pair with a single-column ATS-safe export when applying to large employers.
+  { id: "editorial-sidebar", name: "Editorial Sidebar", description: "Visual · serif two-column", swatch: ["#A6433C", "#D9D9D9"], Component: EditorialSidebarTemplate },
 ];
 
 export const getTemplate = (id: string) =>
