@@ -65,7 +65,7 @@ function BuilderPage() {
     if (!hydrated || search.from !== 'import') return;
 
     // Strip the query param regardless of outcome so a refresh doesn't re-trigger
-    void navigate({ to: '/builder', search: {}, replace: true });
+    void navigate({ to: '/builder', search: { from: undefined }, replace: true });
 
     const imported = consumeCvImport();
     if (!imported) return; // expired or already consumed

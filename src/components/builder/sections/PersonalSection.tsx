@@ -2,6 +2,7 @@ import { ResumeData, PersonalDetails } from "@/types/resume";
 import { TextField, Field } from "../Field";
 import { PhotoUpload } from "../PhotoUpload";
 import { Textarea } from "@/components/ui/textarea";
+import { AssistedTextarea } from "../AssistedTextarea";
 
 interface Props {
   data: ResumeData;
@@ -11,6 +12,11 @@ interface Props {
 export function PersonalSection({ data, onChange }: Props) {
   const set = (patch: Partial<PersonalDetails>) =>
     onChange({ personal: { ...data.personal, ...patch } });
+
+  const handleSkillsAccepted = (newSkills: string[]) => {
+    const merged = [...data.skills, ...newSkills.filter((s) => !data.skills.includes(s))];
+    onChange({ skills: merged });
+  };
 
   return (
     <div className="space-y-5">
@@ -56,12 +62,36 @@ export function PersonalSection({ data, onChange }: Props) {
           className="sm:col-span-2"
         />
       </div>
-      <Field label="Professional summary" hint="2–4 sentences. Lead with your specialty and years of experience.">
+
+      {/* Phase 2: target job description for AI context */}
+      <Field
+        label="Target job ad"
+        hint="Paste the job description you're applying for. Used to tailor your CV — not shown on the final document."
+      >
         <Textarea
+          rows={3}
+          value={data.targetJobDescription ?? ""}
+          onChange={(e) => onChange({ targetJobDescription: e.target.value })}
+          placeholder="Paste the job ad here to get role-tailored suggestions across all sections…"
+          className="resize-none text-sm"
+        />
+      </Field>
+
+      {/* Summary with Layer 1 + Layer 2 AI assistance */}
+      <Field
+        label="Professional summary"
+        hint="2–4 sentences. Lead with your specialty and years of experience."
+      >
+        <AssistedTextarea
+          fieldType="summary"
           rows={4}
           value={data.summary}
-          onChange={(e) => onChange({ summary: e.target.value })}
+          onChange={(summary) => onChange({ summary })}
           placeholder="WSET Level 3 sommelier with 9+ years curating wine programs for Michelin-starred kitchens…"
+          jobTitle={data.personal.title}
+          targetJobDescription={data.targetJobDescription}
+          onSkillsAccepted={handleSkillsAccepted}
+          canDraftFromScratch={data.experience.length > 0}
         />
       </Field>
     </div>

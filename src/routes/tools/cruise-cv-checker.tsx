@@ -275,7 +275,7 @@ function CruiseCvCheckerPage() {
               Get<span className="text-primary">Hired</span>
             </span>
           </Link>
-          <Link to="/builder">
+          <Link to="/builder" search={{ from: undefined }}>
             <Button variant="outline" size="sm">Build CV</Button>
           </Link>
         </div>

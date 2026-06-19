@@ -56,6 +56,8 @@ export interface ResumeData {
   hospitality: Hospitality;
   templateId: string;
   formatting?: import("./formatting").FormattingSettings;
+  /** Job ad text for AI tailoring suggestions. Persisted with draft, never exported to PDF. */
+  targetJobDescription?: string;
 }
 
 export const STORAGE_KEY = "hospitality-resume-v1";
