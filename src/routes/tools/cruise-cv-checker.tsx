@@ -28,6 +28,10 @@ import { checkCruiseCv, saveCvLead, getRoleOptions } from '@/lib/cruise-cv-check
 import type { CvScoreResult, CategoryKey } from '@/lib/cruiseCvRubric';
 import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
+import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
+import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
+import type { ResumeData } from '@/types/resume';
+import { useNavigate } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/tools/cruise-cv-checker')({
   head: () => ({
@@ -176,10 +180,12 @@ function CruiseCvCheckerPage() {
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvScoreResult | null>(null);
+  const [parsedCv, setParsedCv] = useState<ResumeData | null>(null);
   const [email, setEmail] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
   const [fullReportUnlocked, setFullReportUnlocked] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.slug === roleSlug);
 
@@ -208,11 +214,26 @@ function CruiseCvCheckerPage() {
     }
     setLoading(true);
     setResult(null);
+    setParsedCv(null);
     setFullReportUnlocked(false);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any);
-      setResult(data);
+      // Run scoring and structured CV parse in parallel — parse result is held
+      // in state and only written to sessionStorage if user clicks "Build My CV".
+      const [scoreResult, parseResult] = await Promise.allSettled([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        parseCvForBuilder({ data: { cvText: cvText.trim() } } as any),
+      ]);
+
+      if (scoreResult.status === 'rejected') {
+        throw scoreResult.reason;
+      }
+      setResult(scoreResult.value);
+      if (parseResult.status === 'fulfilled') {
+        setParsedCv(parseResult.value);
+      }
+      // Parse failure is non-fatal — "Build My CV" will still navigate, just without pre-fill
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -499,16 +520,20 @@ function CruiseCvCheckerPage() {
                     Plate &amp; Pen&apos;s hospitality templates are designed to pass cruise recruiter screening.
                   </p>
                 </div>
-                <Link
-                  to="/builder"
-                  search={{ role: roleSlug } as never}
-                  className="shrink-0"
+                <Button
+                  className="gap-2 font-semibold shrink-0"
+                  onClick={() => {
+                    if (parsedCv) {
+                      saveCvImport(parsedCv);
+                      void navigate({ to: '/builder', search: { from: 'import' } as never });
+                    } else {
+                      void navigate({ to: '/builder', search: { role: roleSlug } as never });
+                    }
+                  }}
                 >
-                  <Button className="gap-2 font-semibold">
-                    Build My CV
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
+                  Build My CV
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
@@ -517,7 +542,9 @@ function CruiseCvCheckerPage() {
               <button
                 type="button"
                 onClick={() => {
+                  clearCvImport();
                   setResult(null);
+                  setParsedCv(null);
                   setFullReportUnlocked(false);
                   setEmail('');
                 }}

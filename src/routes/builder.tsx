@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useResumeStore } from "@/lib/resume-store";
 import { ResumeData } from "@/types/resume";
 import { Section } from "@/components/builder/Section";
@@ -16,8 +16,13 @@ import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcas
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/extractCvText";
 import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
+import { consumeCvImport } from "@/lib/cv-import-handoff";
+import { mapParsedCvToBuilderForm } from "@/lib/map-parsed-cv-to-builder";
 
 export const Route = createFileRoute("/builder")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    from: search.from === 'import' ? ('import' as const) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Plate & Pen — Resume Builder for Hospitality Pros" },
@@ -52,6 +57,33 @@ function BuilderPage() {
   const [importing, setImporting] = useState(false);
   const [importedFile, setImportedFile] = useState<string | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
+  const search = useSearch({ from: "/builder" });
+  const navigate = useNavigate();
+
+  // Consume a CV import handoff from the checker (one-time, session-scoped)
+  useEffect(() => {
+    if (!hydrated || search.from !== 'import') return;
+
+    // Strip the query param regardless of outcome so a refresh doesn't re-trigger
+    void navigate({ to: '/builder', search: {}, replace: true });
+
+    const imported = consumeCvImport();
+    if (!imported) return; // expired or already consumed
+
+    const hasExistingDraft = Boolean(data.personal.fullName);
+    if (
+      hasExistingDraft &&
+      !window.confirm("Import data from your CV check? This will replace your current draft.")
+    ) {
+      return;
+    }
+
+    setData({ ...mapParsedCvToBuilderForm(imported), templateId: data.templateId });
+    setImportedFile("CV check");
+    setStep(0);
+  // Run once after hydration when the param is present
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
   // Paste-text fallback — shown when a scanned/image PDF is uploaded
   const [showPasteFallback, setShowPasteFallback] = useState(false);
   const [pasteText, setPasteText] = useState("");
