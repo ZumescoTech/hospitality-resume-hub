@@ -32,6 +32,8 @@ import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
 import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
 import type { ResumeData } from '@/types/resume';
 import { useNavigate } from '@tanstack/react-router';
+import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
+import { UploadProgressBar } from '@/components/checker/UploadProgressBar';
 
 export const Route = createFileRoute('/tools/cruise-cv-checker')({
   head: () => ({
@@ -175,6 +177,7 @@ function CategoryScoreRow({
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 function CruiseCvCheckerPage() {
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [cvText, setCvText] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -186,55 +189,79 @@ function CruiseCvCheckerPage() {
   const [fullReportUnlocked, setFullReportUnlocked] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const progress = useCvUploadProgress();
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.slug === roleSlug);
+  const hasInput = Boolean(pendingFile) || cvText.trim().length >= 50;
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  // Store the selected file without extracting yet — extraction happens on submit
+  // so we can show a single continuous progress bar across the whole pipeline.
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const text = await extractTextFromFile(file);
-      setCvText(text);
-      toast.success('CV text extracted successfully.');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not read this file.');
-      e.target.value = '';
-    }
+    e.target.value = '';
+    setPendingFile(file);
+    setCvText(''); // clear any previously extracted text
+    progress.reset();
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!cvText.trim() || !roleSlug) {
-      toast.error('Please add your CV text and select a role.');
-      return;
-    }
-    if (cvText.trim().length < 50) {
-      toast.error('CV text is too short. Please paste more content.');
+    if (!hasInput || !roleSlug) {
+      toast.error('Please add your CV and select a role.');
       return;
     }
     setLoading(true);
     setResult(null);
     setParsedCv(null);
     setFullReportUnlocked(false);
+
+    let cvTextToUse = cvText;
+
     try {
+      // ── Phase 1 & 2: extract text from file (reading 0-10%, extracting 10-70%) ──
+      if (pendingFile) {
+        cvTextToUse = await extractTextFromFile(pendingFile, (update) => {
+          progress.setStage(update.stage, update.percent);
+          if (update.label) progress.setLabel(update.label);
+        });
+        setCvText(cvTextToUse);
+        setPendingFile(null);
+      }
+
+      if (cvTextToUse.trim().length < 50) {
+        throw new Error("We couldn't extract enough text from this file. Try a .docx or .txt version.");
+      }
+
+      // ── Phase 3: AI analysis (simulated easing 70→95%, snaps to 100% on response) ──
+      progress.setStage('analyzing', 70);
+
       // Run scoring and structured CV parse in parallel — parse result is held
       // in state and only written to sessionStorage if user clicks "Build My CV".
       const [scoreResult, parseResult] = await Promise.allSettled([
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        checkCruiseCv({ data: { cvText: cvText.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any),
+        checkCruiseCv({ data: { cvText: cvTextToUse.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        parseCvForBuilder({ data: { cvText: cvText.trim() } } as any),
+        parseCvForBuilder({ data: { cvText: cvTextToUse.trim() } } as any),
       ]);
 
       if (scoreResult.status === 'rejected') {
         throw scoreResult.reason;
       }
+
+      // Snap to 100% the instant the real response lands.
+      progress.setStage('done', 100);
+
       setResult(scoreResult.value);
       if (parseResult.status === 'fulfilled') {
         setParsedCv(parseResult.value);
       }
-      // Parse failure is non-fatal — "Build My CV" will still navigate, just without pre-fill
+      // Parse failure is non-fatal — "Build My CV" will still navigate, just without pre-fill.
+
+      // Auto-hide the progress bar once results are rendered.
+      setTimeout(() => progress.reset(), 1500);
     } catch (err) {
+      progress.setStage('error');
       toast.error(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
@@ -327,7 +354,7 @@ function CruiseCvCheckerPage() {
               <Label htmlFor="cvText" className="text-sm font-medium text-foreground">
                 Your CV <span className="text-destructive">*</span>
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
@@ -336,7 +363,12 @@ function CruiseCvCheckerPage() {
                   <Upload className="h-3.5 w-3.5" />
                   Upload CV (.pdf, .docx, .txt)
                 </button>
-                {cvText && (
+                {pendingFile && (
+                  <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                    {pendingFile.name} — ready
+                  </span>
+                )}
+                {!pendingFile && cvText && (
                   <span className="text-xs text-muted-foreground">CV loaded ✓</span>
                 )}
               </div>
@@ -369,27 +401,21 @@ function CruiseCvCheckerPage() {
 
             <Button
               type="submit"
-              disabled={loading || !cvText.trim() || !roleSlug}
+              disabled={loading || !hasInput || !roleSlug}
               className="w-full"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analysing your CV…
-                </>
-              ) : (
-                'Check My CV'
-              )}
+              Check My CV
             </Button>
-          </form>
-        )}
 
-        {/* Loading state */}
-        {loading && (
-          <div className="mt-8 flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin text-accent" />
-            <p className="text-sm">Comparing against cruise recruiter standards…</p>
-          </div>
+            {/* Progress bar — shown during extraction and AI analysis */}
+            {progress.stage !== 'idle' && (
+              <UploadProgressBar
+                stage={progress.stage}
+                percent={progress.percent}
+                label={progress.label}
+              />
+            )}
+          </form>
         )}
 
         {/* Results */}
@@ -547,6 +573,9 @@ function CruiseCvCheckerPage() {
                   setParsedCv(null);
                   setFullReportUnlocked(false);
                   setEmail('');
+                  setPendingFile(null);
+                  setCvText('');
+                  progress.reset();
                 }}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
               >
