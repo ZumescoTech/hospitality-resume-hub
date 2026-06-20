@@ -94,6 +94,19 @@ export function PersonalSection({ data, onChange }: Props) {
           canDraftFromScratch={data.experience.length > 0}
         />
       </Field>
+
+      <Field
+        label="References"
+        hint='Shown on templates that include a references section. Leave blank to hide it, or write "Available upon request."'
+      >
+        <Textarea
+          rows={2}
+          value={data.references ?? ""}
+          onChange={(e) => onChange({ references: e.target.value })}
+          placeholder="Available upon request."
+          className="resize-none text-sm"
+        />
+      </Field>
     </div>
   );
 }

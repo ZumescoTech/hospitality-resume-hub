@@ -1,23 +1,35 @@
 import { ResumeData } from "@/types/resume";
 import { dateRange } from "./utils";
+import { CvSection } from "@/lib/cv-templates/CvSection";
+import { CvEntry } from "@/lib/cv-templates/CvEntry";
+import { TS } from "@/lib/cv-templates/type-scale";
 
 export function ClaretTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
+  const ink = "#1a1410";
+  const accent = "#3a1119";
+  const gold = "#c9a55a";
+  const muted = "#5a4a3a";
+  const mutedAlt = "#8a6f4a";
+
+  const entryTokens = { titleColor: accent, metaColor: muted, bodyColor: ink, metaItalic: true, datesRight: true };
+
   return (
-    <div className="font-sans text-[11px] leading-relaxed text-[#1a1410]" style={{ background: "#fbf7f0" }}>
+    <div style={{ background: "#fbf7f0", color: ink, fontSize: TS.body.rem, lineHeight: TS.body.lh }} className="font-sans">
       <div className="border-b-4 border-[#3a1119] px-10 pb-6 pt-8">
         <div className="flex items-start gap-5">
           {personal.photo && (
-            <img src={personal.photo} alt="" className="h-20 w-20 rounded-full object-cover ring-2 ring-[#c9a55a]" />
+            <img src={personal.photo} alt="" className="h-20 w-20 shrink-0 rounded-full object-cover ring-2 ring-[#c9a55a]" />
           )}
-          <div className="flex-1">
-            <h1 className="font-display text-3xl font-bold tracking-tight text-[#3a1119]">
+          {/* min-w-0 prevents long name overflow */}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: accent }}>
               {personal.fullName || "Your Name"}
             </h1>
-            <p className="mt-0.5 text-sm uppercase tracking-[0.2em] text-[#c9a55a]">
+            <p className={`mt-0.5 ${TS.jobTitle.tw} uppercase tracking-[0.2em]`} style={{ color: gold }}>
               {personal.title || "Hospitality Professional"}
             </p>
-            <p className="mt-2 text-[10.5px] text-[#5a4a3a]">
+            <p className={`mt-2 ${TS.metaSmall.tw}`} style={{ color: muted }}>
               {[personal.location, personal.email, personal.phone].filter(Boolean).join("  ·  ")}
             </p>
           </div>
@@ -26,114 +38,120 @@ export function ClaretTemplate({ data }: { data: ResumeData }) {
 
       <div className="grid grid-cols-3 gap-8 px-10 py-7">
         <div className="col-span-2 space-y-6">
-          {summary && (
-            <Block title="Profile">
-              <p>{summary}</p>
-            </Block>
-          )}
-          {experience.length > 0 && (
-            <Block title="Experience">
-              <div className="space-y-4">
-                {experience.map((e) => (
-                  <div key={e.id}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="font-semibold text-[#3a1119]">{e.role}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-[#8a6f4a]">
-                        {dateRange(e.startDate, e.endDate, e.current)}
-                      </p>
-                    </div>
-                    <p className="italic text-[#5a4a3a]">
-                      {e.venue}
-                      {e.location ? ` · ${e.location}` : ""}
-                    </p>
-                    {e.description && <p className="mt-1 whitespace-pre-line">{e.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </Block>
-          )}
-          {education.length > 0 && (
-            <Block title="Education">
-              <div className="space-y-3">
-                {education.map((e) => (
-                  <div key={e.id}>
-                    <div className="flex items-baseline justify-between">
-                      <p className="font-semibold">{e.degree}{e.field ? `, ${e.field}` : ""}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-[#8a6f4a]">
-                        {[e.startDate, e.endDate].filter(Boolean).join(" — ")}
-                      </p>
-                    </div>
-                    <p className="italic text-[#5a4a3a]">{e.school}</p>
-                  </div>
-                ))}
-              </div>
-            </Block>
-          )}
+          <CvSection
+            empty={!summary}
+            renderHeading={() => <Heading title="Profile" accent={accent} gold={gold} />}
+          >
+            <p className={TS.body.tw}>{summary}</p>
+          </CvSection>
+
+          <CvSection
+            empty={experience.length === 0}
+            renderHeading={() => <Heading title="Experience" accent={accent} gold={gold} />}
+          >
+            <div className="space-y-4">
+              {experience.map((e) => (
+                <CvEntry
+                  key={e.id}
+                  title={e.role}
+                  meta={[e.venue, e.location].filter(Boolean).join(" · ")}
+                  dates={dateRange(e.startDate, e.endDate, e.current)}
+                  description={e.bullets ?? e.description}
+                  tokens={entryTokens}
+                />
+              ))}
+            </div>
+          </CvSection>
+
+          <CvSection
+            empty={education.length === 0}
+            renderHeading={() => <Heading title="Education" accent={accent} gold={gold} />}
+          >
+            <div className="space-y-3">
+              {education.map((e) => (
+                <CvEntry
+                  key={e.id}
+                  title={[e.degree, e.field].filter(Boolean).join(", ")}
+                  meta={e.school}
+                  dates={[e.startDate, e.endDate].filter(Boolean).join(" — ")}
+                  tokens={{ ...entryTokens, datesRight: false }}
+                />
+              ))}
+            </div>
+          </CvSection>
         </div>
 
         <div className="space-y-6">
-          {skills.length > 0 && (
-            <Block title="Skills">
-              <ul className="space-y-1">
-                {skills.map((s) => <li key={s}>· {s}</li>)}
-              </ul>
-            </Block>
-          )}
-          {(hospitality.serviceStyles.length > 0 ||
-            hospitality.posSystems.length > 0 ||
-            hospitality.wineKnowledge !== "None") && (
-            <Block title="Service Profile">
-              {hospitality.wineKnowledge !== "None" && (
-                <p><span className="font-semibold">Wine:</span> {hospitality.wineKnowledge}</p>
-              )}
-              {hospitality.spiritsKnowledge !== "None" && (
-                <p><span className="font-semibold">Spirits:</span> {hospitality.spiritsKnowledge}</p>
-              )}
-              {hospitality.serviceStyles.length > 0 && (
-                <p><span className="font-semibold">Service:</span> {hospitality.serviceStyles.join(", ")}</p>
-              )}
-              {hospitality.posSystems.length > 0 && (
-                <p><span className="font-semibold">POS:</span> {hospitality.posSystems.join(", ")}</p>
-              )}
-              {hospitality.allergens && <p>· Allergen-trained</p>}
-              {hospitality.foodSafety && <p>· {hospitality.foodSafety}</p>}
-            </Block>
-          )}
-          {hospitality.languages.length > 0 && (
-            <Block title="Languages">
-              <ul className="space-y-1">
-                {hospitality.languages.map((l) => (
-                  <li key={l.name}>{l.name} <span className="text-[#8a6f4a]">— {l.level}</span></li>
-                ))}
-              </ul>
-            </Block>
-          )}
-          {certifications.length > 0 && (
-            <Block title="Certifications">
-              <ul className="space-y-1">
-                {certifications.map((c) => (
-                  <li key={c.id}>
-                    <span className="font-semibold">{c.name}</span>
-                    <br />
-                    <span className="text-[#8a6f4a]">{c.issuer} · {c.year}</span>
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
+          <CvSection
+            empty={skills.length === 0}
+            renderHeading={() => <Heading title="Skills" accent={accent} gold={gold} />}
+          >
+            <ul className="space-y-1">
+              {skills.map((s) => <li key={s} className={TS.body.tw}>· {s}</li>)}
+            </ul>
+          </CvSection>
+
+          <CvSection
+            empty={
+              hospitality.serviceStyles.length === 0 &&
+              hospitality.posSystems.length === 0 &&
+              hospitality.wineKnowledge === "None"
+            }
+            renderHeading={() => <Heading title="Service Profile" accent={accent} gold={gold} />}
+          >
+            {hospitality.wineKnowledge !== "None" && (
+              <p className={TS.body.tw}><span className="font-semibold">Wine:</span> {hospitality.wineKnowledge}</p>
+            )}
+            {hospitality.spiritsKnowledge !== "None" && (
+              <p className={TS.body.tw}><span className="font-semibold">Spirits:</span> {hospitality.spiritsKnowledge}</p>
+            )}
+            {hospitality.serviceStyles.length > 0 && (
+              <p className={TS.body.tw}><span className="font-semibold">Service:</span> {hospitality.serviceStyles.join(", ")}</p>
+            )}
+            {hospitality.posSystems.length > 0 && (
+              <p className={TS.body.tw}><span className="font-semibold">POS:</span> {hospitality.posSystems.join(", ")}</p>
+            )}
+            {hospitality.allergens && <p className={TS.body.tw}>· Allergen-trained</p>}
+            {hospitality.foodSafety && <p className={TS.body.tw}>· {hospitality.foodSafety}</p>}
+          </CvSection>
+
+          <CvSection
+            empty={hospitality.languages.length === 0}
+            renderHeading={() => <Heading title="Languages" accent={accent} gold={gold} />}
+          >
+            <ul className="space-y-1">
+              {hospitality.languages.map((l) => (
+                <li key={l.name} className={TS.body.tw}>
+                  {l.name} <span style={{ color: mutedAlt }}>— {l.level}</span>
+                </li>
+              ))}
+            </ul>
+          </CvSection>
+
+          <CvSection
+            empty={certifications.length === 0}
+            renderHeading={() => <Heading title="Certifications" accent={accent} gold={gold} />}
+          >
+            <ul className="space-y-1">
+              {certifications.map((c) => (
+                <li key={c.id}>
+                  <span className={`${TS.entryTitle.tw} block`}>{c.name}</span>
+                  <span className={TS.entryMeta.tw} style={{ color: mutedAlt }}>{c.issuer} · {c.year}</span>
+                </li>
+              ))}
+            </ul>
+          </CvSection>
         </div>
       </div>
     </div>
   );
 }
 
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function Heading({ title, accent, gold }: { title: string; accent: string; gold: string }) {
   return (
     <section>
-      <h2 className="mb-2 font-display text-xs font-bold uppercase tracking-[0.25em] text-[#3a1119]">
-        {title}
-      </h2>
-      <div className="border-t border-[#c9a55a]/40 pt-2">{children}</div>
+      <h2 className={`mb-2 ${TS.sectionHeader.tw}`} style={{ color: accent }}>{title}</h2>
+      <div className="border-t pt-2" style={{ borderColor: gold + "40" }} />
     </section>
   );
 }

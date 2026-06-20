@@ -1,8 +1,9 @@
 /**
- * Editorial Sidebar — visual/portfolio two-column CV template.
+ * Elegant — visual/portfolio two-column CV template.
  *
- * Layout: main column (~68.7%) | sidebar (~31.3%) separated by a 1px #D9D9D9 rule.
+ * Layout: main column (65.5%) | sidebar (34.5%) separated by a 1px #D9D9D9 rule.
  * Typography: serif (Lora via Google Fonts; falls back to Georgia).
+ * Photo: circular, ~86px (≈0.9in at 96dpi).
  *
  * ⚠ ATS note: two-column layouts can confuse ATS parsers.
  */
@@ -34,6 +35,8 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
         letterSpacing: "0.2em",
         margin:        "10pt 0 5pt",
         lineHeight:    1.2,
+        borderBottom:  `1px solid ${C.divider}`,
+        paddingBottom: 4,
       }}
     >
       {children}
@@ -41,19 +44,17 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
-  const { personal, summary, experience, education, skills, certifications, hospitality } = data;
+export function ElegantTemplate({ data }: { data: ResumeData }) {
+  const { personal, summary, experience, education, skills, certifications, hospitality, references } = data;
 
   const additionalInfo: { label: string; value: string }[] = [];
-  if (hospitality.languages.length > 0) {
-    additionalInfo.push({ label: "Languages", value: hospitality.languages.map((l) => `${l.name} (${l.level})`).join(", ") });
-  }
+  if (hospitality.languages.length > 0) additionalInfo.push({ label: "Languages", value: hospitality.languages.map((l) => `${l.name} (${l.level})`).join(", ") });
   if (hospitality.wineKnowledge !== "None") additionalInfo.push({ label: "Wine", value: hospitality.wineKnowledge });
   if (hospitality.spiritsKnowledge !== "None") additionalInfo.push({ label: "Spirits", value: hospitality.spiritsKnowledge });
-  if (hospitality.serviceStyles.length > 0) additionalInfo.push({ label: "Service styles", value: hospitality.serviceStyles.join(", ") });
-  if (hospitality.posSystems.length > 0) additionalInfo.push({ label: "POS systems", value: hospitality.posSystems.join(", ") });
+  if (hospitality.serviceStyles.length > 0) additionalInfo.push({ label: "Service", value: hospitality.serviceStyles.join(", ") });
+  if (hospitality.posSystems.length > 0) additionalInfo.push({ label: "POS", value: hospitality.posSystems.join(", ") });
   if (hospitality.foodSafety) additionalInfo.push({ label: "Food safety", value: hospitality.foodSafety });
-  if (hospitality.allergens) additionalInfo.push({ label: "Allergen awareness", value: "Trained" });
+  if (hospitality.allergens) additionalInfo.push({ label: "Allergens", value: "Trained" });
 
   const entryTokens = { titleColor: C.text, metaColor: C.muted, bodyColor: C.text, metaItalic: true, datesRight: false };
 
@@ -73,12 +74,12 @@ export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap');`}</style>
 
       {/* ── Header ── */}
-      <header style={{ display: "flex", alignItems: "flex-start", gap: 18, marginBottom: 28 }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 22, marginBottom: 32 }}>
         {personal.photo && (
           <img
             src={personal.photo}
             alt=""
-            style={{ width: 95, height: 95, borderRadius: 12, objectFit: "cover", flexShrink: 0, display: "block" }}
+            style={{ width: 86, height: 86, borderRadius: "50%", objectFit: "cover", flexShrink: 0, display: "block", border: `2px solid ${C.divider}` }}
           />
         )}
         {/* flex: 1 + minWidth: 0 — prevents long names overflowing into photo */}
@@ -97,23 +98,21 @@ export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
             {personal.fullName || "Your Name"}
             {personal.title ? `, ${personal.title}` : ""}
           </h1>
-          {personal.location && (
-            <p style={{ margin: "5px 0 0", fontSize: "9pt", color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", lineHeight: 1.3 }}>
-              {personal.location}
-            </p>
-          )}
-          {(personal.email || personal.phone) && (
-            <p style={{ margin: "4px 0 0", fontSize: "9pt", color: C.muted, lineHeight: 1.3 }}>
-              {[personal.email, personal.phone].filter(Boolean).join(" · ")}
+          <p style={{ margin: "6px 0 0", fontSize: "9pt", color: C.muted, lineHeight: 1.4 }}>
+            {[personal.location, personal.email, personal.phone].filter(Boolean).join(" · ")}
+          </p>
+          {personal.links && personal.links.length > 0 && (
+            <p style={{ margin: "2px 0 0", fontSize: "9pt", color: C.muted, lineHeight: 1.4 }}>
+              {personal.links.map((l) => l.url).join(" · ")}
             </p>
           )}
         </div>
       </header>
 
       {/* ── Two-column body ── */}
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
 
-        <main style={{ flex: "0 0 68.7%", minWidth: 0 }}>
+        <main style={{ flex: "0 0 65.5%", minWidth: 0 }}>
           <CvSection
             empty={!summary}
             renderHeading={() => <SectionHeading>Profile</SectionHeading>}
@@ -125,18 +124,17 @@ export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
             empty={experience.length === 0}
             renderHeading={() => <SectionHeading>Experience</SectionHeading>}
           >
-            <div>
-              {experience.map((e) => (
-                <CvEntry
-                  key={e.id}
-                  title={[e.role, e.venue, e.location].filter(Boolean).join(", ")}
-                  dates={dateRange(e.startDate, e.endDate, e.current)}
-                  description={e.bullets ?? e.description}
-                  tokens={entryTokens}
-                  className="mb-3"
-                />
-              ))}
-            </div>
+            {experience.map((e) => (
+              <CvEntry
+                key={e.id}
+                title={e.role}
+                meta={[e.venue, e.location].filter(Boolean).join(", ")}
+                dates={dateRange(e.startDate, e.endDate, e.current)}
+                description={e.bullets ?? e.description}
+                tokens={entryTokens}
+                className="mb-4"
+              />
+            ))}
           </CvSection>
 
           <CvSection
@@ -144,23 +142,25 @@ export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
             renderHeading={() => <SectionHeading>Education</SectionHeading>}
           >
             {education.map((e) => (
-              <p
-                key={e.id}
-                style={{ fontWeight: "bold", fontSize: "11pt", color: C.text, margin: "0 0 6px", lineHeight: 1.3 }}
-              >
-                {[e.school, [e.degree, e.field].filter(Boolean).join(", ")].filter(Boolean).join(", ")}
-              </p>
+              <div key={e.id} style={{ marginBottom: 10 }}>
+                <p style={{ fontWeight: "bold", fontSize: "11pt", color: C.text, margin: 0, lineHeight: 1.3 }}>
+                  {[e.degree, e.field].filter(Boolean).join(", ")}
+                </p>
+                <p style={{ fontSize: "10pt", color: C.muted, margin: "2px 0 0", lineHeight: 1.3 }}>
+                  {e.school}{e.startDate || e.endDate ? ` · ${dateRange(e.startDate, e.endDate)}` : ""}
+                </p>
+              </div>
             ))}
           </CvSection>
         </main>
 
-        <aside style={{ flex: 1, minWidth: 0, borderLeft: `1px solid ${C.divider}`, paddingLeft: 20 }}>
+        <aside style={{ flex: 1, minWidth: 0, borderLeft: `1px solid ${C.divider}`, paddingLeft: 24 }}>
           <CvSection
             empty={skills.length === 0}
             renderHeading={() => <SectionHeading>Skills</SectionHeading>}
           >
             {skills.map((s) => (
-              <p key={s} style={{ fontSize: "10.5pt", color: C.text, margin: "0 0 8px", lineHeight: 1.3 }}>{s}</p>
+              <p key={s} style={{ fontSize: "10.5pt", color: C.text, margin: "0 0 6px", lineHeight: 1.4 }}>{s}</p>
             ))}
           </CvSection>
 
@@ -169,9 +169,9 @@ export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
             renderHeading={() => <SectionHeading>Additional Info</SectionHeading>}
           >
             {additionalInfo.map(({ label, value }) => (
-              <p key={label} style={{ fontSize: "10.5pt", color: C.text, margin: "0 0 4px", lineHeight: 1.3 }}>
+              <p key={label} style={{ fontSize: "10pt", color: C.text, margin: "0 0 5px", lineHeight: 1.4 }}>
                 <span style={{ fontWeight: "bold" }}>{label}:</span>{" "}
-                <span style={{ fontWeight: "normal" }}>{value}</span>
+                <span style={{ color: C.muted }}>{value}</span>
               </p>
             ))}
           </CvSection>
@@ -181,21 +181,19 @@ export function EditorialSidebarTemplate({ data }: { data: ResumeData }) {
             renderHeading={() => <SectionHeading>Certifications</SectionHeading>}
           >
             {certifications.map((c) => (
-              <p key={c.id} style={{ fontSize: "10.5pt", color: C.text, margin: "0 0 6px", lineHeight: 1.3 }}>
+              <p key={c.id} style={{ fontSize: "10pt", color: C.text, margin: "0 0 6px", lineHeight: 1.4 }}>
                 <span style={{ fontWeight: "bold" }}>{c.name}</span>
-                {" — "}
-                <span style={{ color: C.muted }}>{c.issuer}, {c.year}</span>
+                {c.issuer || c.year ? <span style={{ color: C.muted }}> — {[c.issuer, c.year].filter(Boolean).join(", ")}</span> : null}
               </p>
             ))}
           </CvSection>
 
-          {/* References — always shown */}
-          <section>
-            <SectionHeading>References</SectionHeading>
-            <p style={{ fontSize: "10.5pt", color: C.text, margin: 0, lineHeight: 1.3 }}>
-              Available upon request.
-            </p>
-          </section>
+          <CvSection
+            empty={!references}
+            renderHeading={() => <SectionHeading>References</SectionHeading>}
+          >
+            <p style={{ fontSize: "10pt", color: C.text, margin: 0, lineHeight: 1.5 }}>{references}</p>
+          </CvSection>
         </aside>
       </div>
     </div>

@@ -37,7 +37,7 @@ Return exactly this JSON shape:
       "startDate": "",
       "endDate": "",
       "current": false,
-      "description": ""
+      "bullets": [""]
     }
   ],
   "education": [
@@ -47,7 +47,7 @@ Return exactly this JSON shape:
       "field": "",
       "startDate": "",
       "endDate": "",
-      "description": ""
+      "bullets": [""]
     }
   ],
   "skills": [],
@@ -81,7 +81,7 @@ Strict rules:
 - serviceStyles: populate ONLY if the CV explicitly names service styles (fine dining, à la carte, banquet, etc.).
 - posSystems: populate ONLY if POS system names appear in the CV (Toast, Micros, Lightspeed, etc.).
 - allergens: true ONLY if allergen awareness training is explicitly mentioned.
-- experience description: preserve the candidate's actual wording; light formatting cleanup only — do NOT rewrite.
+- experience/education bullets: return each bullet point as a separate string in the "bullets" array. Strip the leading marker character (*, -, •, ·) from each item. Preserve the candidate's exact wording — do NOT rewrite or paraphrase. If the description is a single sentence with no bullet markers, return it as a one-item array.
 - summary: use the candidate's actual profile/summary text verbatim.
 - Do NOT include an "id" field — IDs will be assigned by the application.
 - Respond with ONLY the JSON object.`;
@@ -140,6 +140,25 @@ function buildResumeData(raw: string): ResumeData {
   const safeStrArr = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && s.trim().length > 0) : [];
 
+  /**
+   * Coerce model output to a clean string[].
+   * The model should return bullets:string[] but may still return a description:string
+   * blob if it ignores the schema. Split that blob defensively.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parseBulletsField = (e: any): string[] => {
+    if (Array.isArray(e.bullets)) {
+      return safeStrArr(e.bullets);
+    }
+    // Fallback: model returned a description string — split on newlines and strip markers
+    const desc = safeStr(e.description);
+    if (!desc) return [];
+    return desc
+      .split('\n')
+      .map((l: string) => l.replace(/^[\u2022\-\*\·]\s*/, '').trim())
+      .filter(Boolean);
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const p = (parsed.personal ?? {}) as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,7 +188,8 @@ function buildResumeData(raw: string): ResumeData {
           startDate: safeStr(e.startDate),
           endDate: safeStr(e.endDate),
           current: safeBool(e.current),
-          description: safeStr(e.description),
+          description: '',
+          bullets: parseBulletsField(e),
         }))
       : [],
     education: Array.isArray(parsed.education)
@@ -181,7 +201,7 @@ function buildResumeData(raw: string): ResumeData {
           field: safeStr(e.field),
           startDate: safeStr(e.startDate),
           endDate: safeStr(e.endDate),
-          description: safeStr(e.description),
+          bullets: parseBulletsField(e),
         }))
       : [],
     skills: safeStrArr(parsed.skills),

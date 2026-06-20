@@ -16,7 +16,17 @@ export interface Experience {
   startDate: string;
   endDate: string;
   current?: boolean;
+  /**
+   * Free-text description typed in the builder form. Legacy/builder-authored entries
+   * use this field. Freshly-parsed CVs populate `bullets` instead.
+   */
   description: string;
+  /**
+   * Structured bullet points from the CV parser. Each item is one bullet's exact
+   * text — no leading marker character. Takes precedence over `description` when
+   * both are present. Absent for manually-typed entries (use `description` then).
+   */
+  bullets?: string[];
 }
 
 export interface Education {
@@ -26,7 +36,10 @@ export interface Education {
   field?: string;
   startDate: string;
   endDate: string;
+  /** Free-text description (builder-typed). Parsed CVs use `bullets` instead. */
   description?: string;
+  /** Structured bullet points from the CV parser. See Experience.bullets. */
+  bullets?: string[];
 }
 
 export interface Certification {
@@ -58,6 +71,8 @@ export interface ResumeData {
   formatting?: import("./formatting").FormattingSettings;
   /** Job ad text for AI tailoring suggestions. Persisted with draft, never exported to PDF. */
   targetJobDescription?: string;
+  /** Optional references text shown in templates that support it. */
+  references?: string;
 }
 
 export const STORAGE_KEY = "hospitality-resume-v1";

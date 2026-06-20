@@ -1,11 +1,11 @@
 import { ResumeData } from "@/types/resume";
 import { dateRange } from "./utils";
+import { CvSection } from "@/lib/cv-templates/CvSection";
+import { CvEntry } from "@/lib/cv-templates/CvEntry";
+import { TS } from "@/lib/cv-templates/type-scale";
 
 /**
- * Elegant Sommelier — tailored for wine-focused roles.
- * Deep burgundy header band with portrait, gold rules,
- * narrow serif body. Wine, spirits and languages are
- * promoted to a featured "Cellar" panel under the header.
+ * Elegant Sommelier — deep burgundy header, gold rules, narrow serif body.
  */
 export function CellarTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
@@ -15,36 +15,33 @@ export function CellarTemplate({ data }: { data: ResumeData }) {
   const muted = "#6b5142";
   const serif = "Georgia, 'Times New Roman', serif";
 
+  const entryTokens = { titleColor: ink, metaColor: muted, bodyColor: ink, metaItalic: true, datesRight: true };
+
   return (
-    <div className="text-[11px] leading-relaxed" style={{ background: cream, color: ink, fontFamily: serif }}>
+    <div style={{ background: cream, color: ink, fontFamily: serif, fontSize: TS.body.rem, lineHeight: TS.body.lh }}>
       {/* Burgundy header band */}
-      <header
-        className="relative px-12 pb-12 pt-10"
-        style={{ background: ink, color: cream }}
-      >
+      <header className="relative px-12 pb-12 pt-10" style={{ background: ink, color: cream }}>
         <div className="flex items-center gap-6">
           {personal.photo && (
             <img
               src={personal.photo}
               alt=""
-              className="h-28 w-28 rounded-full object-cover"
+              className="h-28 w-28 shrink-0 rounded-full object-cover"
               style={{ outline: `3px solid ${accent}`, outlineOffset: 3 }}
             />
           )}
-          <div className="flex-1">
-            <p
-              className="text-[10px] uppercase tracking-[0.5em]"
-              style={{ color: accent }}
-            >
+          {/* min-w-0 prevents long names overflowing */}
+          <div className="min-w-0 flex-1">
+            <p className={`${TS.metaSmall.tw} uppercase tracking-[0.5em]`} style={{ color: accent }}>
               Sommelier · Wine Director
             </p>
             <h1 className="mt-2 text-4xl font-bold leading-none tracking-tight">
               {personal.fullName || "Your Name"}
             </h1>
-            <p className="mt-2 italic" style={{ color: "#d9c7a3" }}>
+            <p className={`mt-2 italic ${TS.jobTitle.tw}`} style={{ color: "#d9c7a3" }}>
               {personal.title || "Hospitality Professional"}
             </p>
-            <p className="mt-3 text-[10.5px]" style={{ color: "#cbb893" }}>
+            <p className={`mt-3 ${TS.metaSmall.tw}`} style={{ color: "#cbb893" }}>
               {[personal.location, personal.email, personal.phone].filter(Boolean).join("  ·  ")}
             </p>
           </div>
@@ -72,170 +69,131 @@ export function CellarTemplate({ data }: { data: ResumeData }) {
 
       <div className="grid grid-cols-3 gap-10 px-12 py-8">
         <main className="col-span-2 space-y-6">
-          {summary && (
-            <Block title="Profile" accent={accent}>
-              <p className="text-[11.5px] leading-[1.7] first-letter:float-left first-letter:mr-2 first-letter:font-bold first-letter:text-3xl first-letter:leading-[0.85]" style={{ color: ink }}>
-                {summary}
-              </p>
-            </Block>
-          )}
+          <CvSection
+            empty={!summary}
+            renderHeading={() => <Block title="Profile" accent={accent} />}
+          >
+            <p className={`${TS.body.tw} first-letter:float-left first-letter:mr-2 first-letter:font-bold first-letter:text-3xl first-letter:leading-[0.85]`} style={{ color: ink }}>
+              {summary}
+            </p>
+          </CvSection>
 
-          {experience.length > 0 && (
-            <Block title="Experience" accent={accent}>
-              <div className="space-y-4">
-                {experience.map((e) => (
-                  <div key={e.id}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="font-bold" style={{ color: ink }}>
-                        {e.role}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: accent }}>
-                        {dateRange(e.startDate, e.endDate, e.current)}
-                      </p>
-                    </div>
-                    <p className="italic" style={{ color: muted }}>
-                      {e.venue}
-                      {e.location ? ` · ${e.location}` : ""}
-                    </p>
-                    {e.description && <p className="mt-1 whitespace-pre-line">{e.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </Block>
-          )}
+          <CvSection
+            empty={experience.length === 0}
+            renderHeading={() => <Block title="Experience" accent={accent} />}
+          >
+            <div className="space-y-4">
+              {experience.map((e) => (
+                <CvEntry
+                  key={e.id}
+                  title={e.role}
+                  meta={[e.venue, e.location].filter(Boolean).join(" · ")}
+                  dates={dateRange(e.startDate, e.endDate, e.current)}
+                  description={e.bullets ?? e.description}
+                  tokens={entryTokens}
+                />
+              ))}
+            </div>
+          </CvSection>
 
-          {education.length > 0 && (
-            <Block title="Education" accent={accent}>
-              <div className="space-y-2">
-                {education.map((e) => (
-                  <div key={e.id}>
-                    <div className="flex items-baseline justify-between">
-                      <p className="font-semibold">
-                        {e.degree}
-                        {e.field ? `, ${e.field}` : ""}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-wider" style={{ color: accent }}>
-                        {[e.startDate, e.endDate].filter(Boolean).join(" — ")}
-                      </p>
-                    </div>
-                    <p className="italic" style={{ color: muted }}>
-                      {e.school}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </Block>
-          )}
+          <CvSection
+            empty={education.length === 0}
+            renderHeading={() => <Block title="Education" accent={accent} />}
+          >
+            <div className="space-y-2">
+              {education.map((e) => (
+                <CvEntry
+                  key={e.id}
+                  title={[e.degree, e.field].filter(Boolean).join(", ")}
+                  meta={e.school}
+                  dates={[e.startDate, e.endDate].filter(Boolean).join(" — ")}
+                  tokens={{ ...entryTokens, datesRight: false }}
+                />
+              ))}
+            </div>
+          </CvSection>
         </main>
 
         <aside className="space-y-6">
-          {hospitality.serviceStyles.length > 0 && (
-            <Block title="Service" accent={accent} small>
-              <p>{hospitality.serviceStyles.join(", ")}</p>
-            </Block>
-          )}
+          <CvSection
+            empty={hospitality.serviceStyles.length === 0}
+            renderHeading={() => <Block title="Service" accent={accent} small />}
+          >
+            <p className={TS.body.tw}>{hospitality.serviceStyles.join(", ")}</p>
+          </CvSection>
 
-          {hospitality.posSystems.length > 0 && (
-            <Block title="POS Systems" accent={accent} small>
-              <p>{hospitality.posSystems.join(", ")}</p>
-            </Block>
-          )}
+          <CvSection
+            empty={hospitality.posSystems.length === 0}
+            renderHeading={() => <Block title="POS Systems" accent={accent} small />}
+          >
+            <p className={TS.body.tw}>{hospitality.posSystems.join(", ")}</p>
+          </CvSection>
 
-          {skills.length > 0 && (
-            <Block title="Skills" accent={accent} small>
-              <ul className="space-y-1">
-                {skills.map((s) => (
-                  <li key={s}>· {s}</li>
-                ))}
-              </ul>
-            </Block>
-          )}
+          <CvSection
+            empty={skills.length === 0}
+            renderHeading={() => <Block title="Skills" accent={accent} small />}
+          >
+            <ul className="space-y-1">
+              {skills.map((s) => <li key={s} className={TS.body.tw}>· {s}</li>)}
+            </ul>
+          </CvSection>
 
-          {hospitality.languages.length > 0 && (
-            <Block title="Languages" accent={accent} small>
-              <ul className="space-y-1">
-                {hospitality.languages.map((l) => (
-                  <li key={l.name}>
-                    {l.name}
-                    <span style={{ color: muted }}> — {l.level}</span>
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
+          <CvSection
+            empty={hospitality.languages.length === 0}
+            renderHeading={() => <Block title="Languages" accent={accent} small />}
+          >
+            <ul className="space-y-1">
+              {hospitality.languages.map((l) => (
+                <li key={l.name} className={TS.body.tw}>
+                  {l.name}<span style={{ color: muted }}> — {l.level}</span>
+                </li>
+              ))}
+            </ul>
+          </CvSection>
 
-          {certifications.length > 0 && (
-            <Block title="Certifications" accent={accent} small>
-              <ul className="space-y-1.5">
-                {certifications.map((c) => (
-                  <li key={c.id}>
-                    <p className="font-semibold">{c.name}</p>
-                    <p style={{ color: muted }}>
-                      {c.issuer} · {c.year}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
+          <CvSection
+            empty={certifications.length === 0}
+            renderHeading={() => <Block title="Certifications" accent={accent} small />}
+          >
+            <ul className="space-y-1.5">
+              {certifications.map((c) => (
+                <li key={c.id}>
+                  <p className={TS.entryTitle.tw}>{c.name}</p>
+                  <p className={TS.entryMeta.tw} style={{ color: muted }}>{c.issuer} · {c.year}</p>
+                </li>
+              ))}
+            </ul>
+          </CvSection>
 
-          {(hospitality.foodSafety || hospitality.allergens) && (
-            <Block title="Compliance" accent={accent} small>
-              {hospitality.foodSafety && <p>{hospitality.foodSafety}</p>}
-              {hospitality.allergens && <p>Allergen-trained</p>}
-            </Block>
-          )}
+          <CvSection
+            empty={!hospitality.foodSafety && !hospitality.allergens}
+            renderHeading={() => <Block title="Compliance" accent={accent} small />}
+          >
+            {hospitality.foodSafety && <p className={TS.body.tw}>{hospitality.foodSafety}</p>}
+            {hospitality.allergens && <p className={TS.body.tw}>Allergen-trained</p>}
+          </CvSection>
         </aside>
       </div>
     </div>
   );
 }
 
-function Block({
-  title,
-  accent,
-  small,
-  children,
-}: {
-  title: string;
-  accent: string;
-  small?: boolean;
-  children: React.ReactNode;
-}) {
+function Block({ title, accent, small }: { title: string; accent: string; small?: boolean }) {
   return (
     <section>
-      <h2
-        className={`mb-2 ${small ? "text-[9px]" : "text-[10px]"} font-bold uppercase tracking-[0.3em]`}
-        style={{ color: accent }}
-      >
+      <h2 className={`mb-2 ${small ? TS.entryMeta.tw : TS.sectionHeader.tw} font-bold uppercase tracking-[0.3em]`} style={{ color: accent }}>
         {title}
       </h2>
-      <div className="border-t pt-2" style={{ borderColor: accent + "55" }}>
-        {children}
-      </div>
+      <div className="border-t pt-2" style={{ borderColor: accent + "55" }} />
     </section>
   );
 }
 
-function Pillar({
-  label,
-  value,
-  accent,
-  muted,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-  muted: string;
-}) {
+function Pillar({ label, value, accent, muted }: { label: string; value: string; accent: string; muted: string }) {
   return (
     <div className="text-center">
-      <p className="text-[9px] uppercase tracking-[0.3em]" style={{ color: muted }}>
-        {label}
-      </p>
-      <p className="mt-1 font-semibold" style={{ color: accent }}>
-        {value}
-      </p>
+      <p className={`${TS.metaSmall.tw} uppercase tracking-[0.3em]`} style={{ color: muted }}>{label}</p>
+      <p className={`mt-1 font-semibold ${TS.body.tw}`} style={{ color: accent }}>{value}</p>
     </div>
   );
 }
