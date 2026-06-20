@@ -76,7 +76,7 @@ export function ExperienceSection({ data, onChange }: Props) {
                 onChange={(e) => update(i, { location: e.target.value })}
                 placeholder="London"
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
                 <TextField
                   label="Start"
                   type="month"

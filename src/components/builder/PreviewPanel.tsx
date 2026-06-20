@@ -67,7 +67,7 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
 
           {/* Dropdown selector */}
           <Select value={data.templateId} onValueChange={onTemplateChange}>
-            <SelectTrigger className="h-9 w-[210px] shrink-0" id="template-select">
+            <SelectTrigger className="h-9 w-full min-w-[160px] max-w-[210px] shrink-0" id="template-select">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

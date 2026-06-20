@@ -12,12 +12,14 @@ import { SkillsSection } from "@/components/builder/sections/SkillsSection";
 import { CertificationsSection } from "@/components/builder/sections/CertificationsSection";
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/extractCvText";
 import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
 import { consumeCvImport } from "@/lib/cv-import-handoff";
 import { mapParsedCvToBuilderForm } from "@/lib/map-parsed-cv-to-builder";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/builder")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -177,9 +179,10 @@ function BuilderPage() {
   if (!hydrated) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="no-print sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+    // --bh (builder header height) is consumed by the sticky tab bar and preview column
+    <div className="min-h-screen bg-background [--bh:3.75rem]">
+      {/* Header — height controlled by --bh CSS variable */}
+      <header className="no-print sticky top-0 z-30 h-[--bh] border-b border-border bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -228,25 +231,33 @@ function BuilderPage() {
       </header>
 
       {/* Mobile tab switcher */}
-      <div className="no-print sticky top-[60px] z-20 flex border-b border-border bg-background lg:hidden">
-        <button
-          className={`flex-1 px-4 py-2.5 text-sm font-medium ${mobileTab === "edit" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
-          onClick={() => setMobileTab("edit")}
-        >
-          <Pencil className="mr-1.5 inline h-4 w-4" /> Edit
-        </button>
-        <button
-          className={`flex-1 px-4 py-2.5 text-sm font-medium ${mobileTab === "preview" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
-          onClick={() => setMobileTab("preview")}
-        >
-          <Eye className="mr-1.5 inline h-4 w-4" /> Preview
-        </button>
+      <div className="no-print sticky top-[--bh] z-20 flex border-b border-border bg-background lg:hidden">
+        {(["edit", "preview"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setMobileTab(tab)}
+            aria-selected={mobileTab === tab}
+            role="tab"
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              mobileTab === tab
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab === "edit" ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {tab === "edit" ? "Edit" : "Preview"}
+          </button>
+        ))}
       </div>
 
       <main className="mx-auto grid max-w-[1600px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         {/* Form column */}
         <div
-          className={`no-print min-h-[calc(100vh-60px)] border-r border-border bg-background ${mobileTab === "edit" ? "block" : "hidden lg:block"}`}
+          className={cn(
+            "no-print min-h-[calc(100dvh-var(--bh))] overflow-wrap-anywhere border-r border-border bg-background",
+            mobileTab === "edit" ? "block" : "hidden lg:block",
+          )}
         >
           <div className="space-y-5 p-4 sm:p-6 lg:p-8">
             <div>
@@ -257,15 +268,15 @@ function BuilderPage() {
 
               {/* Paste-text fallback — shown when a scanned/image PDF is detected */}
               {showPasteFallback && (
-                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <div className="mt-4 rounded-lg border border-border bg-muted/40 p-4">
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2">
-                      <ClipboardPaste className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                      <ClipboardPaste className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-semibold text-amber-900">
+                        <p className="text-sm font-semibold text-foreground">
                           This PDF appears to be a scanned image
                         </p>
-                        <p className="mt-0.5 text-xs text-amber-700">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           We can't extract text from image-based PDFs. Open your CV in Word or Google Docs, select all, copy, and paste it below — or upload a .docx version instead.
                         </p>
                       </div>
@@ -273,14 +284,14 @@ function BuilderPage() {
                     <button
                       type="button"
                       onClick={() => { setShowPasteFallback(false); setPasteText(""); }}
-                      className="shrink-0 text-amber-500 hover:text-amber-800"
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
                       aria-label="Dismiss"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                  <textarea
-                    className="mt-2 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  <Textarea
+                    className="mt-2"
                     rows={8}
                     placeholder="Paste your CV text here…"
                     value={pasteText}
@@ -298,7 +309,7 @@ function BuilderPage() {
                         <><ClipboardPaste className="mr-2 h-4 w-4" />Import from text</>
                       )}
                     </Button>
-                    <span className="text-xs text-amber-600">
+                    <span className="text-xs text-muted-foreground">
                       {pasteText.trim().length < 50 ? `${pasteText.trim().length} / 50 chars minimum` : "Ready to import"}
                     </span>
                   </div>
@@ -378,7 +389,10 @@ function BuilderPage() {
 
         {/* Preview column */}
         <div
-          className={`bg-muted/30 lg:sticky lg:top-[60px] lg:h-[calc(100vh-60px)] ${mobileTab === "preview" ? "block" : "hidden lg:block"}`}
+          className={cn(
+            "bg-muted/30 lg:sticky lg:top-[--bh] lg:h-[calc(100dvh-var(--bh))]",
+            mobileTab === "preview" ? "block" : "hidden lg:block",
+          )}
         >
           <PreviewPanel
             data={data}
