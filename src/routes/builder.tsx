@@ -13,6 +13,16 @@ import { CertificationsSection } from "@/components/builder/sections/Certificati
 import { HospitalitySection } from "@/components/builder/sections/HospitalitySection";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/extractCvText";
@@ -59,6 +69,10 @@ function BuilderPage() {
   const [importing, setImporting] = useState(false);
   const [importedFile, setImportedFile] = useState<string | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
+  const [importConfirm, setImportConfirm] = useState<{
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
   const search = useSearch({ from: "/builder" });
   const navigate = useNavigate();
 
@@ -73,16 +87,21 @@ function BuilderPage() {
     if (!imported) return; // expired or already consumed
 
     const hasExistingDraft = Boolean(data.personal.fullName);
-    if (
-      hasExistingDraft &&
-      !window.confirm("Import data from your CV check? This will replace your current draft.")
-    ) {
+    const applyHandoffImport = () => {
+      setData({ ...mapParsedCvToBuilderForm(imported), templateId: data.templateId });
+      setImportedFile("CV check");
+      setStep(0);
+    };
+
+    if (hasExistingDraft) {
+      setImportConfirm({
+        description: "This replaces your current draft with the information from your CV check.",
+        onConfirm: applyHandoffImport,
+      });
       return;
     }
 
-    setData({ ...mapParsedCvToBuilderForm(imported), templateId: data.templateId });
-    setImportedFile("CV check");
-    setStep(0);
+    applyHandoffImport();
   // Run once after hydration when the param is present
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
@@ -91,17 +110,7 @@ function BuilderPage() {
   const [pasteText, setPasteText] = useState("");
   const [parsingPaste, setParsingPaste] = useState(false);
 
-  async function handleImportCv(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Reset input so re-uploading same file triggers onChange
-    e.target.value = "";
-
-    // Warn if user has real work in progress (not just sample/empty state)
-    if (data.personal.fullName && !window.confirm(
-      "Importing a CV will replace your current builder content. Continue?"
-    )) return;
-
+  async function doFileImport(file: File) {
     setImporting(true);
     setImportedFile(null);
     try {
@@ -123,6 +132,24 @@ function BuilderPage() {
     } finally {
       setImporting(false);
     }
+  }
+
+  async function handleImportCv(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so re-uploading same file triggers onChange
+    e.target.value = "";
+
+    // Warn if user has real work in progress (not just sample/empty state)
+    if (data.personal.fullName) {
+      setImportConfirm({
+        description: "This will replace your current draft with the imported file content.",
+        onConfirm: () => void doFileImport(file),
+      });
+      return;
+    }
+
+    await doFileImport(file);
   }
 
   async function handlePasteImport() {
@@ -401,6 +428,30 @@ function BuilderPage() {
           />
         </div>
       </main>
+
+      <AlertDialog open={importConfirm !== null} onOpenChange={(open) => { if (!open) setImportConfirm(null); }}>
+        <AlertDialogContent className="mx-4 w-[calc(100%-2rem)] max-w-md px-6 pb-safe-bottom sm:mx-auto sm:w-full">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import your CV data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {importConfirm?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <AlertDialogCancel onClick={() => setImportConfirm(null)}>
+              Keep current draft
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                importConfirm?.onConfirm();
+                setImportConfirm(null);
+              }}
+            >
+              Import data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
