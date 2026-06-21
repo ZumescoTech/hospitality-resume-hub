@@ -25,6 +25,21 @@ function initPdfWorker() {
   workerInitialised = true;
 }
 
+// ─── Blob.arrayBuffer() polyfill ──────────────────────────────────────────────
+// Blob.arrayBuffer() is only available from iOS Safari 14.5+.
+// FileReader.readAsArrayBuffer() works back to iOS 9 and is the safe fallback.
+function readArrayBuffer(file: File): Promise<ArrayBuffer> {
+  if (typeof file.arrayBuffer === 'function') {
+    return file.arrayBuffer();
+  }
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(new Error('Could not read the file.'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 // ─── Progress callback ─────────────────────────────────────────────────────────
 
 export type ExtractionProgressCallback = (update: {
@@ -66,8 +81,8 @@ async function extractTextFromDocx(
   onProgress?: ExtractionProgressCallback,
 ): Promise<string> {
   onProgress?.({ stage: 'reading', percent: 0 });
-  const arrayBuffer = await file.arrayBuffer();
-  // arrayBuffer() has no progress events — jump straight to 10%.
+  const arrayBuffer = await readArrayBuffer(file);
+  // readArrayBuffer() has no progress events — jump straight to 10%.
   onProgress?.({ stage: 'extracting', percent: 10 });
   const result = await mammoth.extractRawText({ arrayBuffer });
   onProgress?.({ stage: 'extracting', percent: 70 });
@@ -160,8 +175,8 @@ async function extractTextFromPdf(
   initPdfWorker();
   onProgress?.({ stage: 'reading', percent: 0 });
 
-  const arrayBuffer = await file.arrayBuffer();
-  // arrayBuffer() has no progress events — jump to 10% on completion.
+  const arrayBuffer = await readArrayBuffer(file);
+  // readArrayBuffer() has no progress events — jump to 10% on completion.
   onProgress?.({ stage: 'extracting', percent: 10 });
 
   let pdf: pdfjs.PDFDocumentProxy;

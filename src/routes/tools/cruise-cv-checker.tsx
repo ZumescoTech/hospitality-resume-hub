@@ -262,7 +262,32 @@ function CruiseCvCheckerPage() {
       setTimeout(() => progress.reset(), 1500);
     } catch (err) {
       progress.setStage('error');
-      toast.error(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+
+      // ── PHASE 0: full diagnostics in the console ───────────────────────────
+      // Keep the user-facing message friendly; capture everything needed to debug.
+      const fileInfo = pendingFile
+        ? { name: pendingFile.name, size: pendingFile.size, type: pendingFile.type }
+        : null;
+      console.error('[CV checker] extraction/scoring error', {
+        name: err instanceof Error ? err.name : typeof err,
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        fileInfo,
+        userAgent: navigator.userAgent,
+      });
+
+      // Friendly user-facing message — never expose raw JS error strings.
+      const knownMessage =
+        err instanceof Error &&
+        (err.message.includes('scanned image') ||
+          err.message.includes('encrypted or corrupted') ||
+          err.message.includes('Unsupported file type') ||
+          err.message.includes("couldn't extract"));
+      toast.error(
+        knownMessage
+          ? err.message
+          : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
+      );
     } finally {
       setLoading(false);
     }
