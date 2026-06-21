@@ -48,24 +48,26 @@ export function CellarTemplate({ data }: { data: ResumeData }) {
         </div>
       </header>
 
-      {/* Cellar feature strip */}
-      {(hospitality.wineKnowledge !== "None" ||
-        hospitality.spiritsKnowledge !== "None" ||
-        hospitality.languages.length > 0) && (
-        <div
-          className="mx-12 -mt-6 grid grid-cols-3 gap-4 rounded-sm px-6 py-4"
-          style={{ background: cream, border: `1px solid ${accent}` }}
-        >
-          <Pillar label="Wine" value={hospitality.wineKnowledge !== "None" ? hospitality.wineKnowledge : "—"} accent={accent} muted={muted} />
-          <Pillar label="Spirits" value={hospitality.spiritsKnowledge !== "None" ? hospitality.spiritsKnowledge : "—"} accent={accent} muted={muted} />
-          <Pillar
-            label="Languages"
-            value={hospitality.languages.length > 0 ? hospitality.languages.map((l) => l.name).join(", ") : "—"}
-            accent={accent}
-            muted={muted}
-          />
-        </div>
-      )}
+      {/* Cellar feature strip — only rendered when at least one column has data.
+          pt-8 (32px) keeps label text 8px clear of the -mt-6 (24px) overlap zone.
+          flex justify-center reflows to however many populated columns remain. */}
+      {(() => {
+        const pillars: { label: string; value: string }[] = [];
+        if (hospitality.wineKnowledge !== "None") pillars.push({ label: "Wine", value: hospitality.wineKnowledge });
+        if (hospitality.spiritsKnowledge !== "None") pillars.push({ label: "Spirits", value: hospitality.spiritsKnowledge });
+        if (hospitality.languages.length > 0) pillars.push({ label: "Languages", value: hospitality.languages.map((l) => l.name).join(", ") });
+        if (pillars.length === 0) return null;
+        return (
+          <div
+            className="mx-12 -mt-6 flex justify-center gap-8 rounded-sm px-6 pt-8 pb-4"
+            style={{ background: cream, border: `1px solid ${accent}` }}
+          >
+            {pillars.map((p) => (
+              <Pillar key={p.label} label={p.label} value={p.value} accent={accent} muted={muted} />
+            ))}
+          </div>
+        );
+      })()}
 
       <div className="grid grid-cols-3 gap-10 px-12 py-8">
         <main className="col-span-2 space-y-6">
