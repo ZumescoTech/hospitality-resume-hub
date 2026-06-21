@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, ArrowRight, RefreshCw, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X, ClipboardPaste } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Eye, Pencil, User, Briefcase, GraduationCap, Star, Award, Wine, Check, Loader2, Cloud, Upload, X, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromFile } from "@/lib/extractCvText";
 import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
@@ -63,7 +63,7 @@ const STEPS = [
 ];
 
 function BuilderPage() {
-  const { data, setData, reset, loadSample, hydrated, syncing, resumeId } = useResumeStore();
+  const { data, setData, hydrated, syncing, resumeId } = useResumeStore();
   const [step, setStep] = useState(0);
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">("edit");
   const [importing, setImporting] = useState(false);
@@ -176,18 +176,6 @@ function BuilderPage() {
 
   const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
 
-  /** Backup export — downloads the raw JSON for data portability. */
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(data.personal.fullName || "resume").replace(/\s+/g, "_")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Resume data exported as JSON");
-  };
-
   const sectionProps = { data, onChange: onPatch };
 
   const sections = useMemo(
@@ -243,16 +231,6 @@ function BuilderPage() {
               className="hidden"
               onChange={handleImportCv}
             />
-            <Button variant="ghost" size="sm" onClick={loadSample} className="hidden sm:inline-flex">
-              <Sparkles className="mr-2 h-4 w-4" /> Sample
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => { reset(); toast.message("Cleared"); }} className="hidden sm:inline-flex">
-              <RefreshCw className="mr-2 h-4 w-4" /> Reset
-            </Button>
-            {/* JSON export — secondary / data backup */}
-            <Button variant="outline" size="sm" onClick={downloadJSON} className="hidden md:inline-flex">
-              JSON
-            </Button>
           </div>
         </div>
       </header>
