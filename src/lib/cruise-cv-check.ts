@@ -20,11 +20,13 @@ const CvCheckSchema = z.object({
 });
 
 const SaveLeadSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  whatsapp_number: z.string().min(5, 'WhatsApp number is required'),
+  country_code: z.string().length(2, 'Country code must be 2 letters'),
   roleSlug: z.string(),
   overallScore: z.number(),
-  tier: z.enum(['Strong', 'Good', 'Needs Work', 'Major Gaps']),
+  tier: z.string(),
   topFixes: z.array(z.string()),
+  opted_in: z.boolean(),
 });
 
 export type CvCheckInput = z.infer<typeof CvCheckSchema>;
@@ -98,7 +100,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
 });
 
-// ─── Save lead to Google Sheets via Apps Script webhook ───────────────────────
+// ─── Save WhatsApp lead to webhook ────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const saveCvLead = createServerFn({ method: 'POST' }).handler(async (ctx: any) => {
@@ -110,13 +112,15 @@ export const saveCvLead = createServerFn({ method: 'POST' }).handler(async (ctx:
   const roleName = rolesData.roles.find((r) => r.slug === parsed.roleSlug)?.role ?? parsed.roleSlug;
 
   const payload = JSON.stringify({
-    email: parsed.email,
+    whatsapp_number: parsed.whatsapp_number,
+    country_code: parsed.country_code,
+    role: roleName,
     role_slug: parsed.roleSlug,
-    role_name: roleName,
-    overall_score: parsed.overallScore,
+    score: parsed.overallScore,
     tier: parsed.tier,
     top_fixes: parsed.topFixes.join(' | '),
-    submitted_at: new Date().toISOString(),
+    opted_in: parsed.opted_in,
+    created_at: new Date().toISOString(),
   });
 
   const res = await fetch(webhookUrl, {

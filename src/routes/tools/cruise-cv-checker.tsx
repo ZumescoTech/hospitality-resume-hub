@@ -2,7 +2,6 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,7 +14,6 @@ import {
 import { toast } from 'sonner';
 import {
   Upload,
-  Loader2,
   Anchor,
   ArrowRight,
   ShieldCheck,
@@ -24,7 +22,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { checkCruiseCv, saveCvLead, getRoleOptions } from '@/lib/cruise-cv-check';
+
+import { checkCruiseCv, getRoleOptions } from '@/lib/cruise-cv-check';
+import { WhatsAppCaptureForm } from '@/components/checker/WhatsAppCaptureForm';
 import type { CvScoreResult, CategoryKey } from '@/lib/cruiseCvRubric';
 import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
@@ -184,9 +184,7 @@ function CruiseCvCheckerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvScoreResult | null>(null);
   const [parsedCv, setParsedCv] = useState<ResumeData | null>(null);
-  const [email, setEmail] = useState('');
-  const [emailSubmitting, setEmailSubmitting] = useState(false);
-  const [fullReportUnlocked, setFullReportUnlocked] = useState(false);
+  const [whatsappCaptured, setWhatsappCaptured] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const progress = useCvUploadProgress();
@@ -214,7 +212,7 @@ function CruiseCvCheckerPage() {
     setLoading(true);
     setResult(null);
     setParsedCv(null);
-    setFullReportUnlocked(false);
+    setWhatsappCaptured(false);
 
     let cvTextToUse = cvText;
 
@@ -293,22 +291,6 @@ function CruiseCvCheckerPage() {
     }
   }
 
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!result) return;
-    setEmailSubmitting(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await saveCvLead({ data: { email, roleSlug, overallScore: result.overallScore, tier: result.tier, topFixes: result.topFixes } } as any);
-      setFullReportUnlocked(true);
-      toast.success('Full report unlocked!');
-    } catch {
-      setFullReportUnlocked(true);
-    } finally {
-      setEmailSubmitting(false);
-    }
-  }
-
   const tierSummary: Record<CvScoreResult['tier'], string> = {
     Strong: 'Strong CV — a few final tweaks and you\'re ready to apply.',
     Good: 'Good CV — address the gaps below to strengthen your application.',
@@ -327,7 +309,7 @@ function CruiseCvCheckerPage() {
               Get<span className="text-primary">Hired</span>
             </span>
           </Link>
-          <Link to="/builder" search={{ from: undefined }}>
+          <Link to="/builder" search={{ from: undefined, role: undefined }}>
             <Button variant="outline" size="sm">Build CV</Button>
           </Link>
         </div>
@@ -475,38 +457,20 @@ function CruiseCvCheckerPage() {
               </div>
             </div>
 
-            {/* Email gate */}
-            {!fullReportUnlocked ? (
-              <div className="rounded-2xl bg-primary border border-primary/20 p-6 text-center">
-                <div className="mb-3 w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center mx-auto">
-                  <ShieldCheck className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <h3 className="font-display text-xl font-bold text-primary-foreground mb-1">
-                  See Your Full Breakdown
-                </h3>
-                <p className="text-sm text-primary-foreground/70 mb-5">
-                  Enter your email to unlock the detailed category-by-category report with your keyword matches.
-                </p>
-                <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
-                  <Input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/40 flex-1"
-                  />
-                  <Button
-                    type="submit"
-                    disabled={emailSubmitting}
-                    className="bg-accent text-accent-foreground hover:opacity-90 shrink-0 font-semibold"
-                  >
-                    {emailSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Unlock Report'}
-                  </Button>
-                </form>
-                <p className="mt-2 text-xs text-primary-foreground/40">No spam. Unsubscribe any time.</p>
-              </div>
-            ) : (
+            {/* WhatsApp capture */}
+            {!whatsappCaptured && (
+              <WhatsAppCaptureForm
+                roleSlug={roleSlug}
+                overallScore={result.overallScore}
+                tier={result.tier}
+                topFixes={result.topFixes}
+                onSuccess={() => setWhatsappCaptured(true)}
+                onSkip={() => setWhatsappCaptured(true)}
+              />
+            )}
+
+            {/* Full breakdown — always visible once WhatsApp step is done */}
+            {whatsappCaptured && (
               <div className="space-y-4">
                 {/* Category breakdown */}
                 <div className="space-y-2.5">
@@ -575,7 +539,7 @@ function CruiseCvCheckerPage() {
                   className="gap-2 font-semibold shrink-0"
                   onClick={() => {
                     if (parsedCv) {
-                      saveCvImport(parsedCv);
+                      saveCvImport(parsedCv, roleSlug);
                       void navigate({ to: '/builder', search: { from: 'import' } as never });
                     } else {
                       void navigate({ to: '/builder', search: { role: roleSlug } as never });
@@ -596,8 +560,7 @@ function CruiseCvCheckerPage() {
                   clearCvImport();
                   setResult(null);
                   setParsedCv(null);
-                  setFullReportUnlocked(false);
-                  setEmail('');
+                  setWhatsappCaptured(false);
                   setPendingFile(null);
                   setCvText('');
                   progress.reset();
