@@ -18,11 +18,21 @@ import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Set the worker once, lazily (safe to call multiple times).
+// On iOS Safari < 15, module workers (type: "module") are not supported and
+// throw a DOMException. We detect this and fall back to pdfjs fake-worker
+// (in-thread) mode by setting workerSrc = '', which is supported in v4.
 let workerInitialised = false;
 function initPdfWorker() {
   if (workerInitialised) return;
-  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   workerInitialised = true;
+  try {
+    const testWorker = new Worker('data:text/javascript,', { type: 'module' });
+    testWorker.terminate();
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  } catch {
+    console.warn('[pdfjs] Module workers not supported — falling back to in-thread mode');
+    pdfjs.GlobalWorkerOptions.workerSrc = '';
+  }
 }
 
 // ─── Blob.arrayBuffer() polyfill ──────────────────────────────────────────────
@@ -145,7 +155,7 @@ async function ocrPdfPages(
       canvas.height = viewport.height;
       const ctx = canvas.getContext('2d')!;
 
-      await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+      await page.render({ canvasContext: ctx, viewport }).promise;
 
       const { data } = await worker.recognize(canvas);
       pageTexts.push(data.text);
@@ -190,13 +200,19 @@ async function extractTextFromPdf(
 
   // ── Stage 1: selectable text via pdfjs ────────────────────────────────────
   const pageTexts: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ('str' in item ? item.str : ''))
-      .join(' ');
-    pageTexts.push(pageText);
+  try {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item) => ('str' in item ? item.str : ''))
+        .join(' ');
+      pageTexts.push(pageText);
+    }
+  } catch {
+    throw new Error(
+      "We couldn't extract text from this PDF. It may be encrypted or corrupted.",
+    );
   }
 
   const combined = pageTexts.join('\n\n').replace(/ {2,}/g, ' ').trim();
