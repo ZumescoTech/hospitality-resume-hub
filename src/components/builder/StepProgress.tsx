@@ -39,8 +39,8 @@ export function StepProgress({ steps, current, onJump, completed = [], stickyMob
                 isCurrent
                   ? "h-7 w-7 bg-primary text-primary-foreground text-xs font-semibold"
                   : isCompleted
-                    ? "h-5 w-5 bg-purple-100 text-purple-600 text-[10px] cursor-pointer hover:bg-purple-200"
-                    : "h-4 w-4 border-half border-navy-300 bg-white cursor-default",
+                    ? "h-5 w-5 bg-primary/10 text-primary text-[10px] cursor-pointer hover:bg-primary/20"
+                    : "h-4 w-4 border-half border-border bg-white cursor-default",
               )}
             >
               {isCompleted && !isCurrent && (
@@ -64,7 +64,7 @@ export function StepProgress({ steps, current, onJump, completed = [], stickyMob
                 className={cn(
                   "mx-1.5 h-px flex-shrink-0 transition-colors",
                   isCurrent ? "w-4" : "w-3",
-                  isCompleted ? "bg-purple-300" : "bg-navy-200",
+                  isCompleted ? "bg-primary/40" : "bg-border",
                 )}
               />
             )}

@@ -283,8 +283,8 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
               className={cn(
                 "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-2 text-left transition-all",
                 t.id === data.templateId
-                  ? "border border-primary bg-purple-50"
-                  : "border-half border-navy-200 hover:border-primary/40",
+                  ? "border border-primary bg-primary/5"
+                  : "border-half border-border hover:border-primary/40",
               )}
             >
               <div className="flex h-12 w-20 overflow-hidden rounded-sm">
@@ -308,8 +308,8 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
                   className={cn(
                     "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-2 text-left transition-all",
                     t.id === data.templateId
-                      ? "border border-primary bg-purple-50"
-                      : "border-half border-navy-200 hover:border-primary/40",
+                      ? "border border-primary bg-primary/5"
+                      : "border-half border-border hover:border-primary/40",
                   )}
                 >
                   <div className="relative flex h-12 w-20 overflow-hidden rounded-sm">
@@ -333,8 +333,8 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
               className={cn(
                 "mt-3 flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
                 formattingOpen
-                  ? "border border-primary/40 bg-purple-50 text-foreground"
-                  : "border-half border-navy-200 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  ? "border border-primary/40 bg-primary/5 text-foreground"
+                  : "border-half border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
               <span className="flex items-center gap-2">

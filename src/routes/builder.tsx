@@ -412,9 +412,9 @@ function BuilderPage() {
               {showWelcomeBanner && (
                 <div
                   className="mb-4 flex items-start justify-between gap-2 rounded-lg px-[14px] py-[10px] text-[13px]"
-                  style={{ background: "#ede9fe" }}
+                  className="bg-muted"
                 >
-                  <span className="text-[#1e293b]">
+                  <span className="text-foreground">
                     Welcome back — you left off at{" "}
                     <strong>{STEPS[initialLastStep.current]?.label}</strong>.{" "}
                     <button
@@ -427,7 +427,7 @@ function BuilderPage() {
                   <button
                     onClick={() => setWelcomeDismissed(true)}
                     aria-label="Dismiss"
-                    className="shrink-0 text-[#94a3b8] hover:text-[#1e293b]"
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
                   >
                     ✕
                   </button>
@@ -477,7 +477,7 @@ function BuilderPage() {
 
               {/* Active step — only this section is in the DOM */}
               <div key={animKey} className={slideDir === "right" ? "wizard-slide-right" : "wizard-slide-left"}>
-                <h2 className="mb-4 font-display text-xl font-bold text-[#1e293b]">
+                <h2 className="mb-4 text-xl font-semibold text-foreground">
                   {STEPS[step].label}
                 </h2>
                 {sections[step].content}
@@ -603,7 +603,7 @@ function BuilderPage() {
       <button
         type="button"
         onClick={() => setPreviewOpen(true)}
-        className="sm:hidden fixed z-40 bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
+        className="sm:hidden fixed z-40 bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0d6b5e]"
         aria-label="Open full-screen CV preview"
       >
         <Eye className="h-4 w-4" />
@@ -640,7 +640,7 @@ function BuilderPage() {
         <button
           type="button"
           onClick={handleContinue}
-          className="ml-auto min-h-[48px] rounded-lg bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
+          className="ml-auto min-h-[48px] rounded-lg bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-[#0d6b5e]"
         >
           {isLastStep ? "Preview CV →" : "Continue →"}
         </button>

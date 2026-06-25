@@ -28,7 +28,7 @@ const CY = 80;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const DURATION = 1200;
 
-const TRACK_COLOR = '#e2e8f0';
+const TRACK_COLOR = '#bec9c5'; /* outline-variant */
 
 // ── Colour helpers ─────────────────────────────────────────────────────────────
 
@@ -46,8 +46,8 @@ function scoreBandLabel(score: number): string {
 }
 
 const IMPACT_LABELS = ['High impact', 'Medium impact', 'Medium impact'];
-const BADGE_BG = '#ede9fe';
-const BADGE_COLOR = '#5b21b6';
+const BADGE_BG = '#e5eeff';    /* surface-container */
+const BADGE_COLOR = '#005147'; /* primary teal */
 
 // ── Easing ────────────────────────────────────────────────────────────────────
 

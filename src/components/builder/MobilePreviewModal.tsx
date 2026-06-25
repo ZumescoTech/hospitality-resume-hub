@@ -190,7 +190,7 @@ export function MobilePreviewModal({ data, onTemplateChange, isOpen, onClose }: 
               <div
                 className={cn(
                   'overflow-hidden rounded-sm',
-                  isActive ? 'border border-primary' : 'border-half border-navy-200',
+                  isActive ? 'border border-primary' : 'border-half border-border',
                 )}
                 style={{ width: 52, height: 68, flexShrink: 0 }}
               >

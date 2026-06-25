@@ -12,26 +12,20 @@
     font-display: swap;
     src: url("https://fonts.gstatic.com/s/fraunces/v31/6NUh8FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk.woff2") format("woff2");
   }
-  @font-face {
-    font-family: "Inter";
-    font-style: normal;
-    font-weight: 100 900;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2") format("woff2");
-  }
 }
 
 @theme inline {
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Rubik", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Rubik", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
+  /* ── Border radius (DESIGN.md rounded scale) ───────────────────────────── */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-2xl: 24px;
 
-  /* ── Semantic tokens (mapped to :root vars) ─────────────────────────── */
+  /* ── Semantic tokens (mapped to :root vars) ─────────────────────────────── */
   --color-background:         var(--background);
   --color-foreground:         var(--foreground);
   --color-card:               var(--card);
@@ -53,66 +47,87 @@
   --color-ring:               var(--ring);
   --color-ring-offset-background: var(--background);
 
-  /* ── Brand colour palette — directly usable as Tailwind classes ─────── */
-  /* e.g. bg-purple-600, text-navy-800, border-navy-200                    */
-  --color-purple-600: #7c3aed;
-  --color-purple-500: #a78bfa;
-  --color-purple-100: #ede9fe;
-  --color-purple-50:  #f5f3ff;
-  --color-purple-700: #6d28d9;
-  --color-purple-800: #5b21b6;
+  /* ── Maritime Teal scale (primary) ─────────────────────────────────────── */
+  --color-teal-900: #00201b;
+  --color-teal-800: #005046;
+  --color-teal-700: #005147;
+  --color-teal-600: #0b6a5d;
+  --color-teal-500: #0d6b5e;
+  --color-teal-400: #86d5c5;
+  --color-teal-300: #99e8d8;
+  --color-teal-200: #a2f2e1;
+  --color-teal-100: #afefe1;
+  --color-teal-50:  #eaf8f5;
 
-  --color-navy-900:  #0f172a;
-  --color-navy-800:  #1e293b;
-  --color-navy-700:  #334155;
-  --color-navy-500:  #64748b;
-  --color-navy-400:  #94a3b8;
-  --color-navy-300:  #cbd5e1;
-  --color-navy-200:  #e2e8f0;
-  --color-navy-100:  #f1f5f9;
-  --color-navy-50:   #f8fafc;
+  /* ── Premium Gold scale (secondary / accent) ────────────────────────────── */
+  --color-gold-900: #241a00;
+  --color-gold-800: #584400;
+  --color-gold-700: #735a00;
+  --color-gold-600: #755b00;
+  --color-gold-400: #ecc246;
+  --color-gold-300: #fed255;
+  --color-gold-200: #ffe08e;
+  --color-gold-100: #fff3cc;
 
+  /* ── Surface scale ──────────────────────────────────────────────────────── */
+  --color-surface-lowest:  #ffffff;
+  --color-surface-low:     #eff4ff;
+  --color-surface:         #e5eeff;
+  --color-surface-high:    #dce9ff;
+  --color-surface-highest: #d3e4fe;
+  --color-surface-dim:     #cbdbf5;
+
+  /* ── Outline ────────────────────────────────────────────────────────────── */
+  --color-outline:         #6f7976;
+  --color-outline-variant: #bec9c5;
+
+  /* ── Brand-specific named colours (landing page sections) ───────────────── */
+  --color-ink:   #0b1c30;   /* dark hero / footer background */
+  --color-wine:  #005147;   /* primary teal section background */
+  --color-cream: #eaf1ff;   /* light text on dark ink backgrounds */
+
+  /* ── Utility colours ────────────────────────────────────────────────────── */
   --color-green-600: #1d9e75;
   --color-amber-500: #ef9f27;
-  --color-red-500:   #e24b4a;
-  --color-red-50:    #fef2f2;
+  --color-red-500:   #ba1a1a;
+  --color-red-50:    #ffdad6;
   --color-wa-green:  #25D366;
 
-  /* Shadows — focus ring only, no card shadows */
-  --shadow-elegant: none;
-  --shadow-soft:    none;
-  --shadow-focus:   0 0 0 3px #ede9fe;
+  /* Shadows */
+  --shadow-elegant: 0 2px 4px rgba(11, 28, 48, 0.05);
+  --shadow-soft:    0 10px 15px rgba(11, 28, 48, 0.10);
+  --shadow-focus:   0 0 0 3px rgba(0, 81, 71, 0.25);
 }
 
 :root {
   --radius: 0.5rem;
 
-  /* ── Design system palette ────────────────────────────────────────────── */
-  --background:            #f8fafc;   /* navy-50 */
-  --foreground:            #1e293b;   /* navy-800 */
-  --card:                  #ffffff;
-  --card-foreground:       #1e293b;   /* navy-800 */
+  /* ── Maritime Professional System palette ────────────────────────────────── */
+  --background:            #f8f9ff;   /* surface */
+  --foreground:            #0b1c30;   /* on-surface */
+  --card:                  #ffffff;   /* surface-container-lowest */
+  --card-foreground:       #0b1c30;
   --popover:               #ffffff;
-  --popover-foreground:    #1e293b;
+  --popover-foreground:    #0b1c30;
 
-  --primary:               #7c3aed;   /* purple-600 */
+  --primary:               #005147;   /* Maritime Teal */
   --primary-foreground:    #ffffff;
 
-  --secondary:             #f1f5f9;   /* navy-100 */
-  --secondary-foreground:  #1e293b;   /* navy-800 */
+  --secondary:             #eff4ff;   /* surface-container-low */
+  --secondary-foreground:  #0b1c30;
 
-  --muted:                 #f1f5f9;   /* navy-100 */
-  --muted-foreground:      #94a3b8;   /* navy-400 */
+  --muted:                 #e5eeff;   /* surface-container */
+  --muted-foreground:      #3f4946;   /* on-surface-variant */
 
-  --accent:                #ede9fe;   /* purple-100 */
-  --accent-foreground:     #5b21b6;   /* purple-800 */
+  --accent:                #fed255;   /* Premium Gold (secondary-container) */
+  --accent-foreground:     #735a00;   /* on-secondary-container */
 
-  --destructive:           #e24b4a;   /* red-500 */
+  --destructive:           #ba1a1a;   /* error */
   --destructive-foreground: #ffffff;
 
-  --border:                #e2e8f0;   /* navy-200 */
-  --input:                 #e2e8f0;   /* navy-200 */
-  --ring:                  #7c3aed;   /* purple-600 */
+  --border:                #bec9c5;   /* outline-variant */
+  --input:                 #bec9c5;
+  --ring:                  #005147;   /* primary */
 }
 
 @layer base {
@@ -130,7 +145,8 @@
     line-height: 1.65;
   }
   h1, h2, h3, .font-display {
-    font-family: var(--font-display);
+    font-family: var(--font-sans);
+    font-weight: 500;
     letter-spacing: -0.01em;
   }
 }
@@ -152,9 +168,9 @@
   .border-r-half {
     border-right-width: 0.5px;
   }
-  /* Focus ring utility */
+  /* Focus ring — Maritime Teal */
   .ring-focus {
-    box-shadow: 0 0 0 3px #ede9fe;
+    box-shadow: 0 0 0 3px rgba(0, 81, 71, 0.25);
   }
   /* Hide scrollbar */
   .scrollbar-none {
@@ -162,6 +178,18 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+  /* Ink section — dark navy hero/footer */
+  .ink-section {
+    background-color: var(--color-ink);
+  }
+  /* Wine section — teal CTA section */
+  .wine-section {
+    background-color: var(--color-wine);
+  }
+  /* Cream text — for use on dark ink backgrounds */
+  .text-cream {
+    color: var(--color-cream);
   }
 }
 

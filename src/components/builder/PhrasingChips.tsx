@@ -112,12 +112,12 @@ export function PhrasingChips({ roleSlug, jobTitle, onInsert }: Props) {
   if (status === 'loading') {
     return (
       <div className="mt-2 space-y-2">
-        <div className="h-3 w-28 animate-pulse rounded bg-[#e2e8f0]" />
+        <div className="h-3 w-28 animate-pulse rounded bg-border" />
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: CHIPS_VISIBLE }).map((_, i) => (
             <div
               key={i}
-              className="h-[44px] w-32 animate-pulse rounded-full bg-[#e2e8f0]"
+              className="h-[44px] w-32 animate-pulse rounded-full bg-border"
               style={{ animationDelay: `${i * 120}ms` }}
             />
           ))}
@@ -130,7 +130,7 @@ export function PhrasingChips({ roleSlug, jobTitle, onInsert }: Props) {
   return (
     <div className="mt-2 space-y-2">
       {/* Label */}
-      <p className="text-[12px] text-[#94a3b8]">
+      <p className="text-[12px] text-muted-foreground">
         {roleLabel ? `Suggestions for ${roleLabel}` : 'Suggested phrases'}
       </p>
 
@@ -147,7 +147,7 @@ export function PhrasingChips({ roleSlug, jobTitle, onInsert }: Props) {
               onClick={() => !isDimmed && handleInsert(text)}
               disabled={isDimmed}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full bg-purple-100 text-purple-800 px-[14px] text-[13px] font-medium transition-opacity',
+                'inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-[14px] text-[13px] font-medium transition-opacity',
                 'min-h-[44px] py-[10px]', // ≥44px touch target via padding
                 isDimmed
                   ? 'pointer-events-none opacity-40'
@@ -167,7 +167,7 @@ export function PhrasingChips({ roleSlug, jobTitle, onInsert }: Props) {
         <button
           type="button"
           onClick={handleRefresh}
-          className="flex items-center gap-1 text-[12px] text-[#94a3b8] underline underline-offset-2 hover:text-[#5b21b6] transition-colors"
+          className="flex items-center gap-1 text-[12px] text-muted-foreground underline underline-offset-2 hover:text-primary transition-colors"
         >
           <RotateCcw className="h-3 w-3" />
           Show different suggestions
