@@ -286,13 +286,24 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
                   : "border-border hover:border-primary/40",
               )}
             >
-              <div className="flex h-12 w-20 overflow-hidden rounded">
+              {/* Thumbnail with optional PRO badge */}
+              <div className="relative flex h-12 w-20 overflow-hidden rounded">
                 <div className="flex-1" style={{ background: t.swatch[0] }} />
                 <div className="w-1/3" style={{ background: t.swatch[1] }} />
+                {t.premium && (
+                  <span
+                    className="absolute right-0 top-0 rounded-bl px-1 py-0.5 text-[8px] font-bold uppercase leading-none tracking-wide"
+                    style={{ background: '#fef3c7', color: '#92400e' }}
+                  >
+                    PRO
+                  </span>
+                )}
               </div>
               <div>
                 <p className="text-xs font-semibold">{t.name}</p>
-                <p className="text-[10px] text-muted-foreground">{t.description}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t.purpose ? `${t.name} · ${t.purpose}` : t.description}
+                </p>
               </div>
             </button>
           ))}

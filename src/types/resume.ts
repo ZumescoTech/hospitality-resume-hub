@@ -5,6 +5,7 @@ export interface PersonalDetails {
   phone: string;
   location: string;
   photo?: string; // data URL
+  photoPosition?: "top-left" | "top-right" | "centre";
   links?: { label: string; url: string }[];
 }
 
@@ -47,6 +48,7 @@ export interface Certification {
   name: string;
   issuer: string;
   year: string;
+  expiry?: string; // "MM/YYYY" or empty — for STCW certificates
 }
 
 export interface Hospitality {
@@ -71,6 +73,13 @@ export interface ResumeData {
   formatting?: import("./formatting").FormattingSettings;
   /** Job ad text for AI tailoring suggestions. Persisted with draft, never exported to PDF. */
   targetJobDescription?: string;
+  /**
+   * Cruise role slug from cruise-roles.json (e.g. "bartender-bar-waiter").
+   * Primary signal for AI phrasing engine pattern selection.
+   * Populated from CV-checker handoff or the builder's role selector.
+   * Never exported to PDF.
+   */
+  targetRoleSlug?: string;
   /** Optional references text shown in templates that support it. */
   references?: string;
 }
@@ -97,7 +106,7 @@ export const emptyResume: ResumeData = {
     posSystems: [],
     wineKnowledge: "None",
     spiritsKnowledge: "None",
-    languages: [],
+    languages: [{ name: "English", level: "Fluent" as const }],
     allergens: false,
     foodSafety: "",
   },

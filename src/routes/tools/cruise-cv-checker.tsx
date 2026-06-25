@@ -18,13 +18,13 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  XCircle,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
 
 import { checkCruiseCv, getRoleOptions } from '@/lib/cruise-cv-check';
 import { WhatsAppCaptureForm } from '@/components/checker/WhatsAppCaptureForm';
+import { AtsScoreRing } from '@/components/checker/AtsScoreRing';
 import type { CvScoreResult, CategoryKey } from '@/lib/cruiseCvRubric';
 import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
@@ -50,48 +50,6 @@ export const Route = createFileRoute('/tools/cruise-cv-checker')({
 });
 
 const ROLE_OPTIONS = getRoleOptions();
-
-// ─── Score gauge ───────────────────────────────────────────────────────────────
-
-function ScoreGauge({ score }: { score: number }) {
-  const r = 58;
-  const cx = 80;
-  const cy = 75;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const trackPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
-  const fillDeg = -180 + (score / 100) * 180;
-  const fillX = cx + r * Math.cos(toRad(fillDeg));
-  const fillY = cy + r * Math.sin(toRad(fillDeg));
-  const largeArc = score > 50 ? 1 : 0;
-  const fillPath =
-    score === 0
-      ? ''
-      : `M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${fillX} ${fillY}`;
-
-  const color =
-    score >= 85
-      ? 'var(--color-brass)'
-      : score >= 70
-        ? 'var(--color-brass)'
-        : score >= 50
-          ? 'oklch(0.72 0.18 70)'
-          : 'var(--color-destructive)';
-
-  return (
-    <svg width="160" height="95" viewBox="0 0 160 95" aria-label={`Score: ${score} out of 100`}>
-      <path d={trackPath} fill="none" stroke="var(--color-border)" strokeWidth="14" strokeLinecap="round" />
-      {fillPath && (
-        <path d={fillPath} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" />
-      )}
-      <text x={cx} y={cy + 4} textAnchor="middle" fontSize="30" fontWeight="bold" fill={color}>
-        {score}
-      </text>
-      <text x={cx} y={cy + 20} textAnchor="middle" fontSize="11" fill="var(--color-muted-foreground)">
-        / 100
-      </text>
-    </svg>
-  );
-}
 
 // ─── Tier badge ────────────────────────────────────────────────────────────────
 
@@ -430,31 +388,13 @@ function CruiseCvCheckerPage() {
           <div className="space-y-5">
             {/* Score card */}
             <div className="rounded-2xl bg-card border border-border shadow-soft p-6">
-              <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-                <div className="flex flex-col items-center gap-2">
-                  <ScoreGauge score={result.overallScore} />
-                  <TierBadge tier={result.tier} />
-                </div>
-                <div className="flex-1">
-                  <h2 className="font-display text-xl font-bold text-foreground mb-1">
-                    {selectedRole?.label ?? 'CV'} Analysis
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {tierSummary[result.tier]}
-                  </p>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Top 2 fixes</p>
-                    <ul className="space-y-1.5">
-                      {result.topFixes.map((fix, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                          <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                          {fix}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+              <div className="mb-4 flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="font-display text-xl font-bold text-foreground">
+                  {selectedRole?.label ?? 'CV'} Analysis
+                </h2>
+                <TierBadge tier={result.tier} />
               </div>
+              <AtsScoreRing score={result.overallScore} topFixes={result.topFixes} />
             </div>
 
             {/* WhatsApp capture */}

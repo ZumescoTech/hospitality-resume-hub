@@ -3,13 +3,23 @@ import { TextField, Field } from "../Field";
 import { PhotoUpload } from "../PhotoUpload";
 import { Textarea } from "@/components/ui/textarea";
 import { AssistedTextarea } from "../AssistedTextarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CRUISE_ROLE_OPTIONS } from "@/lib/cruise-role-options";
 
 interface Props {
   data: ResumeData;
   onChange: (next: Partial<ResumeData>) => void;
+  /** When true, show required-field errors even without blur (triggered by Continue tap). */
+  showErrors?: boolean;
 }
 
-export function PersonalSection({ data, onChange }: Props) {
+export function PersonalSection({ data, onChange, showErrors }: Props) {
   const set = (patch: Partial<PersonalDetails>) =>
     onChange({ personal: { ...data.personal, ...patch } });
 
@@ -24,15 +34,22 @@ export function PersonalSection({ data, onChange }: Props) {
         value={data.personal.photo}
         onChange={(photo) => set({ photo })}
         name={data.personal.fullName}
+        position={data.personal.photoPosition ?? "top-right"}
+        onPositionChange={(photoPosition) => set({ photoPosition })}
       />
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField
-          label="Full name"
-          required
-          value={data.personal.fullName}
-          onChange={(e) => set({ fullName: e.target.value })}
-          placeholder="Elena Marchetti"
-        />
+        <div>
+          <TextField
+            label="Full name"
+            required
+            value={data.personal.fullName}
+            onChange={(e) => set({ fullName: e.target.value })}
+            placeholder="Elena Marchetti"
+          />
+          {showErrors && !data.personal.fullName.trim() && (
+            <p className="mt-1 text-xs font-medium text-destructive">Full name is required to continue</p>
+          )}
+        </div>
         <TextField
           label="Job title"
           required
@@ -40,14 +57,19 @@ export function PersonalSection({ data, onChange }: Props) {
           onChange={(e) => set({ title: e.target.value })}
           placeholder="Head Sommelier"
         />
-        <TextField
-          label="Email"
-          type="email"
-          required
-          value={data.personal.email}
-          onChange={(e) => set({ email: e.target.value })}
-          placeholder="elena@example.com"
-        />
+        <div>
+          <TextField
+            label="Email"
+            type="email"
+            required
+            value={data.personal.email}
+            onChange={(e) => set({ email: e.target.value })}
+            placeholder="elena@example.com"
+          />
+          {showErrors && !data.personal.email.trim() && (
+            <p className="mt-1 text-xs font-medium text-destructive">Email is required to continue</p>
+          )}
+        </div>
         <TextField
           label="Phone"
           value={data.personal.phone}
@@ -62,6 +84,28 @@ export function PersonalSection({ data, onChange }: Props) {
           className="sm:col-span-2"
         />
       </div>
+
+      {/* Target role selector — primary signal for AI phrasing engine */}
+      <Field
+        label="Target cruise role"
+        hint="Sets the AI suggestion style across all sections. Pre-filled if you came from the CV checker."
+      >
+        <Select
+          value={data.targetRoleSlug ?? ''}
+          onValueChange={(v) => onChange({ targetRoleSlug: v || undefined })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select the role you're applying for…" />
+          </SelectTrigger>
+          <SelectContent>
+            {CRUISE_ROLE_OPTIONS.map((r) => (
+              <SelectItem key={r.slug} value={r.slug}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
 
       {/* Phase 2: target job description for AI context */}
       <Field
@@ -92,6 +136,7 @@ export function PersonalSection({ data, onChange }: Props) {
           targetJobDescription={data.targetJobDescription}
           onSkillsAccepted={handleSkillsAccepted}
           canDraftFromScratch={data.experience.length > 0}
+          targetRoleSlug={data.targetRoleSlug}
         />
       </Field>
 
