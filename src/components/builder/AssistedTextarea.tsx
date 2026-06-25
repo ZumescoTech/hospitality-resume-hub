@@ -39,6 +39,12 @@ interface Props {
    * Only pass true when at least one experience entry exists.
    */
   canDraftFromScratch?: boolean;
+  /**
+   * Primary role signal for the AI phrasing engine.
+   * Cruise-roles.json slug (e.g. "bartender-bar-waiter") from the CV checker
+   * or the builder's role selector. Takes precedence over jobTitle text matching.
+   */
+  targetRoleSlug?: string;
 }
 
 type TailorState =
@@ -72,6 +78,7 @@ export function AssistedTextarea({
   otherContext,
   onSkillsAccepted,
   canDraftFromScratch,
+  targetRoleSlug,
 }: Props) {
   const [suggestions, setSuggestions] = useState<WritingSuggestion[]>([]);
   const [tailorState, setTailorState] = useState<TailorState>({ status: 'idle' });
@@ -144,6 +151,7 @@ export function AssistedTextarea({
             jobTitle: jobTitle || 'hospitality professional',
             jobDescription: targetJobDescription || undefined,
             otherContext: otherContext || undefined,
+            targetRoleSlug: targetRoleSlug || undefined,
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
@@ -153,7 +161,7 @@ export function AssistedTextarea({
         setTailorState({ status: 'idle' });
       }
     },
-    [fieldType, value, jobTitle, targetJobDescription, otherContext],
+    [fieldType, value, jobTitle, targetJobDescription, otherContext, targetRoleSlug],
   );
 
   const acceptTailor = useCallback(() => {

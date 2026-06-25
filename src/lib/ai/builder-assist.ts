@@ -5,6 +5,7 @@
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
+import { buildRolePatternBlock } from '@/lib/ai/role-patterns';
 
 // ─── Shared types (exported for client components) ─────────────────────────────
 
@@ -32,6 +33,8 @@ const TailorContentSchema = z.object({
   jobTitle: z.string(),
   jobDescription: z.string().optional(),
   otherContext: z.string().optional(),
+  /** Primary role signal — cruise-roles.json slug from CV checker or builder selector */
+  targetRoleSlug: z.string().optional(),
 });
 
 // ─── System prompts ────────────────────────────────────────────────────────────
@@ -52,11 +55,16 @@ const CHECK_WRITING_SYSTEM =
   `Return ONLY a JSON array of {original_substring, suggested_substring, type: 'spelling'|'grammar'}. ` +
   `No explanations, no markdown fences. Empty array [] if no issues.`;
 
-// Explicit fabrication-prevention constraint — required by spec.
-const TAILOR_SYSTEM =
-  `You are an expert CV editor for the hospitality industry. ` +
+// Base system prompt — role-specific pattern block is appended per-request in tailorContentFn.
+const TAILOR_SYSTEM_BASE =
+  `You are an expert CV editor for the cruise ship and luxury hospitality industry. ` +
   `Only rephrase and re-emphasise information already present in the provided text. ` +
-  `Never invent employers, job titles, dates, metrics, or certifications not stated by the user. ` +
+  `CRITICAL RULE — NEVER INVENT NUMBERS: If the user has not stated a specific figure ` +
+  `(count, percentage, revenue amount, team size, rating), you MUST use a clearly marked ` +
+  `square-bracket placeholder, e.g. [X covers/shift], [X%], [£X revenue], [X team members]. ` +
+  `Do not silently omit the metric — leave the placeholder so the user can fill it in. ` +
+  `Never invent employers, job titles, dates, or certifications not stated by the user. ` +
+  `Structure experience bullets as: action verb + task context + quantifiable result. ` +
   `You may suggest relevant skills as a SEPARATE list for the user to opt into — ` +
   `never merge new claims into the rewritten text itself. ` +
   `Return ONLY valid JSON with no markdown fences: ` +
@@ -123,11 +131,40 @@ export const checkWritingFn = createServerFn({ method: 'POST' }).handler(async (
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<TailorResult> => {
-  const { fieldType, currentText, jobTitle, jobDescription, otherContext } =
+  const { fieldType, currentText, jobTitle, jobDescription, otherContext, targetRoleSlug } =
     TailorContentSchema.parse(ctx.data);
 
   const groqKey = process.env.ANTHROPIC_API_KEY;
   if (!groqKey) throw new Error('AI key not configured');
+
+  // Select role-specific pattern: targetRoleSlug (primary) → jobTitle text match (fallback)
+  const { block: rolePatternBlock, log: patternLog } = buildRolePatternBlock(
+    targetRoleSlug,
+    jobTitle,
+  );
+
+  // Structured instrumentation log — anonymised (no CV content, no PII)
+  // Captures: which pattern family was selected, detection source, and any unmapped slugs
+  // for P1 expansion prioritisation.
+  console.info('[ai-phrasing] pattern_selected', {
+    familyKey: patternLog.family?.familyKey ?? null,
+    source: patternLog.source,
+    // Log unmapped slugs so we know which roles hit generic fallback most (P1 data)
+    unmappedSlug: patternLog.unmappedSlug ?? null,
+    // Distinguish "no role context" from "role given but no match"
+    fallbackReason: patternLog.family
+      ? null
+      : targetRoleSlug
+        ? 'slug_not_mapped'
+        : jobTitle
+          ? 'title_no_match'
+          : 'no_role_context',
+    fieldType,
+  });
+
+  const systemPrompt = rolePatternBlock
+    ? `${TAILOR_SYSTEM_BASE}\n\n${rolePatternBlock}`
+    : TAILOR_SYSTEM_BASE;
 
   const userParts = [
     `Field type: ${fieldType}`,
@@ -149,7 +186,7 @@ export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async 
       max_tokens: 800,
       temperature: 0.3,
       messages: [
-        { role: 'system', content: TAILOR_SYSTEM },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userParts.join('\n\n') },
       ],
     }),

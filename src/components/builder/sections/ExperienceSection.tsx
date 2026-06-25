@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { ResumeData, Experience } from "@/types/resume";
 import { TextField, Field } from "../Field";
 import { Button } from "@/components/ui/button";
@@ -5,13 +6,19 @@ import { Plus, Trash2 } from "lucide-react";
 import { uid } from "@/lib/resume-store";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AssistedTextarea } from "../AssistedTextarea";
+import { PhrasingChips } from "../PhrasingChips";
 
 interface Props {
   data: ResumeData;
   onChange: (next: Partial<ResumeData>) => void;
+  /** When true, show required-field errors even without blur (triggered by Continue tap). */
+  showErrors?: boolean;
 }
 
-export function ExperienceSection({ data, onChange }: Props) {
+export function ExperienceSection({ data, onChange, showErrors }: Props) {
+  // Refs for each entry container — used to focus the textarea after chip insertion
+  const entryRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   const update = (i: number, patch: Partial<Experience>) => {
     const next = data.experience.map((e, idx) => (idx === i ? { ...e, ...patch } : e));
     onChange({ experience: next });
@@ -31,8 +38,13 @@ export function ExperienceSection({ data, onChange }: Props) {
     onChange({ skills: merged });
   };
 
+  const hasValidEntry = data.experience.some((e) => e.role.trim() && e.venue.trim());
+
   return (
     <div className="space-y-4">
+      {showErrors && !hasValidEntry && (
+        <p className="text-xs font-medium text-destructive">At least one job title and employer is required to continue</p>
+      )}
       {data.experience.length === 0 && (
         <p className="text-sm text-muted-foreground">No roles added yet.</p>
       )}
@@ -45,8 +57,22 @@ export function ExperienceSection({ data, onChange }: Props) {
           .filter((s) => s.trim().length > 0)
           .join('\n');
 
+        function handleChipInsert(chipText: string) {
+          const current = exp.description;
+          const newDesc = current.trim() ? `${current}\n${chipText}` : chipText;
+          update(i, { description: newDesc });
+          // Focus the textarea within this entry after insertion
+          requestAnimationFrame(() => {
+            entryRefs.current[i]?.querySelector('textarea')?.focus();
+          });
+        }
+
         return (
-          <div key={exp.id} className="rounded-lg border border-border bg-background p-4">
+          <div
+            key={exp.id}
+            ref={(el) => { entryRefs.current[i] = el; }}
+            className="rounded-lg border border-border bg-background p-4"
+          >
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Role #{i + 1}
@@ -111,6 +137,13 @@ export function ExperienceSection({ data, onChange }: Props) {
                   targetJobDescription={data.targetJobDescription}
                   otherContext={otherContext || undefined}
                   onSkillsAccepted={handleSkillsAccepted}
+                  targetRoleSlug={data.targetRoleSlug}
+                />
+                {/* AI phrasing chips — role-aware (global slug primary, entry job title secondary) */}
+                <PhrasingChips
+                  roleSlug={data.targetRoleSlug}
+                  jobTitle={exp.role || data.personal.title || undefined}
+                  onInsert={handleChipInsert}
                 />
               </Field>
             </div>

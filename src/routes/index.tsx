@@ -127,7 +127,7 @@ function LandingPage() {
             <div className="flex items-center gap-4">
               <Link
                 to="/builder"
-                search={{ from: undefined }}
+                search={{ from: undefined, role: undefined }}
                 className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
               >
                 Build CV
@@ -537,7 +537,7 @@ function LandingPage() {
               <Link to="/tools/cruise-cv-checker" className="hover:text-cream/70 transition-colors">
                 CV Checker
               </Link>
-              <Link to="/builder" search={{ from: undefined }} className="hover:text-cream/70 transition-colors">
+              <Link to="/builder" search={{ from: undefined, role: undefined }} className="hover:text-cream/70 transition-colors">
                 Builder
               </Link>
               <Link to="/pricing" className="hover:text-cream/70 transition-colors">

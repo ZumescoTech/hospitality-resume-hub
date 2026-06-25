@@ -10,10 +10,16 @@ const TTL_MS = 30 * 60 * 1000; // 30 minutes
 interface HandoffPayload {
   data: ResumeData;
   savedAt: number;
+  roleSlug?: string;
 }
 
-export function saveCvImport(data: ResumeData): void {
-  const payload: HandoffPayload = { data, savedAt: Date.now() };
+export interface CvImportResult {
+  data: ResumeData;
+  roleSlug?: string;
+}
+
+export function saveCvImport(data: ResumeData, roleSlug?: string): void {
+  const payload: HandoffPayload = { data, savedAt: Date.now(), roleSlug };
   try {
     sessionStorage.setItem(KEY, JSON.stringify(payload));
   } catch {
@@ -21,7 +27,7 @@ export function saveCvImport(data: ResumeData): void {
   }
 }
 
-export function consumeCvImport(): ResumeData | null {
+export function consumeCvImport(): CvImportResult | null {
   try {
     const raw = sessionStorage.getItem(KEY);
     if (!raw) return null;
@@ -32,7 +38,7 @@ export function consumeCvImport(): ResumeData | null {
     const payload = JSON.parse(raw) as HandoffPayload;
     if (Date.now() - payload.savedAt > TTL_MS) return null;
 
-    return payload.data;
+    return { data: payload.data, roleSlug: payload.roleSlug };
   } catch {
     return null;
   }

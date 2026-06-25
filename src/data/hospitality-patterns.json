@@ -1,0 +1,125 @@
+{
+  "_version": "1.0.0",
+  "_comment": "Role-family pattern library for the AI phrasing engine. Each family contains metric categories relevant to that role, bullet templates with [PLACEHOLDER] syntax, and prompt guidance injected into the AI system prompt. Update patterns here — no application logic changes required.",
+  "families": {
+    "f-and-b-service": {
+      "label": "F&B Service",
+      "matchTerms": ["waiter", "waitress", "server", "food and beverage", "f&b", "dining room", "fine dining", "table service", "floor manager", "head waiter", "restaurant manager", "restaurant supervisor", "service manager"],
+      "metrics": [
+        "covers per shift (e.g. 80 covers/shift)",
+        "table turn time (e.g. average 45-minute turn)",
+        "upsell percentage or revenue uplift (e.g. upsell rate 22%)",
+        "guest satisfaction score (e.g. 4.8/5 or 96% positive)",
+        "team size managed (e.g. team of 6)",
+        "star rating of venue (e.g. 5-star, Michelin-starred)"
+      ],
+      "promptGuidance": "The user works in F&B service (waiter, waitress, dining room roles). Structure every achievement bullet as: strong action verb + task context + quantifiable result. The most valued metrics in this role family are: covers per shift, upsell %, guest satisfaction scores, team size, and venue star rating. If the user mentions a number (covers, %, team size), use it exactly. If they describe an achievement without a number, leave a clearly marked placeholder like [X covers/shift] or [X%] — never invent a figure.",
+      "bulletTemplates": [
+        "Delivered [service style] service for [X covers/shift] covers per shift across [venue type].",
+        "Achieved [X%] upsell rate on premium wine and cocktail pairings, contributing to [revenue outcome].",
+        "Maintained [X/5] guest satisfaction score across [X] service periods.",
+        "Led a team of [X] front-of-house staff during peak service in a [star-rating] restaurant.",
+        "Reduced average table turn time to [X minutes] without compromising guest experience."
+      ]
+    },
+    "bartending-sommelier": {
+      "label": "Bartending / Sommelier",
+      "matchTerms": ["bartender", "bar server", "bar manager", "mixologist", "sommelier", "wine director", "cellar manager", "bar supervisor", "beverage manager", "flair bartender", "cocktail"],
+      "metrics": [
+        "revenue per shift or per week (e.g. £2,400/shift)",
+        "bar sales target achievement (e.g. 115% of target)",
+        "upsell percentage (e.g. 18% premium spirit upsell)",
+        "wine or cocktail list size managed (e.g. 420-bin wine list)",
+        "inventory accuracy rate (e.g. 99.2% stock accuracy)",
+        "team size trained or managed",
+        "guest satisfaction or review score"
+      ],
+      "promptGuidance": "The user works in bartending or sommelier/wine roles. Structure every achievement bullet as: strong action verb + task context + quantifiable result. The most valued metrics in this role family are: revenue per shift, sales target %, upsell %, list/cellar size, inventory accuracy, and team managed. If the user mentions a number, use it exactly. If they describe an achievement without a number, leave a clearly marked placeholder like [£X/shift] or [X% of target] — never invent a figure.",
+      "bulletTemplates": [
+        "Generated average revenue of [£X per shift] across [bar type] venues, consistently exceeding weekly targets by [X%].",
+        "Curated and managed a [X-bin] wine list spanning [regions/styles], increasing wine covers by [X%].",
+        "Achieved [X%] upsell rate on premium spirits and cocktail upgrades.",
+        "Maintained [X%] inventory accuracy across [spirits/wine] stock through weekly cycle counts.",
+        "Trained and mentored [X] junior bar staff in mixology technique and responsible service standards."
+      ]
+    },
+    "housekeeping": {
+      "label": "Housekeeping",
+      "matchTerms": ["housekeeping", "housekeeper", "cabin steward", "stateroom steward", "room attendant", "housekeeping supervisor", "housekeeping manager", "executive housekeeper", "cabin crew housekeeping", "linen"],
+      "metrics": [
+        "rooms or cabins serviced per shift (e.g. 18 cabins/shift)",
+        "inspection pass rate (e.g. 98% first-pass inspection rate)",
+        "guest satisfaction score for room cleanliness",
+        "team size managed or supervised",
+        "property or ship star rating"
+      ],
+      "promptGuidance": "The user works in housekeeping (cabin steward, room attendant, housekeeping supervisor). Structure every achievement bullet as: strong action verb + task context + quantifiable result. The most valued metrics in this role family are: cabins/rooms serviced per shift, inspection pass rate, guest satisfaction scores, and team size. If the user mentions a number, use it exactly. If they describe an achievement without a number, leave a clearly marked placeholder like [X cabins/shift] or [X% pass rate] — never invent a figure.",
+      "bulletTemplates": [
+        "Serviced [X] cabins per shift to [star-rating] standards, maintaining a [X%] first-inspection pass rate.",
+        "Achieved [X/5] guest satisfaction score for room cleanliness across [X] consecutive voyages.",
+        "Supervised a team of [X] cabin attendants, coordinating turnaround schedule for [X] staterooms per sailing.",
+        "Reduced linen-error complaints by [X%] by implementing a pre-departure checklist system.",
+        "Completed daily turndown and deep-clean cycle for [X] allocated cabins within [X-hour] service window."
+      ]
+    },
+    "guest-services": {
+      "label": "Guest Services / Reception",
+      "matchTerms": ["guest services", "front desk", "receptionist", "concierge", "front office", "hotel reception", "guest relations", "passenger services", "guest experience", "front of house"],
+      "metrics": [
+        "complaint resolution time (e.g. average 12-minute resolution)",
+        "guest satisfaction score (e.g. NPS 72 or 4.9/5)",
+        "repeat-guest rate (e.g. 34% repeat bookers)",
+        "daily transactions or check-ins handled",
+        "team size managed",
+        "property star rating"
+      ],
+      "promptGuidance": "The user works in guest services, front desk, or reception roles. Structure every achievement bullet as: strong action verb + task context + quantifiable result. The most valued metrics in this role family are: complaint resolution time, guest satisfaction scores, repeat-guest rate, volume of daily interactions, and team size. If the user mentions a number, use it exactly. If they describe an achievement without a number, leave a clearly marked placeholder like [X-minute resolution] or [X/5 satisfaction] — never invent a figure.",
+      "bulletTemplates": [
+        "Resolved guest complaints with average [X-minute] turnaround, achieving [X%] first-contact resolution rate.",
+        "Managed front desk operations handling [X] daily check-ins at a [star-rating] property.",
+        "Maintained [X/5] guest satisfaction score across [X] months of continuous operation.",
+        "Coordinated [X] shore excursion bookings per voyage, generating additional revenue of [£X] per sailing.",
+        "Supervised a front office team of [X], delivering 24-hour coverage across a [X]-cabin vessel."
+      ]
+    },
+    "entertainment-youth": {
+      "label": "Entertainment / Youth Staff",
+      "matchTerms": ["entertainment", "cruise staff", "activities host", "games host", "animator", "youth staff", "kids club", "children's programme", "recreation", "sports coordinator", "activity coordinator", "entertainment host"],
+      "metrics": [
+        "program attendance figures (e.g. 120 guests per session)",
+        "guest feedback or satisfaction score (e.g. 4.7/5)",
+        "number of events or sessions hosted per voyage",
+        "age group or guest count managed",
+        "participation rate uplift"
+      ],
+      "promptGuidance": "The user works in onboard entertainment or youth programming. Structure every achievement bullet as: strong action verb + task context + quantifiable result. The most valued metrics in this role family are: session attendance, guest satisfaction/feedback scores, number of events hosted, and age groups managed. If the user mentions a number, use it exactly. If they describe an achievement without a number, leave a clearly marked placeholder like [X guests/session] or [X/5 feedback] — never invent a figure.",
+      "bulletTemplates": [
+        "Hosted [X] daily activity sessions across a [X]-day voyage, averaging [X] guest participants per event.",
+        "Achieved [X/5] end-of-cruise feedback rating for entertainment programming across [X] consecutive sailings.",
+        "Designed and delivered a [X]-session children's activity programme for [X] children aged [age range].",
+        "Increased deck activity participation by [X%] by introducing themed tournament formats.",
+        "MC'd [X] themed evening events per voyage for audiences of up to [X] guests."
+      ]
+    },
+    "galley-culinary": {
+      "label": "Galley / Culinary",
+      "matchTerms": ["chef", "cook", "culinary", "galley", "kitchen", "pastry chef", "sous chef", "commis chef", "chef de partie", "executive chef", "head chef", "line cook", "prep cook", "galley supervisor"],
+      "metrics": [
+        "covers served per service or per day (e.g. 400 covers/day)",
+        "food cost control % (e.g. food cost reduced to 28%)",
+        "prep time or efficiency metric",
+        "team size managed (e.g. kitchen brigade of 12)",
+        "hygiene/inspection score (e.g. 100% USPH score)",
+        "property or ship star rating"
+      ],
+      "promptGuidance": "The user works in a galley or culinary role (chef, cook, kitchen brigade). Structure every achievement bullet as: strong action verb + task context + quantifiable result. The most valued metrics in this role family are: covers served per service, food cost %, kitchen team size, hygiene inspection scores, and prep efficiency. If the user mentions a number, use it exactly. If they describe an achievement without a number, leave a clearly marked placeholder like [X covers/service] or [X% food cost] — never invent a figure.",
+      "bulletTemplates": [
+        "Prepared and executed service for [X] covers per sitting across [cuisine type] stations in a [star-rating] galley.",
+        "Maintained food cost at [X%] of revenue through portion control and FIFO stock rotation.",
+        "Achieved [X%] score on USPH/HACCP galley inspection with zero critical findings.",
+        "Managed a kitchen team of [X] across [X] stations, maintaining consistent output during back-to-back service.",
+        "Reduced prep time for [dish/course] by [X%] by restructuring mise en place workflow."
+      ]
+    }
+  }
+}

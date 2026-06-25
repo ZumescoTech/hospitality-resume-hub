@@ -32,7 +32,7 @@ Paid tier: $5/month (Stripe). Free tier: manual builder + ATS score number only.
 | UI components | **shadcn/ui** (Radix primitives + Tailwind) |
 
 ### NEVER use:
-- Next.js, Vercel, React Server Components
+- Next.js, React Server Components
 - SerpAPI or any live job-ad scraping
 - Server-side file parsing (no mammoth/pdfjs in Workers)
 - `localStorage` for anything other than the anonymous builder state
