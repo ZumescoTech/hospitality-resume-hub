@@ -123,20 +123,7 @@ function LandingPage() {
           <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <img src="/GetHired-logo.png" alt="GetHired" className="h-10 w-auto" />
             <div className="flex items-center gap-4">
-              <Link
-                to="/builder"
-                search={{ from: undefined, role: undefined }}
-                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-              >
-                Build CV
-              </Link>
-              <Link
-                to="/tools/cruise-cv-checker"
-                className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-              >
-                CV Checker
-              </Link>
-              <Link
+<Link
                 to="/tools/cruise-cv-checker"
                 className="btn-wine inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold"
               >
