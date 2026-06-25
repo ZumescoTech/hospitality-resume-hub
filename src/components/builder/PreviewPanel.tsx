@@ -169,7 +169,7 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
     <div className="flex h-full flex-col">
 
       {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="no-print border-b border-border bg-card p-4">
+      <div className="no-print border-b-half border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
 
           {/* Active template label */}
@@ -273,51 +273,68 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
         </div>
 
         {/* ── Swatch gallery ──────────────────────────────────── */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {TEMPLATES.map((t) => (
+        {/* Free templates */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {TEMPLATES.filter((t) => !t.premium).map((t) => (
             <button
               key={t.id}
               id={`swatch-${t.id}`}
               onClick={() => onTemplateChange(t.id)}
               className={cn(
-                "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg border-2 p-2 text-left transition-all",
+                "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-2 text-left transition-all",
                 t.id === data.templateId
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/40",
+                  ? "border border-primary bg-purple-50"
+                  : "border-half border-navy-200 hover:border-primary/40",
               )}
             >
-              {/* Thumbnail with optional PRO badge */}
-              <div className="relative flex h-12 w-20 overflow-hidden rounded">
+              <div className="flex h-12 w-20 overflow-hidden rounded-sm">
                 <div className="flex-1" style={{ background: t.swatch[0] }} />
                 <div className="w-1/3" style={{ background: t.swatch[1] }} />
-                {t.premium && (
-                  <span
-                    className="absolute right-0 top-0 rounded-bl px-1 py-0.5 text-[8px] font-bold uppercase leading-none tracking-wide"
-                    style={{ background: '#fef3c7', color: '#92400e' }}
-                  >
-                    PRO
-                  </span>
-                )}
               </div>
-              <div>
-                <p className="text-xs font-semibold">{t.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {t.purpose ? `${t.name} · ${t.purpose}` : t.description}
-                </p>
-              </div>
+              <p className="text-xs font-medium text-foreground">{t.name}</p>
             </button>
           ))}
         </div>
+        {/* Premium templates */}
+        {TEMPLATES.some((t) => t.premium) && (
+          <div className="mt-2">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Premium</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {TEMPLATES.filter((t) => t.premium).map((t) => (
+                <button
+                  key={t.id}
+                  id={`swatch-${t.id}`}
+                  onClick={() => onTemplateChange(t.id)}
+                  className={cn(
+                    "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-2 text-left transition-all",
+                    t.id === data.templateId
+                      ? "border border-primary bg-purple-50"
+                      : "border-half border-navy-200 hover:border-primary/40",
+                  )}
+                >
+                  <div className="relative flex h-12 w-20 overflow-hidden rounded-sm">
+                    <div className="flex-1" style={{ background: t.swatch[0] }} />
+                    <div className="w-1/3" style={{ background: t.swatch[1] }} />
+                    <span className="absolute right-0 top-0 rounded-bl bg-amber-100 px-1 py-0.5 text-[8px] font-bold uppercase leading-none tracking-wide text-amber-800">
+                      PRO
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-foreground">{t.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Formatting controls ─────────────────────────────── */}
         <Collapsible open={formattingOpen} onOpenChange={setFormattingOpen}>
           <CollapsibleTrigger asChild>
             <button
               className={cn(
-                "mt-3 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors",
+                "mt-3 flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
                 formattingOpen
-                  ? "border-primary/40 bg-primary/5 text-foreground"
-                  : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                  ? "border border-primary/40 bg-purple-50 text-foreground"
+                  : "border-half border-navy-200 text-muted-foreground hover:border-primary/40 hover:text-foreground",
               )}
             >
               <span className="flex items-center gap-2">
@@ -407,7 +424,7 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
 
       {/* ── Pagination controls ───────────────────────────────── */}
       {totalPages > 1 && (
-        <div className="no-print flex items-center justify-center gap-3 border-t border-border bg-card py-2">
+        <div className="no-print flex items-center justify-center gap-3 border-t-half border-border bg-card py-2">
           <Button
             variant="ghost"
             size="icon"

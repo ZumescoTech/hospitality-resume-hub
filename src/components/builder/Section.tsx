@@ -18,8 +18,8 @@ export function Section({ title, subtitle, step, icon: Icon, children, defaultOp
     <section
       id={`section-${step}`}
       className={cn(
-        "rounded-xl border bg-card transition-all",
-        active ? "border-primary/40 shadow-soft" : "border-border",
+        "rounded-xl bg-card transition-all",
+        active ? "border border-primary/40" : "border-half border-border",
       )}
     >
       <button
@@ -44,7 +44,7 @@ export function Section({ title, subtitle, step, icon: Icon, children, defaultOp
           className={cn("h-5 w-5 text-muted-foreground transition-transform", open && "rotate-180")}
         />
       </button>
-      {open && <div className="space-y-4 border-t border-border px-5 py-5">{children}</div>}
+      {open && <div className="space-y-4 border-t-half border-border px-5 py-5">{children}</div>}
     </section>
   );
 }

@@ -38,6 +38,7 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@plateandpen" },
+      { name: "theme-color", content: "#7c3aed" },
     ],
     links: [
       {
