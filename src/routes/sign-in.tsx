@@ -52,11 +52,9 @@ function SignInPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <img src="/GetHired-logo.png" alt="GetHired" className="h-14 w-auto" />
           <h1 className="font-display text-2xl font-bold">Welcome back</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your Plate &amp; Pen account</p>
+          <p className="text-sm text-muted-foreground">Sign in to your GetHired account</p>
         </div>
 
         {/* Google OAuth */}
