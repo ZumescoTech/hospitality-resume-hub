@@ -315,7 +315,7 @@ export function CountryCodeSelect({ value, onChange, disabled, variant = 'defaul
                 className={cn(
                   'flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm transition-colors',
                   'hover:bg-accent/10 active:bg-accent/20',
-                  country.code === value.code && 'bg-primary/8 text-primary font-medium',
+                  country.code === value.code && (onDark ? 'bg-white/10 text-white font-medium' : 'bg-primary/8 text-primary font-medium'),
                 )}
               >
                 <span className="text-base leading-none w-5 text-center" aria-hidden="true">{country.flag}</span>
