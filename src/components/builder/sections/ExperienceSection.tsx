@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { uid } from "@/lib/resume-store";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AssistedTextarea } from "../AssistedTextarea";
+import { BulletEditor } from "../BulletEditor";
 import { PhrasingChips } from "../PhrasingChips";
 
 interface Props {
@@ -49,21 +49,20 @@ export function ExperienceSection({ data, onChange, showErrors }: Props) {
         <p className="text-sm text-muted-foreground">No roles added yet.</p>
       )}
       {data.experience.map((exp, i) => {
-        // Pass all OTHER experience descriptions as context so the model
-        // avoids repeating phrasing across entries.
-        const otherContext = data.experience
-          .filter((_, idx) => idx !== i)
-          .map((e) => `${e.role} at ${e.venue}: ${e.description}`)
-          .filter((s) => s.trim().length > 0)
-          .join('\n');
-
         function handleChipInsert(chipText: string) {
-          const current = exp.description;
-          const newDesc = current.trim() ? `${current}\n${chipText}` : chipText;
-          update(i, { description: newDesc });
-          // Focus the textarea within this entry after insertion
+          // Derive current bullets — fall back to splitting description if bullets absent
+          const current: string[] =
+            exp.bullets && exp.bullets.length > 0
+              ? exp.bullets
+              : exp.description
+              ? [exp.description]
+              : [];
+          update(i, { bullets: [...current.filter((b) => b.trim()), chipText] });
           requestAnimationFrame(() => {
-            entryRefs.current[i]?.querySelector('textarea')?.focus();
+            const textareas = entryRefs.current[i]?.querySelectorAll("textarea");
+            if (textareas && textareas.length > 0) {
+              (textareas[textareas.length - 1] as HTMLTextAreaElement).focus();
+            }
           });
         }
 
@@ -126,26 +125,24 @@ export function ExperienceSection({ data, onChange, showErrors }: Props) {
               </label>
             </div>
             <div className="mt-3">
-              <Field label="Highlights" hint="Use short impactful lines. Quantify when you can.">
-                <AssistedTextarea
-                  fieldType="experience description"
-                  rows={3}
-                  value={exp.description}
-                  onChange={(description) => update(i, { description })}
-                  placeholder="Curate a 420-bin list. Lead service for 80 covers nightly. Train 6 commis."
-                  jobTitle={data.personal.title}
-                  targetJobDescription={data.targetJobDescription}
-                  otherContext={otherContext || undefined}
-                  onSkillsAccepted={handleSkillsAccepted}
-                  targetRoleSlug={data.targetRoleSlug}
-                />
-                {/* AI phrasing chips — role-aware (global slug primary, entry job title secondary) */}
-                <PhrasingChips
-                  roleSlug={data.targetRoleSlug}
-                  jobTitle={exp.role || data.personal.title || undefined}
-                  onInsert={handleChipInsert}
-                />
-              </Field>
+              <BulletEditor
+                bullets={
+                  exp.bullets && exp.bullets.length > 0
+                    ? exp.bullets
+                    : exp.description
+                    ? [exp.description]
+                    : []
+                }
+                onChange={(bullets) => update(i, { bullets })}
+                placeholder="Curate a 420-bin list. Lead service for 80 covers nightly. Train 6 commis."
+                maxBullets={8}
+              />
+              {/* Phrasing chips insert as a new bullet */}
+              <PhrasingChips
+                roleSlug={data.targetRoleSlug}
+                jobTitle={exp.role || data.personal.title || undefined}
+                onInsert={handleChipInsert}
+              />
             </div>
           </div>
         );
