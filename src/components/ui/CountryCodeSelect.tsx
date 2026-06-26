@@ -193,9 +193,12 @@ interface Props {
   value: CountryCode;
   onChange: (country: CountryCode) => void;
   disabled?: boolean;
+  /** 'onDark': white text/border for use on dark teal backgrounds */
+  variant?: 'default' | 'onDark';
 }
 
-export function CountryCodeSelect({ value, onChange, disabled }: Props) {
+export function CountryCodeSelect({ value, onChange, disabled, variant = 'default' }: Props) {
+  const onDark = variant === 'onDark';
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -256,15 +259,17 @@ export function CountryCodeSelect({ value, onChange, disabled }: Props) {
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          'flex h-9 w-full items-center gap-1.5 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors',
+          'flex h-9 w-full items-center gap-1.5 rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors',
           'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          'hover:border-ring/60',
+          onDark
+            ? 'border-white/35 hover:border-white/60'
+            : 'border-input hover:border-ring/60',
         )}
       >
         <span className="text-base leading-none" aria-hidden="true">{value.flag}</span>
-        <span className="font-medium text-foreground">{value.dial}</span>
-        <ChevronDown className={cn('ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        <span className={cn('font-medium', onDark ? 'text-white' : 'text-foreground')}>{value.dial}</span>
+        <ChevronDown className={cn('ml-auto h-3.5 w-3.5 transition-transform', open && 'rotate-180', onDark ? 'text-white/60' : 'text-muted-foreground')} />
       </button>
 
       {/* Dropdown */}

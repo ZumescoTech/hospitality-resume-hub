@@ -126,6 +126,7 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
                   setPhoneWarning('');
                 }}
                 disabled={submitting}
+                variant="onDark"
               />
             </div>
             {/* Local number */}
