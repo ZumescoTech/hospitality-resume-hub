@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { HeroBanner } from "@/components/landing/HeroBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,28 +62,17 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 function LandingPage() {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 60)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   return (
     <>
       <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(28px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { opacity: 0.15; }
-          50%       { opacity: 0.3; }
-        }
-        .anim-fade-up    { animation: fadeUp 0.8s cubic-bezier(0.22,1,0.36,1) both; }
-        .anim-fade-up-d1 { animation: fadeUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
-        .anim-fade-up-d2 { animation: fadeUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.30s both; }
-        .anim-fade-up-d3 { animation: fadeUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.45s both; }
-        .anim-fade-in    { animation: fadeIn 1.2s ease both; }
-        .hero-glow       { animation: pulse-glow 6s ease-in-out infinite; }
-
         .step-card:hover .step-num { transform: scale(1.06); }
         .step-num { transition: transform 0.3s ease; }
 
@@ -119,124 +109,50 @@ function LandingPage() {
       <div className="min-h-screen bg-background text-foreground">
 
         {/* ── NAV ─────────────────────────────────────────── */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <img src="/GetHired-logo.png" alt="GetHired" className="h-10 w-auto" />
-            <div className="flex items-center gap-4">
-<Link
-                to="/tools/cruise-cv-checker"
-                className="btn-wine inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold"
-              >
-                Check My CV Free
-              </Link>
-            </div>
+        <nav
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            height: '56px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 20px',
+            transition: 'background 250ms ease, border-color 250ms ease',
+            background: scrolled ? '#ffffff' : 'transparent',
+            borderBottom: scrolled ? '0.5px solid #e2e8f0' : '0.5px solid transparent',
+          }}
+        >
+          <div style={{ maxWidth: '1152px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <img src="/GetHired-logo.png" alt="GetHired" style={{ height: '36px', width: 'auto' }} />
+            <Link
+              to="/tools/cruise-cv-checker"
+              style={{
+                height: '44px',
+                minHeight: '44px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0 20px',
+                borderRadius: '999px',
+                fontSize: '14px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontFamily: 'Rubik, system-ui, sans-serif',
+                background: scrolled ? '#0d6b5e' : 'rgba(255,255,255,0.15)',
+                color: '#ffffff',
+                border: scrolled ? 'none' : '0.5px solid rgba(255,255,255,0.4)',
+                transition: 'background 250ms ease',
+              }}
+            >
+              Check My CV Free
+            </Link>
           </div>
         </nav>
 
         {/* ── HERO ─────────────────────────────────────────── */}
-        <section className="ink-section relative min-h-screen flex items-center pt-16 overflow-hidden">
-          {/* Glow orbs using wine + brass */}
-          <div className="hero-glow absolute top-1/3 -left-40 w-[480px] h-[480px] rounded-full bg-primary blur-[140px] pointer-events-none" />
-          <div className="hero-glow absolute bottom-1/4 -right-32 w-[360px] h-[360px] rounded-full bg-accent blur-[120px] pointer-events-none" style={{ animationDelay: "3s" }} />
-
-          <div className="absolute top-28 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent pointer-events-none" />
-
-          <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <div className="anim-fade-in flex items-center gap-3 mb-8">
-                <div className="w-10 h-0.5 bg-accent" />
-                <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">
-                  Cruise Ship &amp; Luxury Hospitality
-                </span>
-              </div>
-
-              <h1 className="anim-fade-up font-display text-[clamp(2.6rem,6vw,4.5rem)] leading-[1.1] font-bold text-cream mb-6">
-                Your CV isn&apos;t bad.
-                <br />
-                <span className="text-accent">It&apos;s written for the wrong industry.</span>
-              </h1>
-
-              <p className="anim-fade-up-d1 text-cream/60 text-lg leading-relaxed mb-10 max-w-lg">
-                Cruise lines use ATS software to filter applications before a
-                human ever sees them. If your CV isn&apos;t formatted and keyworded
-                for hospitality roles at sea, it gets rejected automatically —
-                no matter how good your experience is.
-              </p>
-
-              <div className="anim-fade-up-d2 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <Link
-                  to="/tools/cruise-cv-checker"
-                  className="btn-brass inline-flex items-center gap-2 px-8 py-4 rounded-full text-base font-semibold"
-                >
-                  Check My CV Free
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Link>
-                <span className="text-cream/40 text-sm">
-                  No signup required · Results in under 60 seconds
-                </span>
-              </div>
-            </div>
-
-            {/* ATS score mockup — uses card tokens */}
-            <div className="anim-fade-up-d3 hidden lg:block">
-              <div className="relative">
-                <div className="absolute -inset-4 rounded-3xl bg-accent/8 blur-2xl" />
-                <div className="relative bg-card border border-border/20 rounded-2xl p-8 shadow-elegant">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-widest mb-1">ATS Score</p>
-                      <p className="font-display text-6xl font-bold text-primary">34</p>
-                    </div>
-                    <div className="w-20 h-20 rounded-full border-4 border-primary/20 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                          <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="var(--color-primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 mb-6">
-                    {[
-                      { label: "Keyword Match", val: 28 },
-                      { label: "Format Score", val: 55 },
-                      { label: "Role Alignment", val: 20 },
-                    ].map(({ label, val }) => (
-                      <div key={label}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="text-accent font-medium">{val}%</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-accent"
-                            style={{ width: `${val}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="bg-muted rounded-xl p-4 border border-border">
-                    <p className="text-accent text-xs font-semibold uppercase tracking-widest mb-2">Top Fix</p>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      Missing keywords: <span className="text-foreground font-medium">F&amp;B service</span>, <span className="text-foreground font-medium">STCW</span>, <span className="text-foreground font-medium">vessel experience</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Wave into cream background */}
-          <div className="absolute bottom-0 left-0 right-0">
-            <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full">
-              <path d="M0 60V30C240 0 480 60 720 30C960 0 1200 60 1440 30V60H0Z" fill="var(--color-background)" />
-            </svg>
-          </div>
-        </section>
+        <HeroBanner />
 
         {/* ── PROBLEM ──────────────────────────────────────── */}
         <section className="bg-background py-24 px-6">
@@ -512,9 +428,7 @@ function LandingPage() {
         {/* ── FOOTER ───────────────────────────────────────── */}
         <footer className="ink-section py-12 px-6 border-t border-border/10">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="font-display text-xl font-bold text-cream/60">
-              Get<span className="text-accent/70">Hired</span>
-            </span>
+            <img src="/GetHired-logo.png" alt="GetHired" style={{ height: '32px', width: 'auto', opacity: 0.7 }} />
             <p className="text-cream/30 text-sm text-center">
               Built for cruise ship &amp; luxury hospitality professionals.
             </p>
