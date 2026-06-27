@@ -1,50 +1,74 @@
-import { ComponentType, ReactNode, useState } from "react";
-import { ChevronDown, LucideProps } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ReactNode, useState } from 'react'
 
 interface Props {
-  title: string;
-  subtitle?: string;
-  step: number;
-  icon?: ComponentType<LucideProps>;
-  children: ReactNode;
-  defaultOpen?: boolean;
-  active?: boolean;
+  id: string
+  title: string
+  emoji: string
+  children: ReactNode
+  defaultOpen?: boolean
+  active?: boolean
 }
 
-export function Section({ title, subtitle, step, icon: Icon, children, defaultOpen = true, active }: Props) {
-  const [open, setOpen] = useState(defaultOpen);
+export function Section({ id, title, emoji, children, defaultOpen = false, active }: Props) {
+  const [open, setOpen] = useState(defaultOpen)
+
   return (
     <section
-      id={`section-${step}`}
-      className={cn(
-        "rounded-xl bg-card transition-all",
-        active ? "border border-primary/40" : "border-half border-border",
-      )}
+      id={`section-${id}`}
+      style={{
+        margin: '12px',
+        borderRadius: '12px',
+        border: active ? '1px solid var(--brand)' : '1px solid var(--border, #e2e2e2)',
+        background: '#ffffff',
+        overflow: 'hidden',
+        transition: 'border-color 200ms',
+      }}
     >
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+        onClick={() => setOpen(o => !o)}
         aria-expanded={open}
+        style={{
+          display: 'flex',
+          width: '100%',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          minHeight: '52px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          WebkitTapHighlightColor: 'transparent',
+          textAlign: 'left',
+        } as React.CSSProperties}
       >
-        <div className="flex items-center gap-4">
-          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            {Icon ? <Icon className="h-4 w-4" /> : <span className="text-xs font-semibold">{step}</span>}
-            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-background text-[10px] font-semibold text-foreground ring-1 ring-border">
-              {step}
-            </span>
-          </span>
-          <div>
-            <h3 className="font-display text-lg font-semibold leading-tight">{title}</h3>
-            {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
+          <span style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a1a' }}>{title}</span>
         </div>
-        <ChevronDown
-          className={cn("h-5 w-5 text-muted-foreground transition-transform", open && "rotate-180")}
-        />
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#888"
+          strokeWidth="2"
+          aria-hidden="true"
+          style={{
+            flexShrink: 0,
+            transition: 'transform 200ms ease',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
       </button>
-      {open && <div className="space-y-4 border-t-half border-border px-5 py-5">{children}</div>}
+
+      {open && (
+        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border, #e2e2e2)' }}>
+          {children}
+        </div>
+      )}
     </section>
-  );
+  )
 }

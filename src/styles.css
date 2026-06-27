@@ -193,11 +193,58 @@
   }
 }
 
+/* ── Reference design CSS variables ────────────────────────────────────────── */
+:root {
+  --brand:          #0d6b5e;
+  --brand-mid:      #1a9e8a;
+  --brand-light:    #eaf8f5;
+  --brand-dark:     #0a5248;
+  --text-secondary: #555555;
+  --text-muted:     #888888;
+  --border-strong:  #cccccc;
+  --surface-warm:   #f7f7f5;
+  --danger:         #c0392b;
+  --nav-h:          64px;
+  --header-h:       52px;
+  --progress-h:     40px;
+}
+
+/* Bottom nav clearance on mobile */
+body {
+  padding-bottom: var(--nav-h);
+}
+
+/* 16px on all inputs prevents iOS auto-zoom */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Minimum 44px tap targets */
+button, [role="button"] {
+  min-height: 44px;
+}
+
+@media (min-width: 1024px) {
+  body { padding-bottom: 0; }
+}
+
 /* Print: only show preview when printing */
 @media print {
   .no-print { display: none !important; }
   .print-area { box-shadow: none !important; }
   body { background: white !important; }
+}
+
+/* ── Builder layout ─────────────────────────────────────────────────────────── */
+.builder-layout {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .builder-layout {
+    grid-template-columns: 420px 1fr;
+    min-height: calc(100vh - var(--header-h) - var(--progress-h));
+  }
 }
 
 /* ── Builder wizard animations ───────────────────────────────────────────────── */

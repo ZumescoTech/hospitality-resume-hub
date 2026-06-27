@@ -1,86 +1,111 @@
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from 'react'
 
-interface Step {
-  id: string;
-  label: string;
+interface SectionDef {
+  id: string
+  label: string
 }
 
 interface Props {
-  steps: Step[];
-  current: number;
-  onJump: (i: number) => void;
-  /** Indices of steps that have been completed (user advanced past them). */
-  completed?: number[];
-  /** When true, wraps in a sticky top-0 bar (used by mobile wizard). */
-  stickyMobile?: boolean;
+  sections: SectionDef[]
+  activeTab: string
+  /** Header height + progress bar height in px — used as rootMargin top offset */
+  topOffset?: number
 }
 
-export function StepProgress({ steps, current, onJump, completed = [], stickyMobile }: Props) {
-  const completedSet = new Set(completed);
+export function StepProgress({ sections, activeTab, topOffset = 92 }: Props) {
+  const [activeSectionId, setActiveSectionId] = useState<string>(sections[0]?.id ?? '')
+  const navRef = useRef<HTMLElement>(null)
 
-  const inner = (
-    <div className="flex items-center gap-0">
-      {steps.map((s, i) => {
-        const isCompleted = completedSet.has(i);
-        const isCurrent = i === current;
-        const isClickable = isCompleted && !isCurrent;
-        const isLast = i === steps.length - 1;
+  // IntersectionObserver: highlight pill as user scrolls through sections
+  useEffect(() => {
+    if (activeTab !== 'edit') return
+    const observers: IntersectionObserver[] = []
+    sections.forEach(s => {
+      const el = document.getElementById(`section-${s.id}`)
+      if (!el) return
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) setActiveSectionId(s.id)
+        },
+        { rootMargin: `-${topOffset}px 0px -50% 0px`, threshold: 0 },
+      )
+      obs.observe(el)
+      observers.push(obs)
+    })
+    return () => observers.forEach(o => o.disconnect())
+  }, [sections, activeTab, topOffset])
 
-        return (
-          <div key={s.id} className="flex items-center">
-            {/* Dot */}
-            <button
-              onClick={() => isClickable ? onJump(i) : undefined}
-              disabled={!isClickable && !isCurrent}
-              title={s.label}
-              aria-current={isCurrent ? "step" : undefined}
-              className={cn(
-                "relative flex items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-focus",
-                isCurrent
-                  ? "h-7 w-7 bg-primary text-primary-foreground text-xs font-semibold"
-                  : isCompleted
-                    ? "h-5 w-5 bg-primary/10 text-primary text-[10px] cursor-pointer hover:bg-primary/20"
-                    : "h-4 w-4 border-half border-border bg-white cursor-default",
-              )}
-            >
-              {isCompleted && !isCurrent && (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-              {isCurrent && <span>{i + 1}</span>}
-            </button>
+  // Scroll the active pill into view in the nav bar
+  useEffect(() => {
+    const btn = navRef.current?.querySelector(`[data-section="${activeSectionId}"]`) as HTMLElement | null
+    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }, [activeSectionId])
 
-            {/* Label under current dot */}
-            {isCurrent && (
-              <span className="ml-2 text-xs font-medium text-foreground whitespace-nowrap">
-                {s.label}
-              </span>
-            )}
+  if (activeTab !== 'edit') return null
 
-            {/* Connector line */}
-            {!isLast && (
-              <div
-                className={cn(
-                  "mx-1.5 h-px flex-shrink-0 transition-colors",
-                  isCurrent ? "w-4" : "w-3",
-                  isCompleted ? "bg-primary/40" : "bg-border",
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  if (stickyMobile) {
-    return (
-      <div className="shrink-0 border-b-half border-border bg-background px-4 py-3">
-        {inner}
-      </div>
-    );
+  function scrollToSection(id: string) {
+    setActiveSectionId(id)
+    const el = document.getElementById(`section-${id}`)
+    if (!el) return
+    setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
   }
 
-  return inner;
+  return (
+    <nav
+      ref={navRef}
+      aria-label="Form sections"
+      className="no-print"
+      style={{
+        position: 'sticky',
+        top: 'var(--header-h)',
+        zIndex: 40,
+        display: 'flex',
+        alignItems: 'center',
+        background: '#ffffff',
+        borderBottom: '1px solid var(--border)',
+        padding: '0 12px',
+        height: 'var(--progress-h)',
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        gap: '4px',
+        WebkitOverflowScrolling: 'touch',
+      } as React.CSSProperties}
+    >
+      <style>{`.step-progress-nav::-webkit-scrollbar{display:none}`}</style>
+      {sections.map((section, i) => {
+        const isActive = activeSectionId === section.id
+        return (
+          <div key={section.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {i > 0 && (
+              <div style={{ width: '12px', height: '1px', background: 'var(--border, #e2e2e2)', flexShrink: 0 }} />
+            )}
+            <button
+              data-section={section.id}
+              onClick={() => scrollToSection(section.id)}
+              style={{
+                fontSize: '12px',
+                fontWeight: isActive ? 600 : 500,
+                whiteSpace: 'nowrap',
+                padding: '0 10px',
+                height: '30px',
+                minHeight: '30px',
+                borderRadius: '6px',
+                border: 'none',
+                background: isActive ? 'var(--brand)' : 'none',
+                color: isActive ? '#ffffff' : 'var(--text-muted, #888)',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'color 150ms, background 150ms',
+                WebkitTapHighlightColor: 'transparent',
+              } as React.CSSProperties}
+            >
+              {section.label}
+            </button>
+          </div>
+        )
+      })}
+    </nav>
+  )
 }
