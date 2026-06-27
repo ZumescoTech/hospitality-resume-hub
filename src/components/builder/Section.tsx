@@ -3,27 +3,28 @@ import {
   User, Briefcase, GraduationCap, Sparkles, ClipboardList, UtensilsCrossed,
 } from 'lucide-react'
 
-const ICON_MAP: Record<string, React.ReactNode> = {
-  '👤': <User size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
-  '💼': <Briefcase size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
-  '🎓': <GraduationCap size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
-  '⭐': <Sparkles size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
-  '📋': <ClipboardList size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
-  '🍽️': <UtensilsCrossed size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+const iconStyle = { flexShrink: 0 as const, color: 'var(--brand)' }
+
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  personal:       <User size={18} strokeWidth={1.8} aria-hidden="true" style={iconStyle} />,
+  experience:     <Briefcase size={18} strokeWidth={1.8} aria-hidden="true" style={iconStyle} />,
+  education:      <GraduationCap size={18} strokeWidth={1.8} aria-hidden="true" style={iconStyle} />,
+  skills:         <Sparkles size={18} strokeWidth={1.8} aria-hidden="true" style={iconStyle} />,
+  certifications: <ClipboardList size={18} strokeWidth={1.8} aria-hidden="true" style={iconStyle} />,
+  hospitality:    <UtensilsCrossed size={18} strokeWidth={1.8} aria-hidden="true" style={iconStyle} />,
 }
 
 interface Props {
   id: string
   title: string
-  emoji: string
   children: ReactNode
   defaultOpen?: boolean
   active?: boolean
 }
 
-export function Section({ id, title, emoji, children, defaultOpen = false, active }: Props) {
+export function Section({ id, title, children, defaultOpen = false, active }: Props) {
   const [open, setOpen] = useState(defaultOpen)
-  const icon = ICON_MAP[emoji] ?? null
+  const icon = SECTION_ICONS[id] ?? null
 
   return (
     <section

@@ -61,12 +61,12 @@ export const Route = createFileRoute("/builder")({
 });
 
 const BUILDER_SECTIONS = [
-  { id: "personal",       label: "Personal",      emoji: "👤", subtitle: "Contact details, photo and your professional summary" },
-  { id: "experience",     label: "Experience",    emoji: "💼", subtitle: "Restaurants, bars, hotels — most recent first" },
-  { id: "education",      label: "Education",     emoji: "🎓", subtitle: "Schools, hospitality programmes and apprenticeships" },
-  { id: "skills",         label: "Skills",        emoji: "⭐", subtitle: "Soft skills, technical strengths, service techniques" },
-  { id: "certifications", label: "Certifications",emoji: "📋", subtitle: "WSET, ServSafe, BarSmarts, sommelier titles…" },
-  { id: "hospitality",    label: "Hospitality",   emoji: "🍽️", subtitle: "Wine, spirits, POS, languages, service style" },
+  { id: "personal",       label: "Personal", subtitle: "Contact details, photo and your professional summary" },
+  { id: "experience",     label: "Experience", subtitle: "Restaurants, bars, hotels — most recent first" },
+  { id: "education",      label: "Education", subtitle: "Schools, hospitality programmes and apprenticeships" },
+  { id: "skills",         label: "Skills",        subtitle: "Soft skills, technical strengths, service techniques" },
+  { id: "certifications", label: "Certifications", subtitle: "WSET, ServSafe, BarSmarts, sommelier titles…" },
+  { id: "hospitality",    label: "Hospitality", subtitle: "Wine, spirits, POS, languages, service style" },
 ];
 
 function BuilderPage() {
@@ -335,22 +335,22 @@ function BuilderPage() {
 
           {/* Section accordions */}
           <div style={{ paddingBottom: '16px' }}>
-            <Section id="personal" title="Personal details" emoji="👤" defaultOpen={true}>
+            <Section id="personal" title="Personal details" defaultOpen={true}>
               <PersonalSection {...sectionProps} showErrors={false} />
             </Section>
-            <Section id="experience" title="Work experience" emoji="💼">
+            <Section id="experience" title="Work experience">
               <ExperienceSection {...sectionProps} showErrors={false} />
             </Section>
-            <Section id="education" title="Education" emoji="🎓">
+            <Section id="education" title="Education">
               <EducationSection {...sectionProps} />
             </Section>
-            <Section id="skills" title="Skills" emoji="⭐">
+            <Section id="skills" title="Skills">
               <SkillsSection {...sectionProps} />
             </Section>
-            <Section id="certifications" title="Certifications" emoji="📋">
+            <Section id="certifications" title="Certifications">
               <CertificationsSection {...sectionProps} />
             </Section>
-            <Section id="hospitality" title="Hospitality profile" emoji="🍽️">
+            <Section id="hospitality" title="Hospitality profile">
               <HospitalitySection {...sectionProps} />
             </Section>
           </div>
