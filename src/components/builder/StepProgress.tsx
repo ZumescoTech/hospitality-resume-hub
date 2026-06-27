@@ -79,7 +79,7 @@ export function StepProgress({ sections, activeTab, topOffset = 92 }: Props) {
         return (
           <div key={section.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
             {i > 0 && (
-              <div style={{ width: '12px', height: '1px', background: 'var(--border, #e2e2e2)', flexShrink: 0 }} />
+              <div style={{ width: '12px', height: '1px', background: 'var(--border-brand)', flexShrink: 0 }} />
             )}
             <button
               data-section={section.id}

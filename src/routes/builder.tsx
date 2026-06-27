@@ -304,7 +304,7 @@ function BuilderPage() {
             {/* Paste fallback panel */}
             {showPasteFallback && (
               <div style={{
-                background: '#fafafa', border: '1px solid var(--border, #e2e2e2)',
+                background: '#fafafa', border: '1px solid var(--border-brand)',
                 borderRadius: '8px', padding: '12px', marginBottom: '4px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>

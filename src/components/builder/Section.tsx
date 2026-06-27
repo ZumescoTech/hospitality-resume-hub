@@ -1,4 +1,16 @@
 import { ReactNode, useState } from 'react'
+import {
+  User, Briefcase, GraduationCap, Sparkles, ClipboardList, UtensilsCrossed,
+} from 'lucide-react'
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  '👤': <User size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+  '💼': <Briefcase size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+  '🎓': <GraduationCap size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+  '⭐': <Sparkles size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+  '📋': <ClipboardList size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+  '🍽️': <UtensilsCrossed size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />,
+}
 
 interface Props {
   id: string
@@ -11,6 +23,7 @@ interface Props {
 
 export function Section({ id, title, emoji, children, defaultOpen = false, active }: Props) {
   const [open, setOpen] = useState(defaultOpen)
+  const icon = ICON_MAP[emoji] ?? null
 
   return (
     <section
@@ -18,7 +31,7 @@ export function Section({ id, title, emoji, children, defaultOpen = false, activ
       style={{
         margin: '12px',
         borderRadius: '12px',
-        border: active ? '1px solid var(--brand)' : '1px solid var(--border, #e2e2e2)',
+        border: active ? '1px solid var(--brand)' : '1px solid var(--border-brand)',
         background: '#ffffff',
         overflow: 'hidden',
         transition: 'border-color 200ms',
@@ -42,8 +55,8 @@ export function Section({ id, title, emoji, children, defaultOpen = false, activ
           textAlign: 'left',
         } as React.CSSProperties}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {icon}
           <span style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a1a' }}>{title}</span>
         </div>
         <svg
@@ -65,7 +78,7 @@ export function Section({ id, title, emoji, children, defaultOpen = false, activ
       </button>
 
       {open && (
-        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border, #e2e2e2)' }}>
+        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border-brand)' }}>
           {children}
         </div>
       )}

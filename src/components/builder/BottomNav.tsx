@@ -55,7 +55,7 @@ export function BottomNav({ activeTab, onTabChange, onDownload }: Props) {
         zIndex: 100,
         height: 'var(--nav-h)',
         background: '#ffffff',
-        borderTop: '1px solid var(--border, #e2e2e2)',
+        borderTop: '1px solid var(--border-brand)',
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
         boxShadow: '0 -4px 20px rgba(0,0,0,0.07)',
