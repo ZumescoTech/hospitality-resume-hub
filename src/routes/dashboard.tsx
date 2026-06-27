@@ -1,5 +1,6 @@
 /** /dashboard — resume list + account status for authenticated users. */
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { LogoLockup } from "@/components/ui/LogoLockup";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -105,7 +106,7 @@ function DashboardPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/GetHired-logo.png" alt="GetHired" className="h-9 w-auto" />
+            <LogoLockup variant="dark" height={36} showWordmark={true} />
           </Link>
 
           <div className="flex items-center gap-2">

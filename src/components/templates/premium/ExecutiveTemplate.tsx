@@ -4,46 +4,50 @@
  * Layout: single-column, white background.
  * Header: name in #1e293b; job title in #7c3aed; 60×75px rectangular photo top-right.
  * Sections: left 3px solid #7c3aed accent stripe on each section heading.
+ *
+ * Custom colours apply to browser preview only.
+ * PDF export uses ResumePDF.tsx with fixed styles.
  */
 
 import { ResumeData } from '@/types/resume';
+import { TemplateColours } from '@/lib/template-colours';
 import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
 
-const C = {
-  bg:      '#ffffff',
-  name:    '#1e293b',
-  title:   '#7c3aed',
-  heading: '#1e293b',
-  body:    '#334155',
-  muted:   '#64748b',
-  accent:  '#7c3aed',
-  divider: '#e2e8f0',
-} as const;
+export function ExecutiveTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
+  const C = {
+    bg:      colours?.background ?? '#ffffff',
+    name:    '#1e293b',
+    title:   colours?.primary    ?? '#7c3aed',
+    heading: '#1e293b',
+    body:    colours?.text       ?? '#334155',
+    muted:   '#64748b',
+    accent:  colours?.primary    ?? '#7c3aed',
+    divider: '#e2e8f0',
+  };
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        fontSize:      '10pt',
-        fontWeight:    700,
-        color:         C.heading,
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
-        margin:        '16pt 0 6pt',
-        lineHeight:    1.2,
-        paddingLeft:   10,
-        borderLeft:    `3px solid ${C.accent}`,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
+  function SectionHeading({ children }: { children: React.ReactNode }) {
+    return (
+      <h2
+        style={{
+          fontSize:      '10pt',
+          fontWeight:    700,
+          color:         C.heading,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          margin:        '16pt 0 6pt',
+          lineHeight:    1.2,
+          paddingLeft:   10,
+          borderLeft:    `3px solid ${C.accent}`,
+        }}
+      >
+        {children}
+      </h2>
+    );
+  }
 
-export function ExecutiveTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
   const entryTokens = {

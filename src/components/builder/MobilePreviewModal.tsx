@@ -5,10 +5,16 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResumeData } from '@/types/resume';
 import { TEMPLATES, getTemplate } from '@/components/templates/registry';
+import { TemplateColourPicker } from '@/components/builder/TemplateColourPicker';
+import {
+  TemplateColours,
+  getTemplateColours,
+  templateSupportsColours,
+} from '@/lib/template-colours';
 
 // ── A4 constants ──────────────────────────────────────────────────────────────
 const PAGE_W = 794;
@@ -17,11 +23,13 @@ const PAGE_H = 1123;
 interface Props {
   data: ResumeData;
   onTemplateChange: (id: string) => void;
+  onColourChange: (slot: keyof TemplateColours, value: string) => void;
+  onColourReset: () => void;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function MobilePreviewModal({ data, onTemplateChange, isOpen, onClose }: Props) {
+export function MobilePreviewModal({ data, onTemplateChange, onColourChange, onColourReset, isOpen, onClose }: Props) {
   // `mounted` keeps the portal in the DOM during close animation.
   const [mounted, setMounted] = useState(false);
   // `animated` drives the translateY: false → 100% (off-screen), true → 0.
@@ -121,6 +129,11 @@ export function MobilePreviewModal({ data, onTemplateChange, isOpen, onClose }: 
     }
   }
 
+  // ── Colour picker state ───────────────────────────────────────────────────
+  const [colourPickerOpen, setColourPickerOpen] = useState(false);
+  const supportsColours = templateSupportsColours(data.templateId);
+  const colours = getTemplateColours(data.templateId, data.templateColours);
+
   // ── Template & scale ──────────────────────────────────────────────────────
   const { Component: TemplateComponent } = getTemplate(data.templateId);
   const scale = Math.min(containerW / PAGE_W, 1);
@@ -168,8 +181,22 @@ export function MobilePreviewModal({ data, onTemplateChange, isOpen, onClose }: 
           Preview
         </span>
 
-        {/* Spacer so "Preview" is visually centred */}
-        <div className="w-[120px]" />
+        {/* Colours toggle (premium templates only) */}
+        <div className="w-[120px] flex justify-end">
+          {supportsColours && (
+            <button
+              type="button"
+              onClick={() => setColourPickerOpen((o) => !o)}
+              className={cn(
+                'flex min-h-[44px] items-center gap-1.5 rounded px-2 text-sm font-medium transition-colors',
+                colourPickerOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Palette className="h-4 w-4" />
+              <span>Colours</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Template swatch row ───────────────────────────────────────── */}
@@ -207,6 +234,18 @@ export function MobilePreviewModal({ data, onTemplateChange, isOpen, onClose }: 
         })}
       </div>
 
+      {/* ── Colour picker (premium only) ─────────────────────────────────── */}
+      {supportsColours && colourPickerOpen && (
+        <div className="shrink-0 overflow-y-auto border-b-half border-border bg-background" style={{ maxHeight: 320 }}>
+          <TemplateColourPicker
+            templateId={data.templateId}
+            colours={colours}
+            onChange={onColourChange}
+            onReset={onColourReset}
+          />
+        </div>
+      )}
+
       {/* ── CV preview area (P0-2, P1-1) ────────────────────────────────── */}
       <div
         ref={previewContainerRef}
@@ -228,7 +267,7 @@ export function MobilePreviewModal({ data, onTemplateChange, isOpen, onClose }: 
             }}
           >
             <div className={cn('print-area bg-white shadow-elegant')}>
-              <TemplateComponent data={data} />
+              <TemplateComponent data={data} colours={supportsColours ? colours : undefined} />
             </div>
           </div>
         </div>

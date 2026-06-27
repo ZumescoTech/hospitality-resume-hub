@@ -1,50 +1,54 @@
 /**
- * Steward — Full-width #7c3aed header band for cabin & service crew.
+ * Steward — Full-width header band for cabin & service crew.
  *
- * Layout: single-column, white background below a purple header band.
+ * Layout: single-column, white background below a coloured header band.
  * Header band: name + contact left; 60px circular photo right.
  * Body: clean single-column content with lightweight grey rule dividers.
+ *
+ * Custom colours apply to browser preview only.
+ * PDF export uses ResumePDF.tsx with fixed styles.
  */
 
 import { ResumeData } from '@/types/resume';
+import { TemplateColours } from '@/lib/template-colours';
 import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
 
-const C = {
-  headerBg:  '#7c3aed',
-  headerName: '#ffffff',
-  headerSub:  '#ddd6fe',
-  bg:         '#ffffff',
-  heading:    '#7c3aed',
-  body:       '#334155',
-  muted:      '#64748b',
-  name:       '#1e293b',
-  divider:    '#e2e8f0',
-} as const;
+export function StewardTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
+  const C = {
+    headerBg:   colours?.primary    ?? '#7c3aed',
+    headerName: '#ffffff',
+    headerSub:  '#ddd6fe',
+    bg:         colours?.background ?? '#ffffff',
+    heading:    colours?.accent     ?? '#7c3aed',
+    body:       colours?.text       ?? '#334155',
+    muted:      '#64748b',
+    name:       '#1e293b',
+    divider:    '#e2e8f0',
+  };
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        fontSize:      '9pt',
-        fontWeight:    700,
-        color:         C.heading,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        margin:        '16pt 0 6pt',
-        lineHeight:    1.2,
-        borderBottom:  `1px solid ${C.divider}`,
-        paddingBottom:  4,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
+  function SectionHeading({ children }: { children: React.ReactNode }) {
+    return (
+      <h2
+        style={{
+          fontSize:      '9pt',
+          fontWeight:    700,
+          color:         C.heading,
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          margin:        '16pt 0 6pt',
+          lineHeight:    1.2,
+          borderBottom:  `1px solid ${C.divider}`,
+          paddingBottom:  4,
+        }}
+      >
+        {children}
+      </h2>
+    );
+  }
 
-export function StewardTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
   const entryTokens = {

@@ -3,51 +3,55 @@
  *
  * Layout: single-column, white background.
  * Header: 64px circular photo centred above name; centred name + title.
- * Section dividers: 3px #7c3aed rule + 1px #e2e8f0 rule below it.
+ * Section dividers: 3px primary rule + 1px #e2e8f0 rule below it.
+ *
+ * Custom colours apply to browser preview only.
+ * PDF export uses ResumePDF.tsx with fixed styles.
  */
 
 import { ResumeData } from '@/types/resume';
+import { TemplateColours } from '@/lib/template-colours';
 import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
 
-const C = {
-  bg:      '#ffffff',
-  name:    '#1e293b',
-  title:   '#7c3aed',
-  heading: '#1e293b',
-  body:    '#334155',
-  muted:   '#64748b',
-  rule1:   '#7c3aed',
-  rule2:   '#e2e8f0',
-} as const;
+export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
+  const C = {
+    bg:      colours?.background ?? '#ffffff',
+    name:    '#1e293b',
+    title:   colours?.primary    ?? '#7c3aed',
+    heading: '#1e293b',
+    body:    colours?.text       ?? '#334155',
+    muted:   '#64748b',
+    rule1:   colours?.primary    ?? '#7c3aed',
+    rule2:   '#e2e8f0',
+  };
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ margin: '16pt 0 8pt' }}>
-      <h2
-        style={{
-          fontSize:      '9pt',
-          fontWeight:    700,
-          color:         C.heading,
-          textTransform: 'uppercase',
-          letterSpacing: '0.14em',
-          margin:        0,
-          lineHeight:    1.2,
-          paddingBottom:  5,
-        }}
-      >
-        {children}
-      </h2>
-      {/* Double rule */}
-      <div style={{ height: 3, background: C.rule1, marginTop: 4 }} />
-      <div style={{ height: 1, background: C.rule2, marginTop: 2 }} />
-    </div>
-  );
-}
+  function SectionHeading({ children }: { children: React.ReactNode }) {
+    return (
+      <div style={{ margin: '16pt 0 8pt' }}>
+        <h2
+          style={{
+            fontSize:      '9pt',
+            fontWeight:    700,
+            color:         C.heading,
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+            margin:        0,
+            lineHeight:    1.2,
+            paddingBottom:  5,
+          }}
+        >
+          {children}
+        </h2>
+        {/* Double rule */}
+        <div style={{ height: 3, background: C.rule1, marginTop: 4 }} />
+        <div style={{ height: 1, background: C.rule2, marginTop: 2 }} />
+      </div>
+    );
+  }
 
-export function AdmiralTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
   const entryTokens = {

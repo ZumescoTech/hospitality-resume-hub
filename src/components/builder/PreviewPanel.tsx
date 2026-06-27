@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from "react";
 import { ResumeData } from "@/types/resume";
 import { FormattingSettings } from "@/types/formatting";
 import { defaultFormatting } from "@/types/formatting";
@@ -32,10 +32,17 @@ import {
   Minimize2,
   Printer,
   SlidersHorizontal,
+  Palette,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { TemplateColourPicker } from "@/components/builder/TemplateColourPicker";
+import {
+  TemplateColours,
+  getTemplateColours,
+  templateSupportsColours,
+} from "@/lib/template-colours";
 
 // ── A4 page dimensions at 96 dpi ────────────────────────────────────────────
 const PAGE_W = 794;
@@ -52,6 +59,8 @@ interface Props {
   data: ResumeData;
   onTemplateChange: (id: string) => void;
   onFormattingChange: (formatting: FormattingSettings) => void;
+  onColourChange: (slot: keyof TemplateColours, value: string) => void;
+  onColourReset: () => void;
 }
 
 /**
@@ -72,9 +81,10 @@ interface Props {
  *   the clip div shifts content via negative marginTop so no internal scroll
  *   is ever needed.
  */
-export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Props) {
+export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onColourChange, onColourReset }: Props) {
   const [zoomMode, setZoomMode] = useState<ZoomMode>("fit");
   const [formattingOpen, setFormattingOpen] = useState(false);
+  const [colourPickerOpen, setColourPickerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [templateHeight, setTemplateHeight] = useState(PAGE_H);
@@ -86,6 +96,8 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
   const fmt = data.formatting ?? defaultFormatting;
   const activeTpl = TEMPLATES.find((t) => t.id === data.templateId) ?? TEMPLATES[0];
   const { Component: TemplateComponent } = getTemplate(data.templateId ?? "classic");
+  const supportsColours = templateSupportsColours(data.templateId ?? "classic");
+  const colours = getTemplateColours(data.templateId ?? "classic", data.templateColours);
 
   // ── Measure the viewport container ────────────────────────────────────────
   // Fires whenever the flex-1 div resizes (toolbar opens/closes, window resize,
@@ -358,6 +370,44 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* ── Colour customisation (premium templates only) ────── */}
+        {supportsColours && (
+          <Collapsible open={colourPickerOpen} onOpenChange={setColourPickerOpen}>
+            <CollapsibleTrigger asChild>
+              <button
+                className={cn(
+                  "mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
+                  colourPickerOpen
+                    ? "border border-primary/40 bg-primary/5 text-foreground"
+                    : "border-half border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Palette className="h-3.5 w-3.5" />
+                  <span className="font-medium">Colours</span>
+                  <span className="text-xs opacity-60">customise palette</span>
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform",
+                    colourPickerOpen && "rotate-180",
+                  )}
+                />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 rounded-lg border border-border bg-background">
+                <TemplateColourPicker
+                  templateId={data.templateId}
+                  colours={colours}
+                  onChange={onColourChange}
+                  onReset={onColourReset}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
 
       {/* ── Live preview ─────────────────────────────────────── */}
@@ -416,7 +466,7 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange }: Pro
                 lineHeight: fmt.lineSpacing,
               }}
             >
-              <TemplateComponent data={data} />
+              <TemplateComponent data={data} colours={supportsColours ? colours : undefined} />
             </div>
           </div>
         </div>

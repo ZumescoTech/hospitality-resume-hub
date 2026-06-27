@@ -97,10 +97,28 @@ export function useResumeStore() {
     setData((d) => ({ ...d, [key]: value }));
   }, []);
 
+  const setTemplateColours = useCallback((templateId: string, colours: Partial<{ primary: string; accent: string; text: string; background: string }>) => {
+    setData((d) => ({
+      ...d,
+      templateColours: {
+        ...d.templateColours,
+        [templateId]: { ...(d.templateColours?.[templateId] ?? {}), ...colours },
+      },
+    }));
+  }, []);
+
+  const resetTemplateColours = useCallback((templateId: string) => {
+    setData((d) => {
+      const next = { ...(d.templateColours ?? {}) };
+      delete next[templateId];
+      return { ...d, templateColours: next };
+    });
+  }, []);
+
   const reset = useCallback(() => setData(emptyResume), []);
   const loadSample = useCallback(() => setData(sampleResume), []);
 
-  return { data, setData, update, reset, loadSample, hydrated, resumeId, syncing };
+  return { data, setData, update, reset, loadSample, hydrated, resumeId, syncing, setTemplateColours, resetTemplateColours };
 }
 
 export const uid = () => Math.random().toString(36).slice(2, 10);

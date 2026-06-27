@@ -30,17 +30,36 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Plate & Pen — Hospitality CV Studio" },
-      { name: "description", content: "Build a beautiful, ATS-optimised CV tailored for hospitality professionals — waiters, sommeliers, bartenders and chefs. Live preview, 11 editorial templates, PDF export." },
+      { title: "GetHired — Hospitality CV Builder" },
+      { name: "description", content: "Build an ATS-ready hospitality CV in minutes. Designed for cruise lines, hotels, and restaurants. Live preview, 11 editorial templates, PDF export." },
       { name: "author", content: "GetHired" },
-      { property: "og:title", content: "GetHired — Cruise Ship CV Builder" },
-      { property: "og:description", content: "ATS-optimised CV builder for cruise ship and luxury hospitality roles. Live preview, 11 templates, PDF export." },
+      { name: "theme-color", content: "#0d6b5e" },
+      // Open Graph
+      { property: "og:title", content: "GetHired — Hospitality CV Builder" },
+      { property: "og:description", content: "Build an ATS-ready hospitality CV in minutes. Designed for cruise lines, hotels, and restaurants." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://gethired.app" }, // TODO: replace before launch
+      { property: "og:site_name", content: "GetHired" },
+      { property: "og:image", content: "https://gethired.app/images/favicon-512.png" }, // TODO: replace before launch
+      { property: "og:image:width", content: "512" },
+      { property: "og:image:height", content: "512" },
+      // Twitter / X
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@gethiredcv" },
-      { name: "theme-color", content: "#005147" },
+      { name: "twitter:title", content: "GetHired — Hospitality CV Builder" },
+      { name: "twitter:description", content: "Build an ATS-ready hospitality CV in minutes." },
+      { name: "twitter:image", content: "https://gethired.app/images/favicon-512.png" }, // TODO: replace before launch
     ],
     links: [
+      // Favicons
+      { rel: "icon", type: "image/x-icon", href: "/images/favicon.ico" },
+      { rel: "icon", type: "image/png", sizes: "32x32", href: "/images/favicon-32.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/images/favicon-180.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/images/favicon-192.png" },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: "/images/favicon-512.png" },
+      // PWA manifest
+      { rel: "manifest", href: "/manifest.json" },
+      // Fonts
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

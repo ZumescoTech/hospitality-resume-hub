@@ -26,7 +26,7 @@ export interface TemplateMeta {
   purpose?: string;
   premium?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Component: (props: { data: ResumeData }) => any;
+  Component: (props: { data: ResumeData; colours?: { primary: string; accent: string; text: string; background: string } }) => any;
 }
 
 export const TEMPLATES: TemplateMeta[] = [

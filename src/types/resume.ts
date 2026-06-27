@@ -82,6 +82,17 @@ export interface ResumeData {
   targetRoleSlug?: string;
   /** Optional references text shown in templates that support it. */
   references?: string;
+  /**
+   * Per-template custom colour overrides. Keyed by template ID.
+   * Applies to browser preview only — PDF export uses ResumePDF.tsx with fixed styles.
+   * Optional so existing saved CVs without this field still load correctly.
+   */
+  templateColours?: Partial<Record<string, {
+    primary:    string
+    accent:     string
+    text:       string
+    background: string
+  }>>
 }
 
 export const STORAGE_KEY = "hospitality-resume-v1";

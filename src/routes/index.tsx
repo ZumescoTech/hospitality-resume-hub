@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { HeroBanner } from "@/components/landing/HeroBanner";
+import { LogoLockup } from "@/components/ui/LogoLockup";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -126,7 +127,9 @@ function LandingPage() {
           }}
         >
           <div style={{ maxWidth: '1152px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <img src="/GetHired-logo.png" alt="GetHired" style={{ height: '36px', width: 'auto' }} />
+            <a href="/" aria-label="GetHired — go to home page" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+              <LogoLockup variant={scrolled ? 'dark' : 'light'} height={32} showWordmark={true} />
+            </a>
             <Link
               to="/tools/cruise-cv-checker"
               style={{
@@ -428,7 +431,7 @@ function LandingPage() {
         {/* ── FOOTER ───────────────────────────────────────── */}
         <footer className="ink-section py-12 px-6 border-t border-border/10">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <img src="/GetHired-logo.png" alt="GetHired" style={{ height: '32px', width: 'auto', opacity: 0.7 }} />
+            <LogoLockup variant="light" height={40} showWordmark={true} />
             <p className="text-cream/30 text-sm text-center">
               Built for cruise ship &amp; luxury hospitality professionals.
             </p>

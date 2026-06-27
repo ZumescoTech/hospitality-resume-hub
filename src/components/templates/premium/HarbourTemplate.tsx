@@ -1,72 +1,76 @@
 /**
  * Harbour — Two-column flexbox template for hotel & resort roles.
  *
- * Layout: 35% #7c3aed sidebar + 65% white main column.
+ * Layout: 35% sidebar + 65% white main column.
  * Sidebar: circular 68px photo at top, skills, certifications, hospitality info.
  * Main: experience, education, profile summary.
+ *
+ * Custom colours apply to browser preview only.
+ * PDF export uses ResumePDF.tsx with fixed styles.
  */
 
 import { ResumeData } from '@/types/resume';
+import { TemplateColours } from '@/lib/template-colours';
 import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
 
-const C = {
-  sidebarBg:   '#7c3aed',
-  mainBg:      '#ffffff',
-  sideHeading: '#ede9fe',
-  sideBody:    '#e9d5ff',
-  sideMuted:   '#c4b5fd',
-  mainName:    '#1e293b',
-  mainTitle:   '#7c3aed',
-  mainHeading: '#1e293b',
-  mainBody:    '#334155',
-  mainMuted:   '#64748b',
-  divider:     '#ddd6fe',
-} as const;
+export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
+  const C = {
+    sidebarBg:   colours?.primary    ?? '#7c3aed',
+    mainBg:      colours?.background ?? '#ffffff',
+    sideHeading: '#ede9fe',
+    sideBody:    '#e9d5ff',
+    sideMuted:   '#c4b5fd',
+    mainName:    '#1e293b',
+    mainTitle:   colours?.primary    ?? '#7c3aed',
+    mainHeading: '#1e293b',
+    mainBody:    colours?.text       ?? '#334155',
+    mainMuted:   '#64748b',
+    divider:     colours?.accent     ?? '#ddd6fe',
+  };
 
-function SideHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        fontSize:      '8pt',
-        fontWeight:    700,
-        color:         C.sideHeading,
-        textTransform: 'uppercase',
-        letterSpacing: '0.15em',
-        margin:        '16pt 0 6pt',
-        lineHeight:    1.2,
-        borderBottom:  `1px solid rgba(255,255,255,0.2)`,
-        paddingBottom:  4,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
+  function SideHeading({ children }: { children: React.ReactNode }) {
+    return (
+      <h2
+        style={{
+          fontSize:      '8pt',
+          fontWeight:    700,
+          color:         C.sideHeading,
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          margin:        '16pt 0 6pt',
+          lineHeight:    1.2,
+          borderBottom:  `1px solid rgba(255,255,255,0.2)`,
+          paddingBottom:  4,
+        }}
+      >
+        {children}
+      </h2>
+    );
+  }
 
-function MainHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        fontSize:      '9pt',
-        fontWeight:    700,
-        color:         C.mainHeading,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        margin:        '14pt 0 6pt',
-        lineHeight:    1.2,
-        borderBottom:  `2px solid #7c3aed`,
-        paddingBottom:  4,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
+  function MainHeading({ children }: { children: React.ReactNode }) {
+    return (
+      <h2
+        style={{
+          fontSize:      '9pt',
+          fontWeight:    700,
+          color:         C.mainHeading,
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          margin:        '14pt 0 6pt',
+          lineHeight:    1.2,
+          borderBottom:  `2px solid ${C.mainTitle}`,
+          paddingBottom:  4,
+        }}
+      >
+        {children}
+      </h2>
+    );
+  }
 
-export function HarbourTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
   const entryTokens = {
@@ -118,7 +122,7 @@ export function HarbourTemplate({ data }: { data: ResumeData }) {
           />
         </div>
 
-        {/* Name + title in sidebar (visible on small print widths) */}
+        {/* Name + title in sidebar */}
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
           <p style={{ fontWeight: 700, fontSize: '12pt', color: '#ffffff', margin: 0, lineHeight: 1.2, wordBreak: 'break-word' }}>
             {personal.fullName || 'Your Name'}

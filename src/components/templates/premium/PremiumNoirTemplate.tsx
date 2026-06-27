@@ -7,45 +7,49 @@
  *
  * ⚠ ATS note: dark backgrounds are stripped by most ATS parsers.
  * Pair with ATS-safe PDF export for applications to large employers.
+ *
+ * Custom colours apply to browser preview only.
+ * PDF export uses ResumePDF.tsx with fixed styles.
  */
 
 import { ResumeData } from '@/types/resume';
+import { TemplateColours } from '@/lib/template-colours';
 import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
 
-const C = {
-  bg:      '#0f172a',
-  name:    '#ffffff',
-  title:   '#a78bfa',
-  heading: '#7c3aed',
-  body:    '#e2e8f0',
-  muted:   '#94a3b8',
-  divider: '#1e3a5f',
-} as const;
+export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
+  const C = {
+    bg:      colours?.background ?? '#0f172a',
+    name:    '#ffffff',
+    title:   colours?.accent     ?? '#a78bfa',
+    heading: colours?.primary    ?? '#7c3aed',
+    body:    colours?.text       ?? '#e2e8f0',
+    muted:   '#94a3b8',
+    divider: '#1e3a5f',
+  };
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        fontSize:      '8.5pt',
-        fontWeight:    700,
-        color:         C.heading,
-        textTransform: 'uppercase',
-        letterSpacing: '0.15em',
-        margin:        '18pt 0 6pt',
-        lineHeight:    1.2,
-        borderBottom:  `1px solid ${C.divider}`,
-        paddingBottom:  4,
-      }}
-    >
-      {children}
-    </h2>
-  );
-}
+  function SectionHeading({ children }: { children: React.ReactNode }) {
+    return (
+      <h2
+        style={{
+          fontSize:      '8.5pt',
+          fontWeight:    700,
+          color:         C.heading,
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          margin:        '18pt 0 6pt',
+          lineHeight:    1.2,
+          borderBottom:  `1px solid ${C.divider}`,
+          paddingBottom:  4,
+        }}
+      >
+        {children}
+      </h2>
+    );
+  }
 
-export function PremiumNoirTemplate({ data }: { data: ResumeData }) {
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
   const entryTokens = {

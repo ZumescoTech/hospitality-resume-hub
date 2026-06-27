@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { LogoLockup } from '@/components/ui/LogoLockup';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -261,11 +262,8 @@ function CruiseCvCheckerPage() {
       {/* Nav */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <Anchor className="h-4 w-4 text-primary" />
-            <span className="font-display text-lg font-bold text-foreground">
-              Get<span className="text-primary">Hired</span>
-            </span>
+          <Link to="/" className="flex items-center">
+            <LogoLockup variant="dark" height={36} showWordmark={true} />
           </Link>
           <Link to="/builder" search={{ from: undefined, role: undefined }}>
             <Button variant="outline" size="sm">Build CV</Button>

@@ -3,6 +3,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Sparkles, Loader2 } from 'lucide-react';
+import { LogoLockup } from "@/components/ui/LogoLockup";
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,7 +53,7 @@ function SignInPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <img src="/GetHired-logo.png" alt="GetHired" className="h-14 w-auto" />
+          <LogoLockup variant="dark" height={48} showWordmark={true} />
           <h1 className="font-display text-2xl font-bold">Welcome back</h1>
           <p className="text-sm text-muted-foreground">Sign in to your GetHired account</p>
         </div>
