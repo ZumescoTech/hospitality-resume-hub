@@ -180,8 +180,8 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
   return (
     <div className="flex h-full flex-col">
 
-      {/* ── Toolbar ──────────────────────────────────────────── */}
-      <div className="no-print border-b-half border-border bg-card p-4">
+      {/* ── Toolbar (desktop only — mobile uses TemplatesPanel tab) ─── */}
+      <div className="no-print hidden lg:block border-b-half border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
 
           {/* Active template label */}

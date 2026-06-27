@@ -367,10 +367,9 @@ function BuilderPage() {
         {/* ── PREVIEW panel ─────────────────────────────────────────────────── */}
         <div
           className={cn(
-            "lg:sticky lg:top-[var(--header-h)] lg:h-[calc(100dvh-var(--header-h))]",
+            "preview-panel-outer",
             activeTab === "preview" ? "block" : "hidden lg:block",
           )}
-          style={{ background: '#e2e0db' }}
         >
           <PreviewPanel
             data={data}

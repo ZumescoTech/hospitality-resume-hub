@@ -143,6 +143,8 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    max-width: 100%;
   }
   body {
     background-color: var(--color-background);
@@ -251,12 +253,34 @@ button, [role="button"] {
 /* ── Builder layout ─────────────────────────────────────────────────────────── */
 .builder-layout {
   grid-template-columns: 1fr;
+  overflow-x: hidden;
+}
+
+.builder-layout > * {
+  min-width: 0; /* prevent grid children from expanding past their column */
 }
 
 @media (min-width: 1024px) {
   .builder-layout {
     grid-template-columns: 420px 1fr;
     min-height: calc(100vh - var(--header-h) - var(--progress-h));
+  }
+}
+
+/* ── Preview panel outer container ──────────────────────────────────────────── */
+/* Mobile: fill viewport minus header and bottom nav */
+.preview-panel-outer {
+  height: calc(100dvh - var(--header-h) - var(--nav-h));
+  background: #e2e0db;
+}
+
+/* Desktop: sticky, full height minus header only (bottom nav is hidden) */
+@media (min-width: 1024px) {
+  .preview-panel-outer {
+    position: sticky;
+    top: var(--header-h);
+    height: calc(100dvh - var(--header-h));
+    background: #e2e0db;
   }
 }
 
