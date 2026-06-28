@@ -89,6 +89,23 @@ function BuilderPage() {
   const [showPasteFallback, setShowPasteFallback] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [parsingPaste, setParsingPaste] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>('personal');
+
+  const toggleSection = (id: string) => {
+    setOpenSection(prev => {
+      const next = prev === id ? null : id;
+      if (next !== null) {
+        // Scroll into view after state update paints
+        setTimeout(() => {
+          document.getElementById(`section-${id}`)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }, 50);
+      }
+      return next;
+    });
+  };
 
   const search = useSearch({ from: "/builder" });
   const navigate = useNavigate();
@@ -335,22 +352,22 @@ function BuilderPage() {
 
           {/* Section accordions */}
           <div style={{ paddingBottom: '16px' }}>
-            <Section id="personal" title="Personal details" defaultOpen={true}>
+            <Section id="personal" title="Personal details" isOpen={openSection === 'personal'} onToggle={() => toggleSection('personal')}>
               <PersonalSection {...sectionProps} showErrors={false} />
             </Section>
-            <Section id="experience" title="Work experience">
+            <Section id="experience" title="Work experience" isOpen={openSection === 'experience'} onToggle={() => toggleSection('experience')}>
               <ExperienceSection {...sectionProps} showErrors={false} />
             </Section>
-            <Section id="education" title="Education">
+            <Section id="education" title="Education" isOpen={openSection === 'education'} onToggle={() => toggleSection('education')}>
               <EducationSection {...sectionProps} />
             </Section>
-            <Section id="skills" title="Skills">
+            <Section id="skills" title="Skills" isOpen={openSection === 'skills'} onToggle={() => toggleSection('skills')}>
               <SkillsSection {...sectionProps} />
             </Section>
-            <Section id="certifications" title="Certifications">
+            <Section id="certifications" title="Certifications" isOpen={openSection === 'certifications'} onToggle={() => toggleSection('certifications')}>
               <CertificationsSection {...sectionProps} />
             </Section>
-            <Section id="hospitality" title="Hospitality profile">
+            <Section id="hospitality" title="Hospitality profile" isOpen={openSection === 'hospitality'} onToggle={() => toggleSection('hospitality')}>
               <HospitalitySection {...sectionProps} />
             </Section>
           </div>

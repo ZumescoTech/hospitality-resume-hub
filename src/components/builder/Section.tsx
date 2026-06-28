@@ -20,11 +20,25 @@ interface Props {
   children: ReactNode
   defaultOpen?: boolean
   active?: boolean
+  // Controlled mode — when provided, these override local state
+  isOpen?: boolean
+  onToggle?: () => void
 }
 
-export function Section({ id, title, children, defaultOpen = false, active }: Props) {
-  const [open, setOpen] = useState(defaultOpen)
+export function Section({ id, title, children, defaultOpen = false, active, isOpen, onToggle }: Props) {
+  const [localOpen, setLocalOpen] = useState(defaultOpen)
   const icon = SECTION_ICONS[id] ?? null
+
+  const isControlled = isOpen !== undefined && onToggle !== undefined
+  const open = isControlled ? isOpen : localOpen
+
+  const handleToggle = () => {
+    if (isControlled) {
+      onToggle()
+    } else {
+      setLocalOpen(o => !o)
+    }
+  }
 
   return (
     <section
@@ -36,11 +50,12 @@ export function Section({ id, title, children, defaultOpen = false, active }: Pr
         background: '#ffffff',
         overflow: 'hidden',
         transition: 'border-color 200ms',
+        scrollMarginTop: 'calc(var(--header-h, 52px) + var(--progress-h, 40px) + 8px)',
       }}
     >
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={handleToggle}
         aria-expanded={open}
         style={{
           display: 'flex',
