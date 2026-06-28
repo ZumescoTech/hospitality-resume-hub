@@ -89,9 +89,9 @@ function isDark(hex: string): boolean {
 const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
   // ── Free templates ────────────────────────────────────────────────────────
   classic: {
-    primary: "#2563eb",
-    accent: "#2563eb",
-    nameColour: "#1a1a2e",
+    primary: "#0d6b5e",
+    accent: "#0d6b5e",
+    nameColour: "#0a5248",
     pageBg: "#ffffff",
     sectionStyle: "underline",
     layout: "single",
@@ -195,7 +195,7 @@ const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
   },
   // ── Premium templates ─────────────────────────────────────────────────────
   "noir-premium": {
-    primary: "#7c3aed",
+    primary: "#a78bfa",   // keep purple accent for Noir — deliberate dark-on-dark aesthetic
     accent: "#a78bfa",
     nameColour: "#f8fafc",
     pageBg: "#0f172a",
@@ -203,38 +203,38 @@ const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
     layout: "single",
   },
   executive: {
-    primary: "#1e293b",
-    accent: "#64748b",
+    primary: "#0d6b5e",
+    accent: "#1a9e8a",
     nameColour: "#1e293b",
     pageBg: "#ffffff",
     sectionStyle: "bordered-left",
     layout: "single",
   },
   harbour: {
-    primary: "#7c3aed",
-    accent: "#ede9fe",
+    primary: "#0d6b5e",
+    accent: "#eaf8f5",
     nameColour: "#ffffff",
     pageBg: "#ffffff",
     sectionStyle: "uppercase-spaced",
     layout: "sidebar",
-    bandBg: "#7c3aed",
+    bandBg: "#0d6b5e",
   },
   admiral: {
-    primary: "#7c3aed",
-    accent: "#7c3aed",
-    nameColour: "#7c3aed",
+    primary: "#0d6b5e",
+    accent: "#0d6b5e",
+    nameColour: "#0a5248",
     pageBg: "#f8fafc",
     sectionStyle: "bar",
     layout: "single",
   },
   steward: {
-    primary: "#7c3aed",
-    accent: "#ede9fe",
+    primary: "#0d6b5e",
+    accent: "#eaf8f5",
     nameColour: "#ffffff",
     pageBg: "#ffffff",
     sectionStyle: "uppercase-spaced",
     layout: "header-band",
-    bandBg: "#7c3aed",
+    bandBg: "#0d6b5e",
   },
 };
 
@@ -277,14 +277,14 @@ function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
     },
 
     // Header (single-column templates)
-    header: { flexDirection: "row", alignItems: "flex-start", marginBottom: 18, gap: 14 },
-    photo: { width: 60, height: 60, borderRadius: 30 },
+    header: { flexDirection: "row", alignItems: "flex-start", marginBottom: 18 },
+    photo: { width: 60, height: 60, borderRadius: 30, marginRight: 14 },
     headerInfo: { flex: 1 },
     name: { fontSize: heading + 8, fontFamily: fontBold, color: headingText, letterSpacing: -0.2 },
     jobTitle: { fontSize: medium, color: config.primary, marginTop: 3, letterSpacing: 0.8, textTransform: "uppercase" },
-    contactRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6, gap: 8 },
-    contactItem: { fontSize: small, color: mutedText },
-    contactLink: { fontSize: small, color: config.primary, textDecoration: "none" },
+    contactRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
+    contactItem: { fontSize: small, color: mutedText, marginRight: 10, marginBottom: 2 },
+    contactLink: { fontSize: small, color: config.primary, textDecoration: "none", marginRight: 10 },
 
     // Body padding for non-single layouts
     bodyPad: { paddingHorizontal: margin, paddingTop: 14 },
@@ -304,13 +304,13 @@ function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
       flexDirection: "row",
       alignItems: "center",
       marginBottom: 8,
-      gap: 6,
     },
     sectionBarAccent: {
       width: 3,
       height: 14,
       backgroundColor: config.primary,
       borderRadius: 2,
+      marginRight: 6,
     },
     sectionBarLabel: {
       fontSize: heading,
@@ -355,14 +355,16 @@ function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
     eduDesc: { fontSize: body, color: bodyText, marginTop: 3 },
 
     // Skills
-    skillsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginTop: 2 },
+    skillsRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 2 },
     skillPill: {
       fontSize: small,
-      color: darkPage ? bodyText : "#1e293b",
-      backgroundColor: darkPage ? "#1e293b" : "#f1f5f9",
+      color: darkPage ? "#a78bfa" : "#0a5248",
+      backgroundColor: darkPage ? "#1e293b" : "#eaf8f5",
       paddingHorizontal: 7,
       paddingVertical: 3,
       borderRadius: 3,
+      marginRight: 5,
+      marginBottom: 4,
     },
 
     // Certifications
@@ -376,8 +378,8 @@ function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
     hospValue: { fontSize: small, color: bodyText, flex: 1 },
 
     // Bullet list
-    bulletRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 3, gap: 5 },
-    bulletDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: config.accent, marginTop: 4.5, flexShrink: 0 },
+    bulletRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 3 },
+    bulletDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: config.primary, marginTop: 4.5, marginRight: 5, flexShrink: 0 },
     bulletText: { fontSize: body - 0.5, color: bodyText, lineHeight: lh, flex: 1 },
   });
 }

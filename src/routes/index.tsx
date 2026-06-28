@@ -91,8 +91,12 @@ function LandingPage() {
   return (
     <>
       <style>{`
-        .step-card:hover .step-num { transform: scale(1.06); }
-        .step-num { transition: transform 0.3s ease; }
+        @keyframes step-num-pulse {
+          0%, 100% { opacity: 0.1; }
+          50% { opacity: 0.5; }
+        }
+        .step-num { transition: transform 0.3s ease; animation: step-num-pulse 3s ease-in-out infinite; }
+        .step-card:hover .step-num { transform: scale(1.06); animation-play-state: paused; opacity: 0.3; }
 
         .btn-wine {
           background-color: var(--color-primary);
