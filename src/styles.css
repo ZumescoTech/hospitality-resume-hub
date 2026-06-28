@@ -224,7 +224,7 @@ body {
 /* 16px on all inputs prevents iOS auto-zoom */
 input, textarea, select {
   font-size: 16px !important;
-  border-color: var(--border-brand);
+  border-color: #86efac;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
