@@ -79,6 +79,39 @@ export function HeroBanner() {
         }}
       />
 
+      {/* ── DRAMATIC ENTRANCE KEYFRAMES ── */}
+      <style>{`
+        @keyframes gh-dramatic-in {
+          from { opacity: 0; transform: scale(0.94) translateY(22px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0);    }
+        }
+        @keyframes gh-bob {
+          0%, 100% { transform: translateX(-50%) translateY(0);   }
+          50%       { transform: translateX(-50%) translateY(-6px); }
+        }
+        @keyframes gh-spotlight-pulse {
+          0%, 100% { opacity: 0.18; }
+          50%       { opacity: 0.28; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .gh-hero-badge, .gh-hero-h1, .gh-hero-sub,
+          .gh-hero-stats, .gh-hero-ctas { animation: none !important; opacity: 1 !important; }
+        }
+      `}</style>
+
+      {/* ── SPOTLIGHT GLOW (dramatic depth) ── */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'radial-gradient(ellipse 60% 55% at 50% 40%, rgba(232,197,71,0.18) 0%, transparent 70%)',
+          zIndex: 1,
+          animation: 'gh-spotlight-pulse 4s ease-in-out infinite',
+          pointerEvents: 'none',
+        }}
+      />
+
       {/* ── CONTENT ── */}
       <div
         style={{
@@ -89,12 +122,13 @@ export function HeroBanner() {
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
-          padding: '80px 24px 40px', // top clears 56px nav + extra breathing room
+          padding: '80px 24px 40px',
           textAlign: 'center',
         }}
       >
         {/* Badge */}
         <div
+          className="gh-hero-badge"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -110,6 +144,7 @@ export function HeroBanner() {
             textTransform: 'uppercase',
             marginBottom: '20px',
             fontFamily: 'Rubik, system-ui, sans-serif',
+            animation: 'gh-dramatic-in 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both',
           }}
         >
           ⚓ Hospitality CV builder
@@ -117,6 +152,7 @@ export function HeroBanner() {
 
         {/* Headline */}
         <h1
+          className="gh-hero-h1"
           style={{
             fontSize: 'clamp(26px, 7vw, 48px)',
             fontWeight: 500,
@@ -126,6 +162,7 @@ export function HeroBanner() {
             marginBottom: '14px',
             maxWidth: '560px',
             fontFamily: 'Rubik, system-ui, sans-serif',
+            animation: 'gh-dramatic-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both',
           }}
         >
           Get hired on your{' '}
@@ -134,6 +171,7 @@ export function HeroBanner() {
 
         {/* Sub-headline */}
         <p
+          className="gh-hero-sub"
           style={{
             fontSize: 'clamp(13px, 3.5vw, 16px)',
             color: 'rgba(255, 255, 255, 0.78)',
@@ -141,6 +179,7 @@ export function HeroBanner() {
             marginBottom: '28px',
             maxWidth: '320px',
             fontFamily: 'Rubik, system-ui, sans-serif',
+            animation: 'gh-dramatic-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both',
           }}
         >
           Build an ATS-ready CV in minutes — with AI phrasing built for
@@ -149,10 +188,12 @@ export function HeroBanner() {
 
         {/* Stats row */}
         <div
+          className="gh-hero-stats"
           style={{
             display: 'flex',
             alignItems: 'center',
             marginBottom: '32px',
+            animation: 'gh-dramatic-in 1s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both',
           }}
         >
           {[
@@ -207,12 +248,14 @@ export function HeroBanner() {
 
         {/* CTAs */}
         <div
+          className="gh-hero-ctas"
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
             width: '100%',
             maxWidth: '300px',
+            animation: 'gh-dramatic-in 1s cubic-bezier(0.16, 1, 0.3, 1) 1.05s both',
           }}
         >
           {/* Primary — /builder */}
@@ -275,6 +318,7 @@ export function HeroBanner() {
           flexDirection: 'column',
           alignItems: 'center',
           gap: '4px',
+          animation: 'gh-bob 2.4s ease-in-out 1.8s infinite',
         }}
       >
         <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#e8c547' }} />

@@ -71,6 +71,23 @@ function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Editorial reveal — Intersection Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('gh-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.12 }
+    )
+    document.querySelectorAll('.gh-reveal, .gh-reveal-left').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <>
       <style>{`
@@ -104,6 +121,45 @@ function LandingPage() {
         }
         .wine-section {
           background-color: var(--color-wine);
+        }
+
+        /* ── EDITORIAL REVEAL ANIMATIONS ── */
+        .gh-reveal {
+          opacity: 0;
+          transform: translateY(28px);
+          transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .gh-reveal-left {
+          opacity: 0;
+          transform: translateX(-36px);
+          transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .gh-reveal.gh-visible,
+        .gh-reveal-left.gh-visible {
+          opacity: 1;
+          transform: none;
+        }
+        /* Stagger delays */
+        .gh-d1 { transition-delay: 0.08s; }
+        .gh-d2 { transition-delay: 0.18s; }
+        .gh-d3 { transition-delay: 0.28s; }
+        .gh-d4 { transition-delay: 0.38s; }
+        .gh-d5 { transition-delay: 0.48s; }
+        .gh-d6 { transition-delay: 0.58s; }
+        /* Pull-quote accent line reveal */
+        .gh-quote-bar {
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+        }
+        .gh-reveal.gh-visible .gh-quote-bar {
+          transform: scaleX(1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .gh-reveal, .gh-reveal-left { opacity: 1; transform: none; transition: none; }
+          .gh-quote-bar { transform: scaleX(1); transition: none; }
         }
       `}</style>
 
@@ -160,36 +216,37 @@ function LandingPage() {
         {/* ── PROBLEM ──────────────────────────────────────── */}
         <section className="bg-background py-24 px-6">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="gh-reveal flex items-center gap-3 mb-6">
               <div className="w-10 h-0.5 bg-accent" />
               <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">The Real Problem</span>
             </div>
 
-            <h2 className="font-display text-[clamp(2rem,4.5vw,3.5rem)] leading-[1.15] font-bold text-foreground mb-8">
+            <h2 className="gh-reveal gh-d1 font-display text-[clamp(2rem,4.5vw,3.5rem)] leading-[1.15] font-bold text-foreground mb-8">
               The reason you&apos;re not<br />getting called back
             </h2>
 
             <div className="grid md:grid-cols-2 gap-12 items-start">
               <div>
-                <p className="text-muted-foreground text-lg leading-relaxed mb-6">
+                <p className="gh-reveal gh-d2 text-muted-foreground text-lg leading-relaxed mb-6">
                   Most hospitality CVs are built for hotels, wine estates, or
                   restaurants. That&apos;s a problem when you&apos;re applying to{" "}
                   <span className="font-semibold text-foreground">Cunard, MSC, Royal Caribbean,</span>{" "}
                   or <span className="font-semibold text-foreground">Norwegian</span> — because their hiring
                   systems don&apos;t speak the same language.
                 </p>
-                <p className="text-muted-foreground text-lg leading-relaxed">
+                <p className="gh-reveal gh-d3 text-muted-foreground text-lg leading-relaxed">
                   ATS scans your CV for specific keywords, formatting signals,
                   and role-relevant structure before your application reaches a
                   recruiter.
                 </p>
               </div>
 
-              <div className="bg-primary rounded-2xl p-8">
+              {/* Pull quote — editorial interplay */}
+              <div className="gh-reveal gh-d2 bg-primary rounded-2xl p-8">
                 <p className="font-display text-2xl italic font-semibold leading-snug mb-4 text-primary-foreground">
                   &ldquo;You never hear back. Not because you aren&apos;t qualified. Because your CV wasn&apos;t written for the system reading it first.&rdquo;
                 </p>
-                <div className="w-10 h-0.5 bg-accent" />
+                <div className="gh-quote-bar w-10 h-0.5 bg-accent" />
               </div>
             </div>
           </div>
@@ -199,12 +256,12 @@ function LandingPage() {
         <section className="bg-muted py-28 px-6 relative overflow-hidden">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-3 mb-6">
+              <div className="gh-reveal inline-flex items-center gap-3 mb-6">
                 <div className="w-8 h-px bg-accent" />
                 <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">How It Works</span>
                 <div className="w-8 h-px bg-accent" />
               </div>
-              <h2 className="font-display text-[clamp(2rem,4vw,3rem)] font-bold text-foreground">
+              <h2 className="gh-reveal gh-d1 font-display text-[clamp(2rem,4vw,3rem)] font-bold text-foreground">
                 Three steps from rejected<br />to interview-ready
               </h2>
             </div>
@@ -241,10 +298,10 @@ function LandingPage() {
                     </svg>
                   ),
                 },
-              ].map((step) => (
+              ].map((step, i) => (
                 <div
                   key={step.num}
-                  className="step-card group relative bg-card border border-border rounded-2xl p-8 hover:border-accent/50 hover:shadow-soft transition-all duration-300"
+                  className={`gh-reveal gh-d${i + 1} step-card group relative bg-card border border-border rounded-2xl p-8 hover:border-accent/50 hover:shadow-soft transition-all duration-300`}
                 >
                   <div className="step-num font-display text-[5.5rem] font-bold text-accent/8 absolute top-4 right-5 leading-none select-none">
                     {step.num}
@@ -269,30 +326,31 @@ function LandingPage() {
         {/* ── SOCIAL PROOF ─────────────────────────────────── */}
         <section className="bg-background py-24 px-6">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-3 mb-6">
+            <div className="gh-reveal inline-flex items-center gap-3 mb-6">
               <div className="w-8 h-px bg-accent" />
               <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">Built Different</span>
               <div className="w-8 h-px bg-accent" />
             </div>
-            <h2 className="font-display text-[clamp(2rem,4.5vw,3.2rem)] font-bold text-foreground mb-6">
+            <h2 className="gh-reveal gh-d1 font-display text-[clamp(2rem,4.5vw,3.2rem)] font-bold text-foreground mb-6">
               Built for one industry.
               <br />
               <span className="text-primary">Not general. Not generic.</span>
             </h2>
-            <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl mx-auto mb-8">
+            <p className="gh-reveal gh-d2 text-muted-foreground text-lg leading-relaxed max-w-2xl mx-auto mb-8">
               GetHired is built specifically for cruise ship and luxury hospitality roles.
               Every keyword set, every scoring criteria, every CV template is calibrated
               for the roles cruise lines hire for — not office jobs, not tech roles,
               not generic hospitality.
             </p>
-            <p className="font-display text-xl italic text-foreground/40">
+            <p className="gh-reveal gh-d3 font-display text-xl italic text-foreground/40">
               If you&apos;ve been using a standard CV template or a generic CV builder,
               this is why the silence keeps coming back.
             </p>
 
+            {/* Editorial stagger — cruise line names reveal one by one */}
             <div className="mt-12 flex flex-wrap items-center justify-center gap-8">
-              {["Cunard", "MSC", "Royal Caribbean", "Norwegian", "Celebrity"].map((name) => (
-                <span key={name} className="font-display text-xl font-semibold tracking-wider text-foreground/20">
+              {["Cunard", "MSC", "Royal Caribbean", "Norwegian", "Celebrity"].map((name, i) => (
+                <span key={name} className={`gh-reveal gh-d${i + 1} font-display text-xl font-semibold tracking-wider text-foreground/20`}>
                   {name}
                 </span>
               ))}
@@ -307,20 +365,20 @@ function LandingPage() {
               <div className="grid md:grid-cols-2 gap-0">
                 {/* Left — copy */}
                 <div className="p-10 lg:p-14">
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="gh-reveal flex items-center gap-3 mb-6">
                     <div className="w-8 h-0.5 bg-accent" />
                     <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">Free Tool</span>
                   </div>
-                  <h2 className="font-display text-[clamp(1.8rem,3.5vw,2.8rem)] font-bold text-foreground leading-tight mb-4">
+                  <h2 className="gh-reveal gh-d1 font-display text-[clamp(1.8rem,3.5vw,2.8rem)] font-bold text-foreground leading-tight mb-4">
                     See exactly where your CV fails — before you apply.
                   </h2>
-                  <p className="text-muted-foreground leading-relaxed mb-8">
+                  <p className="gh-reveal gh-d2 text-muted-foreground leading-relaxed mb-8">
                     Paste your CV, select your role, get an instant AI score against real cruise recruiter criteria.
                     No account. No credit card. Results in under 60 seconds.
                   </p>
 
                   {/* What you get free */}
-                  <ul className="space-y-3 mb-10">
+                  <ul className="gh-reveal gh-d3 space-y-3 mb-10">
                     {[
                       "Overall ATS score (0–100)",
                       "Risk level — High / Medium / Low",
@@ -340,7 +398,7 @@ function LandingPage() {
 
                   <Link
                     to="/tools/cruise-cv-checker"
-                    className="btn-wine inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold"
+                    className="gh-reveal gh-d4 btn-wine inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold"
                   >
                     Check My CV — It&apos;s Free
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -350,7 +408,7 @@ function LandingPage() {
                 </div>
 
                 {/* Right — categories list */}
-                <div className="bg-primary/5 border-l border-border p-10 lg:p-14 flex flex-col justify-center">
+                <div className="gh-reveal-left gh-d2 bg-primary/5 border-l border-border p-10 lg:p-14 flex flex-col justify-center">
                   <p className="text-xs font-semibold text-accent uppercase tracking-[0.2em] mb-5">5 categories checked</p>
                   <ul className="space-y-2.5">
                     {[
@@ -379,24 +437,24 @@ function LandingPage() {
         <section className="wine-section relative py-28 px-6 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--color-accent)/10_0%,_transparent_70%)] pointer-events-none" />
           <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-3 mb-8">
+            <div className="gh-reveal inline-flex items-center gap-3 mb-8">
               <div className="w-8 h-px bg-accent/60" />
               <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">Free Check</span>
               <div className="w-8 h-px bg-accent/60" />
             </div>
 
-            <h2 className="font-display text-[clamp(2rem,5vw,3.5rem)] font-bold text-primary-foreground leading-tight mb-6">
+            <h2 className="gh-reveal gh-d1 font-display text-[clamp(2rem,5vw,3.5rem)] font-bold text-primary-foreground leading-tight mb-6">
               Find out in 60 seconds why your CV isn&apos;t landing interviews.
             </h2>
 
-            <p className="text-primary-foreground/70 text-lg leading-relaxed mb-10">
+            <p className="gh-reveal gh-d2 text-primary-foreground/70 text-lg leading-relaxed mb-10">
               Run your free ATS check now. No account needed to see your score.
               No credit card. Just upload, check, and know exactly where you stand.
             </p>
 
             <Link
               to="/tools/cruise-cv-checker"
-              className="btn-brass inline-flex items-center gap-3 px-10 py-5 rounded-full text-lg font-semibold mb-6"
+              className="gh-reveal gh-d3 btn-brass inline-flex items-center gap-3 px-10 py-5 rounded-full text-lg font-semibold mb-6"
             >
               Check My CV — It&apos;s Free
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -404,7 +462,7 @@ function LandingPage() {
               </svg>
             </Link>
 
-            <p className="text-primary-foreground/50 text-sm">
+            <p className="gh-reveal gh-d4 text-primary-foreground/50 text-sm">
               Join hospitality workers who stopped guessing and started getting called back.
             </p>
           </div>
@@ -413,11 +471,11 @@ function LandingPage() {
         {/* ── FAQ ──────────────────────────────────────────── */}
         <section className="bg-muted py-24 px-6">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-3 mb-4">
+            <div className="gh-reveal flex items-center gap-3 mb-4">
               <div className="w-10 h-0.5 bg-accent" />
               <span className="text-accent text-xs font-semibold tracking-[0.2em] uppercase">FAQ</span>
             </div>
-            <h2 className="font-display text-[clamp(1.8rem,3.5vw,2.5rem)] font-bold text-foreground mb-12">
+            <h2 className="gh-reveal gh-d1 font-display text-[clamp(1.8rem,3.5vw,2.5rem)] font-bold text-foreground mb-12">
               Common questions
             </h2>
             <div>
