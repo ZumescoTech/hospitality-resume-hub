@@ -4,6 +4,7 @@ import {
   buildCvCheckPrompt,
   parseCvCheckResponse,
   computeCvScore,
+  ScoreParseError,
   type CruiseRolesData,
   type CvScoreResult,
 } from '@/lib/cruiseCvRubric';
@@ -96,8 +97,17 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   if (!content) throw new Error('No content in Groq response');
 
   // 5. Parse LLM output + compute final score deterministically
-  const llmParsed = parseCvCheckResponse(content);
-  return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
+  // ScoreParseError propagates as-is so the client can show a specific retry message.
+  try {
+    const llmParsed = parseCvCheckResponse(content);
+    return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
+  } catch (err) {
+    if (err instanceof ScoreParseError) throw err;
+    throw new ScoreParseError(
+      `Unexpected error processing model response: ${err instanceof Error ? err.message : String(err)}`,
+      content,
+    );
+  }
 });
 
 // ─── Save WhatsApp lead to webhook ────────────────────────────────────────────

@@ -308,6 +308,8 @@ function CruiseCvCheckerPage() {
         userAgent: navigator.userAgent,
       });
 
+      const isScoreParseFailure =
+        err instanceof Error && err.message.includes('ScoreParseError');
       const knownMessage =
         err instanceof Error &&
         (err.message.includes('scanned image') ||
@@ -316,9 +318,11 @@ function CruiseCvCheckerPage() {
           err.message.includes("couldn't extract") ||
           err.message.includes('taking too long'));
       toast.error(
-        knownMessage
-          ? err.message
-          : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
+        isScoreParseFailure
+          ? "We couldn't analyse this CV right now — please try again in a moment."
+          : knownMessage
+            ? err.message
+            : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
       );
     } finally {
       setLoading(false);

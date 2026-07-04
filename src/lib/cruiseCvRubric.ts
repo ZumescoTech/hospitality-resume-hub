@@ -161,10 +161,37 @@ ${jobDescription.trim().slice(0, 1500)}
 type RawCategory = { score: number; feedback: string };
 export type RawLlmResponse = Record<CategoryKey, RawCategory> & { topFixes: string[] };
 
-export function parseCvCheckResponse(raw: string): RawLlmResponse {
-  const cleaned = raw.replace(/```json\s*|\s*```/g, '').trim();
-  const parsed = JSON.parse(cleaned) as RawLlmResponse;
+/** Thrown when the LLM response cannot be parsed into a valid score object. */
+export class ScoreParseError extends Error {
+  constructor(message: string, public readonly rawResponse: string) {
+    super(`ScoreParseError: ${message}`);
+    this.name = 'ScoreParseError';
+  }
+}
 
+export function parseCvCheckResponse(raw: string): RawLlmResponse {
+  // 1. Strip markdown fences
+  let cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+
+  // 2. Extract the first JSON object even if surrounded by prose
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new ScoreParseError('No JSON object found in model response', raw);
+  }
+  cleaned = jsonMatch[0];
+
+  // 3. Parse — throw ScoreParseError (not a generic SyntaxError) on failure
+  let parsed: RawLlmResponse;
+  try {
+    parsed = JSON.parse(cleaned) as RawLlmResponse;
+  } catch (err) {
+    throw new ScoreParseError(
+      `JSON.parse failed: ${err instanceof Error ? err.message : String(err)}`,
+      raw,
+    );
+  }
+
+  // 4. Validate all required categories have numeric scores
   const required: CategoryKey[] = [
     'keywordAlignment',
     'atsParseability',
@@ -177,7 +204,10 @@ export function parseCvCheckResponse(raw: string): RawLlmResponse {
 
   for (const key of required) {
     if (typeof parsed[key]?.score !== 'number') {
-      throw new Error(`Missing or invalid category in LLM response: ${key}`);
+      throw new ScoreParseError(
+        `Missing or non-numeric score for category "${key}"`,
+        raw,
+      );
     }
   }
 
@@ -188,7 +218,8 @@ export function parseCvCheckResponse(raw: string): RawLlmResponse {
 
 // ─── Score computation (fully deterministic, no LLM) ─────────────────────────
 
-function toTier(score: number): CvScoreResult['tier'] {
+/** Exported so tests can assert score↔tier consistency directly. */
+export function toTierFromScore(score: number): CvScoreResult['tier'] {
   if (score >= 85) return 'Strong';
   if (score >= 70) return 'Good';
   if (score >= 50) return 'Needs Work';
@@ -219,7 +250,7 @@ export function computeCvScore(
 
   return {
     overallScore,
-    tier: toTier(overallScore),
+    tier: toTierFromScore(overallScore),
     categories,
     topFixes: parsed.topFixes.slice(0, 2),
     matchedKeywords,
