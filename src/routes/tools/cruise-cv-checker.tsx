@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { LogoLockup } from '@/components/ui/LogoLockup';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,14 +32,31 @@ import { extractTextFromFile } from '@/lib/extractCvText';
 import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
 import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
 import type { ResumeData } from '@/types/resume';
-import { useNavigate } from '@tanstack/react-router';
 import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
 import { UploadProgressBar } from '@/components/checker/UploadProgressBar';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CHECKER_STORAGE_KEY = 'checker-draft-v1';
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB (A0-2)
+const ANALYZE_TIMEOUT_MS = 35_000; // 35 s (A0-2)
+
+interface CheckerDraft {
+  roleSlug: string;
+  jobDescription: string;
+  cvText: string; // extracted text — not the binary File
+}
+
+// ─── Route ────────────────────────────────────────────────────────────────────
+
+// A2-2: represent checker phase in the URL so browser back/forward works
 export const Route = createFileRoute('/tools/cruise-cv-checker')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    step: (search.step === 'results' ? 'results' : 'form') as 'form' | 'results',
+  }),
   head: () => ({
     meta: [
-      { title: 'Cruise CV Checker — Is Your CV Cruise-Ready? | GetHired' },
+      { title: 'GetHired — Cruise CV Checker' },
       {
         name: 'description',
         content:
@@ -136,6 +153,9 @@ function CategoryScoreRow({
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 function CruiseCvCheckerPage() {
+  const { step } = Route.useSearch();
+  const navigate = useNavigate();
+
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [cvText, setCvText] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
@@ -145,22 +165,71 @@ function CruiseCvCheckerPage() {
   const [parsedCv, setParsedCv] = useState<ResumeData | null>(null);
   const [whatsappCaptured, setWhatsappCaptured] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
   const progress = useCvUploadProgress();
+
+  // A0-1: Hydrate from localStorage on mount ──────────────────────────────────
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    try {
+      const raw = localStorage.getItem(CHECKER_STORAGE_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<CheckerDraft>;
+      let restored = false;
+      if (draft.roleSlug) { setRoleSlug(draft.roleSlug); restored = true; }
+      if (draft.jobDescription) { setJobDescription(draft.jobDescription); restored = true; }
+      if (draft.cvText) { setCvText(draft.cvText); restored = true; }
+      if (restored) {
+        toast.success('Progress restored. Re-attach your CV file if needed, then check again.');
+      }
+    } catch { /* ignore corrupt storage */ }
+  }, []);
+
+  // A0-1: Persist to localStorage on each meaningful change (debounced) ───────
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const timer = setTimeout(() => {
+      try {
+        const draft: CheckerDraft = { roleSlug, jobDescription, cvText };
+        localStorage.setItem(CHECKER_STORAGE_KEY, JSON.stringify(draft));
+      } catch { /* ignore quota errors */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [roleSlug, jobDescription, cvText]);
+
+  // A2-2: Sync URL step with result state (browser back clears results) ───────
+  useEffect(() => {
+    if (step === 'form' && result) {
+      setResult(null);
+      setParsedCv(null);
+      setWhatsappCaptured(false);
+    }
+  }, [step]); // intentionally omitting `result` — we only care when step changes
 
   const selectedRole = ROLE_OPTIONS.find((r) => r.slug === roleSlug);
   const hasInput = Boolean(pendingFile) || cvText.trim().length >= 50;
 
-  // Store the selected file without extracting yet — extraction happens on submit
-  // so we can show a single continuous progress bar across the whole pipeline.
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+
+    // A0-2: client-side size guard — reject before any spinner starts
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+      toast.error(`This file is ${sizeMb} MB. Please upload a CV under 5 MB.`);
+      return;
+    }
+
     setPendingFile(file);
     setCvText(''); // clear any previously extracted text
     progress.reset();
   }
+
+  const handleRoleChange = useCallback((value: string) => {
+    setRoleSlug(value);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -176,7 +245,7 @@ function CruiseCvCheckerPage() {
     let cvTextToUse = cvText;
 
     try {
-      // ── Phase 1 & 2: extract text from file (reading 0-10%, extracting 10-70%) ──
+      // ── Phase 1 & 2: extract text from file ──────────────────────────────
       if (pendingFile) {
         cvTextToUse = await extractTextFromFile(pendingFile, (update) => {
           progress.setStage(update.stage, update.percent);
@@ -190,38 +259,44 @@ function CruiseCvCheckerPage() {
         throw new Error("We couldn't extract enough text from this file. Try a .docx or .txt version.");
       }
 
-      // ── Phase 3: AI analysis (simulated easing 70→95%, snaps to 100% on response) ──
+      // ── Phase 3: AI analysis ──────────────────────────────────────────────
       progress.setStage('analyzing', 70);
 
-      // Run scoring and structured CV parse in parallel — parse result is held
-      // in state and only written to sessionStorage if user clicks "Build My CV".
-      const [scoreResult, parseResult] = await Promise.allSettled([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        checkCruiseCv({ data: { cvText: cvTextToUse.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        parseCvForBuilder({ data: { cvText: cvTextToUse.trim() } } as any),
+      // A0-2: wrap in a timeout so a stalled request never hangs forever
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Analysis is taking too long. Please try again.')),
+          ANALYZE_TIMEOUT_MS,
+        ),
+      );
+
+      const [scoreResult, parseResult] = await Promise.race([
+        Promise.allSettled([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          checkCruiseCv({ data: { cvText: cvTextToUse.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          parseCvForBuilder({ data: { cvText: cvTextToUse.trim() } } as any),
+        ]),
+        timeoutPromise,
       ]);
 
       if (scoreResult.status === 'rejected') {
         throw scoreResult.reason;
       }
 
-      // Snap to 100% the instant the real response lands.
       progress.setStage('done', 100);
-
       setResult(scoreResult.value);
       if (parseResult.status === 'fulfilled') {
         setParsedCv(parseResult.value);
       }
-      // Parse failure is non-fatal — "Build My CV" will still navigate, just without pre-fill.
 
-      // Auto-hide the progress bar once results are rendered.
       setTimeout(() => progress.reset(), 1500);
+
+      // A2-2: push results step into browser history
+      void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'results' } });
     } catch (err) {
       progress.setStage('error');
 
-      // ── PHASE 0: full diagnostics in the console ───────────────────────────
-      // Keep the user-facing message friendly; capture everything needed to debug.
       const fileInfo = pendingFile
         ? { name: pendingFile.name, size: pendingFile.size, type: pendingFile.type }
         : null;
@@ -233,13 +308,13 @@ function CruiseCvCheckerPage() {
         userAgent: navigator.userAgent,
       });
 
-      // Friendly user-facing message — never expose raw JS error strings.
       const knownMessage =
         err instanceof Error &&
         (err.message.includes('scanned image') ||
           err.message.includes('encrypted or corrupted') ||
           err.message.includes('Unsupported file type') ||
-          err.message.includes("couldn't extract"));
+          err.message.includes("couldn't extract") ||
+          err.message.includes('taking too long'));
       toast.error(
         knownMessage
           ? err.message
@@ -250,12 +325,31 @@ function CruiseCvCheckerPage() {
     }
   }
 
+  function handleCheckAnother() {
+    clearCvImport();
+    // A0-1: clear saved draft so next user starts fresh
+    try { localStorage.removeItem(CHECKER_STORAGE_KEY); } catch { /* ignore */ }
+    setResult(null);
+    setParsedCv(null);
+    setWhatsappCaptured(false);
+    setPendingFile(null);
+    setCvText('');
+    setRoleSlug('');
+    setJobDescription('');
+    progress.reset();
+    // A2-2: navigate back to form step
+    void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'form' } });
+  }
+
   const tierSummary: Record<CvScoreResult['tier'], string> = {
     Strong: 'Strong CV — a few final tweaks and you\'re ready to apply.',
     Good: 'Good CV — address the gaps below to strengthen your application.',
     'Needs Work': 'Your CV needs work before it will pass cruise recruiter screening.',
     'Major Gaps': 'Your CV has critical gaps that will likely cause instant rejection.',
   };
+
+  // Show results view when URL says results AND we have a result
+  const showResults = step === 'results' && result != null && !loading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -288,7 +382,7 @@ function CruiseCvCheckerPage() {
         </div>
 
         {/* Input form */}
-        {!result && (
+        {!showResults && (
           <form
             onSubmit={handleSubmit}
             className="rounded-2xl bg-card border border-border p-6 shadow-soft space-y-5"
@@ -298,7 +392,7 @@ function CruiseCvCheckerPage() {
               <Label htmlFor="role" className="text-sm font-medium text-foreground">
                 Role you&apos;re applying for <span className="text-destructive">*</span>
               </Label>
-              <Select value={roleSlug} onValueChange={setRoleSlug}>
+              <Select value={roleSlug} onValueChange={handleRoleChange}>
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a cruise ship role…" />
                 </SelectTrigger>
@@ -334,6 +428,7 @@ function CruiseCvCheckerPage() {
                 {!pendingFile && cvText && (
                   <span className="text-xs text-muted-foreground">CV loaded ✓</span>
                 )}
+                <span className="text-xs text-muted-foreground/60">max 5 MB</span>
               </div>
               <input
                 ref={fileRef}
@@ -382,7 +477,7 @@ function CruiseCvCheckerPage() {
         )}
 
         {/* Results */}
-        {result && !loading && (
+        {showResults && (
           <div className="space-y-5">
             {/* Score card */}
             <div className="rounded-2xl bg-card border border-border shadow-soft p-6">
@@ -390,18 +485,18 @@ function CruiseCvCheckerPage() {
                 <h2 className="font-display text-xl font-bold text-foreground">
                   {selectedRole?.label ?? 'CV'} Analysis
                 </h2>
-                <TierBadge tier={result.tier} />
+                <TierBadge tier={result!.tier} />
               </div>
-              <AtsScoreRing score={result.overallScore} topFixes={result.topFixes} />
+              <AtsScoreRing score={result!.overallScore} topFixes={result!.topFixes} />
             </div>
 
             {/* WhatsApp capture */}
             {!whatsappCaptured && (
               <WhatsAppCaptureForm
                 roleSlug={roleSlug}
-                overallScore={result.overallScore}
-                tier={result.tier}
-                topFixes={result.topFixes}
+                overallScore={result!.overallScore}
+                tier={result!.tier}
+                topFixes={result!.topFixes}
                 onSuccess={() => setWhatsappCaptured(true)}
                 onSkip={() => setWhatsappCaptured(true)}
               />
@@ -419,24 +514,24 @@ function CruiseCvCheckerPage() {
                     <CategoryScoreRow
                       key={key}
                       categoryKey={key}
-                      score={result.categories[key].score}
-                      weight={result.categories[key].weight}
-                      feedback={result.categories[key].feedback}
+                      score={result!.categories[key].score}
+                      weight={result!.categories[key].weight}
+                      feedback={result!.categories[key].feedback}
                     />
                   ))}
                 </div>
 
                 {/* Keyword lists */}
-                {(result.matchedKeywords.length > 0 || result.missingKeywords.length > 0) && (
+                {(result!.matchedKeywords.length > 0 || result!.missingKeywords.length > 0) && (
                   <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                       Role Keywords
                     </h3>
-                    {result.missingKeywords.length > 0 && (
+                    {result!.missingKeywords.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-destructive mb-1.5">Missing from your CV</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {result.missingKeywords.map((kw) => (
+                          {result!.missingKeywords.map((kw) => (
                             <span key={kw} className="rounded-md bg-destructive/8 border border-destructive/20 px-2 py-0.5 text-xs text-destructive">
                               {kw}
                             </span>
@@ -444,11 +539,11 @@ function CruiseCvCheckerPage() {
                         </div>
                       </div>
                     )}
-                    {result.matchedKeywords.length > 0 && (
+                    {result!.matchedKeywords.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-primary mb-1.5">Found in your CV</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {result.matchedKeywords.slice(0, 15).map((kw) => (
+                          {result!.matchedKeywords.slice(0, 15).map((kw) => (
                             <span key={kw} className="inline-flex items-center gap-1 rounded-md bg-primary/8 border border-primary/20 px-2 py-0.5 text-xs text-primary">
                               <CheckCircle2 className="h-3 w-3" />
                               {kw}
@@ -470,7 +565,7 @@ function CruiseCvCheckerPage() {
                     Build a cruise-ready CV in minutes
                   </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Plate &amp; Pen&apos;s hospitality templates are designed to pass cruise recruiter screening.
+                    GetHired&apos;s hospitality templates are designed to pass cruise recruiter screening.
                   </p>
                 </div>
                 <Button
@@ -494,15 +589,7 @@ function CruiseCvCheckerPage() {
             <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={() => {
-                  clearCvImport();
-                  setResult(null);
-                  setParsedCv(null);
-                  setWhatsappCaptured(false);
-                  setPendingFile(null);
-                  setCvText('');
-                  progress.reset();
-                }}
+                onClick={handleCheckAnother}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
               >
                 Check a different CV

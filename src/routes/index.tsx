@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { HeroBanner } from "@/components/landing/HeroBanner";
 import { LogoLockup } from "@/components/ui/LogoLockup";
+import { useReveal } from "@/hooks/use-reveal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,7 +55,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         </span>
       </button>
       <div
-        className={`overflow-hidden transition-all duration-300 ${open ? "max-h-48 pb-6" : "max-h-0"}`}
+        className={`overflow-hidden transition-all duration-300 ${open ? "max-h-none pb-6" : "max-h-0"}`}
       >
         <p className="text-muted-foreground leading-relaxed">{a}</p>
       </div>
@@ -71,32 +72,19 @@ function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Editorial reveal — Intersection Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('gh-visible')
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { threshold: 0.12 }
-    )
-    document.querySelectorAll('.gh-reveal, .gh-reveal-left').forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
+  // Editorial reveal — extracted to useReveal() with fallbacks for:
+  // (1) IntersectionObserver unavailable, (2) elements already in viewport at mount
+  useReveal()
 
   return (
     <>
       <style>{`
         @keyframes step-num-pulse {
-          0%, 100% { opacity: 0.1; }
-          50% { opacity: 0.5; }
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 0.75; }
         }
         .step-num { transition: transform 0.3s ease; animation: step-num-pulse 3s ease-in-out infinite; }
-        .step-card:hover .step-num { transform: scale(1.06); animation-play-state: paused; opacity: 0.3; }
+        .step-card:hover .step-num { transform: scale(1.06); animation-play-state: paused; opacity: 0.9; }
 
         .btn-wine {
           background-color: var(--color-primary);
@@ -131,12 +119,15 @@ function LandingPage() {
         .gh-reveal {
           opacity: 0;
           transform: translateY(28px);
+          /* A2-1: keep on GPU compositing layer to prevent scroll repaint flash */
+          will-change: transform, opacity;
           transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
                       transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .gh-reveal-left {
           opacity: 0;
           transform: translateX(-36px);
+          will-change: transform, opacity;
           transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
                       transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -144,6 +135,8 @@ function LandingPage() {
         .gh-reveal-left.gh-visible {
           opacity: 1;
           transform: none;
+          /* A2-1: release GPU memory once animation is done */
+          will-change: auto;
         }
         /* Stagger delays */
         .gh-d1 { transition-delay: 0.08s; }
@@ -307,7 +300,7 @@ function LandingPage() {
                   key={step.num}
                   className={`gh-reveal gh-d${i + 1} step-card group relative bg-card border border-border rounded-2xl p-8 hover:border-accent/50 hover:shadow-soft transition-all duration-300`}
                 >
-                  <div className="step-num font-display text-[5.5rem] font-bold text-accent/8 absolute top-4 right-5 leading-none select-none">
+                  <div className="step-num font-display text-[5.5rem] font-bold text-amber-500 absolute top-4 right-5 leading-none select-none">
                     {step.num}
                   </div>
                   <div className="relative z-10">
@@ -503,9 +496,6 @@ function LandingPage() {
               </Link>
               <Link to="/builder" search={{ from: undefined, role: undefined }} className="hover:text-cream/70 transition-colors">
                 Builder
-              </Link>
-              <Link to="/pricing" className="hover:text-cream/70 transition-colors">
-                Pricing
               </Link>
             </div>
           </div>
