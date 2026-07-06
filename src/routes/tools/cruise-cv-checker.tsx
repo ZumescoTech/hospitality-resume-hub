@@ -579,6 +579,10 @@ function CruiseCvCheckerPage() {
                       saveCvImport(parsedCv, roleSlug);
                       void navigate({ to: '/builder', search: { from: 'import' } as never });
                     } else {
+                      toast.info(
+                        "We couldn't pre-fill your details this time — you can enter them in the builder.",
+                        { duration: 6000 },
+                      );
                       void navigate({ to: '/builder', search: { role: roleSlug } as never });
                     }
                   }}
