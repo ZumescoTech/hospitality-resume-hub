@@ -34,6 +34,7 @@ import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
 import type { ResumeData } from '@/types/resume';
 import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
 import { UploadProgressBar } from '@/components/checker/UploadProgressBar';
+import { trackEvent } from '@/lib/clarity';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -225,6 +226,7 @@ function CruiseCvCheckerPage() {
     setPendingFile(file);
     setCvText(''); // clear any previously extracted text
     progress.reset();
+    trackEvent('cv_upload_started');
   }
 
   const handleRoleChange = useCallback((value: string) => {
@@ -286,6 +288,8 @@ function CruiseCvCheckerPage() {
 
       progress.setStage('done', 100);
       setResult(scoreResult.value);
+      trackEvent('cv_upload_succeeded');
+      trackEvent('score_viewed');
       if (parseResult.status === 'fulfilled') {
         setParsedCv(parseResult.value);
       }
@@ -296,6 +300,7 @@ function CruiseCvCheckerPage() {
       void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'results' } });
     } catch (err) {
       progress.setStage('error');
+      trackEvent('cv_upload_failed');
 
       const fileInfo = pendingFile
         ? { name: pendingFile.name, size: pendingFile.size, type: pendingFile.type }
@@ -575,6 +580,7 @@ function CruiseCvCheckerPage() {
                 <Button
                   className="gap-2 font-semibold shrink-0"
                   onClick={() => {
+                    trackEvent('builder_entered');
                     if (parsedCv) {
                       saveCvImport(parsedCv, roleSlug);
                       void navigate({ to: '/builder', search: { from: 'import' } as never });
