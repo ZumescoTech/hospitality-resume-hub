@@ -1,6 +1,4 @@
-import { ResumeData } from "@/types/resume";
-
-export function formatDate(d: string) {
+function formatDate(d: string) {
   if (!d) return "";
   // Accept YYYY or YYYY-MM
   const [y, m] = d.split("-");
@@ -16,13 +14,3 @@ export function dateRange(s: string, e: string, current?: boolean) {
   return [start, end].filter(Boolean).join(" — ");
 }
 
-export function hasAny(d: ResumeData) {
-  return (
-    d.personal.fullName ||
-    d.summary ||
-    d.experience.length ||
-    d.education.length ||
-    d.skills.length ||
-    d.certifications.length
-  );
-}

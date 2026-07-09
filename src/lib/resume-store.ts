@@ -50,9 +50,9 @@ export function useResumeStore() {
       // Anonymous — localStorage only
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        setData(raw ? { ...emptyResume, ...JSON.parse(raw) } : sampleResume);
+        setData(raw ? { ...emptyResume, ...JSON.parse(raw) } : emptyResume);
       } catch {
-        setData(sampleResume);
+        setData(emptyResume);
       }
       setHydrated(true);
     }
@@ -121,4 +121,4 @@ export function useResumeStore() {
   return { data, setData, update, reset, loadSample, hydrated, resumeId, syncing, setTemplateColours, resetTemplateColours };
 }
 
-export const uid = () => Math.random().toString(36).slice(2, 10);
+export { uid } from "@/lib/utils";

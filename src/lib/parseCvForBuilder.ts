@@ -1,16 +1,15 @@
 // parseCvForBuilder.ts
 // Server function: extract CV text → Groq → structured ResumeData
-// Uses the same Groq endpoint + ANTHROPIC_API_KEY convention as cruise-cv-check.ts
+// Uses the same Groq endpoint + GROQ_API_KEY convention as cruise-cv-check.ts
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { emptyResume } from '@/types/resume';
 import type { ResumeData } from '@/types/resume';
+import { groqChatCompletion } from '@/lib/ai/groq-client';
+import { uid } from '@/lib/utils';
 
 const ParseCvSchema = z.object({ cvText: z.string().min(50) });
-
-// Same ID convention as resume-store.ts uid()
-const uid = () => Math.random().toString(36).slice(2, 10);
 
 const WINE_LEVELS = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Sommelier'] as const;
 const SPIRITS_LEVELS = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Mixologist'] as const;
@@ -90,34 +89,19 @@ Strict rules:
 export const parseCvForBuilder = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<ResumeData> => {
   const { cvText } = ParseCvSchema.parse(ctx.data);
 
-  const groqKey = process.env.ANTHROPIC_API_KEY;
-  if (!groqKey) throw new Error('ANTHROPIC_API_KEY (Groq key) is not configured');
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) throw new Error('GROQ_API_KEY is not configured');
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${groqKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 2500,
-      temperature: 0.0,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Parse this CV:\n\n"""\n${cvText.slice(0, 8000)}\n"""` },
-      ],
-    }),
+  // Retries on 429 — see groq-client.ts
+  const content = await groqChatCompletion(groqKey, {
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 2500,
+    temperature: 0.0,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `Parse this CV:\n\n"""\n${cvText.slice(0, 8000)}\n"""` },
+    ],
   });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${err}`);
-  }
-
-  const json = (await response.json()) as { choices: Array<{ message: { content: string } }> };
-  const content = json.choices?.[0]?.message?.content;
-  if (!content) throw new Error('No content in Groq response');
 
   return buildResumeData(content);
 });
