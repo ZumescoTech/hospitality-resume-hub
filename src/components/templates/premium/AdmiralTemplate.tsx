@@ -15,16 +15,17 @@ import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
+import { hasExperience, hasEducation, hasSkills, hasCertifications, filledLanguages } from '@/lib/cv-utils';
 
 export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
   const C = {
     bg:      colours?.background ?? '#ffffff',
-    name:    '#1e293b',
-    title:   colours?.primary    ?? '#7c3aed',
-    heading: '#1e293b',
-    body:    colours?.text       ?? '#334155',
-    muted:   '#64748b',
-    rule1:   colours?.primary    ?? '#7c3aed',
+    name:    '#1a1a1a',
+    title:   colours?.primary    ?? '#0d6b5e',
+    heading: colours?.primary    ?? '#0d6b5e',
+    body:    colours?.text       ?? '#1a1a1a',
+    muted:   '#4a4a4a',
+    rule1:   colours?.primary    ?? '#0d6b5e',
     rule2:   '#e2e8f0',
   };
 
@@ -62,9 +63,8 @@ export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?:
     datesRight: true,
   };
 
-  const langs = hospitality.languages.length > 0
-    ? hospitality.languages.map((l) => `${l.name} (${l.level})`).join(', ')
-    : null;
+  const filled = filledLanguages(hospitality);
+  const langs = filled.length > 0 ? filled.map((l) => `${l.name} (${l.level})`).join(', ') : null;
 
   return (
     <div
@@ -116,7 +116,7 @@ export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?:
       </CvSection>
 
       <CvSection
-        empty={experience.length === 0}
+        empty={!hasExperience(experience)}
         renderHeading={() => <SectionHeading>Experience</SectionHeading>}
       >
         {experience.map((e) => (
@@ -133,7 +133,7 @@ export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?:
       </CvSection>
 
       <CvSection
-        empty={skills.length === 0}
+        empty={!hasSkills(skills)}
         renderHeading={() => <SectionHeading>Skills</SectionHeading>}
       >
         <p style={{ fontSize: '10pt', color: C.body, lineHeight: 1.6, margin: 0 }}>
@@ -142,7 +142,7 @@ export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?:
       </CvSection>
 
       <CvSection
-        empty={education.length === 0}
+        empty={!hasEducation(education)}
         renderHeading={() => <SectionHeading>Education</SectionHeading>}
       >
         {education.map((e) => (
@@ -158,7 +158,7 @@ export function AdmiralTemplate({ data, colours }: { data: ResumeData; colours?:
       </CvSection>
 
       <CvSection
-        empty={certifications.length === 0}
+        empty={!hasCertifications(certifications)}
         renderHeading={() => <SectionHeading>Certifications</SectionHeading>}
       >
         {certifications.map((c) => (
