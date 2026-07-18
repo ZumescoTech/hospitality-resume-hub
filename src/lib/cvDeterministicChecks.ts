@@ -110,18 +110,29 @@ function extractJobDescriptionKeywords(text: string): string[] {
 
 // ─── Keyword alignment ────────────────────────────────────────────────────────
 
+/**
+ * Returns true if `term` appears in `text` with word boundaries on both sides.
+ * Multi-word terms (containing spaces) are matched with a boundary only on the
+ * outer edges of the phrase. Single-word terms use \b to prevent "micros"
+ * matching inside "microscope".
+ */
+function termInText(text: string, term: string): boolean {
+  // Escape regex special chars in the term
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\w])${escaped}(?![\\w])`, 'i').test(text);
+}
+
 export function scoreKeywordAlignment(
   cvText: string,
   roleKeywords: string[],
   jobDescription?: string,
 ): { matchedKeywords: string[]; missingKeywords: string[]; matchRatio: number } {
-  const lower = cvText.toLowerCase();
   const matched: string[] = [];
   const missing: string[] = [];
 
   for (const kw of roleKeywords) {
     const kwLower = kw.toLowerCase();
-    if (lower.includes(kwLower)) {
+    if (termInText(cvText, kwLower)) {
       // Direct match
       matched.push(kw);
     } else {
@@ -129,7 +140,7 @@ export function scoreKeywordAlignment(
       // Always use the original role keyword (not the synonym) in the returned list,
       // so the UI shows terms in the role's expected language.
       const synonyms = SYNONYM_MAP.get(kwLower) ?? [];
-      const hasSynonymMatch = synonyms.some((s) => lower.includes(s));
+      const hasSynonymMatch = synonyms.some((s) => termInText(cvText, s));
       (hasSynonymMatch ? matched : missing).push(kw);
     }
   }
@@ -144,7 +155,7 @@ export function scoreKeywordAlignment(
     const alreadyMatched = new Set(matched.map((k) => k.toLowerCase()));
     for (const jdKw of extractJobDescriptionKeywords(jobDescription)) {
       if (roleSet.has(jdKw) || alreadyMatched.has(jdKw)) continue;
-      if (lower.includes(jdKw)) {
+      if (termInText(cvText, jdKw)) {
         matched.push(jdKw);
         alreadyMatched.add(jdKw);
       }
