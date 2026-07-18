@@ -144,11 +144,13 @@ function CategoryScoreRow({
             <span className="text-sm font-medium text-foreground">
               {CATEGORY_LABELS[categoryKey]}
             </span>
-            <div className="flex items-center gap-2 shrink-0 ml-3">
-              <span className="text-xs text-muted-foreground">
-                {Math.round(weight * 100)}% weight
+            <div className="flex items-center gap-1 shrink-0 ml-3">
+              <span className="text-sm font-bold text-foreground tabular-nums">
+                {Math.round(score * weight)}
               </span>
-              <span className="text-sm font-bold text-foreground w-8 text-right">{score}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                / {Math.round(weight * 100)}
+              </span>
             </div>
           </div>
           <div className="h-1.5 w-full rounded-full bg-border">
