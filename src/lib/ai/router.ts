@@ -62,6 +62,19 @@ export class AiRouter implements AiProvider {
     );
   }
 
+  async callRaw(input: AnalyzeInput): Promise<string> {
+    const first = await attempt(this.primary.name, () => this.primary.callRaw(input));
+    if (first.ok) return first.value;
+
+    const second = await attempt(this.fallback.name, () => this.fallback.callRaw(input));
+    if (second.ok) return second.value;
+
+    throw new ProviderError(
+      'exhausted',
+      `Both providers failed. primary=${first.log.outcome} fallback=${second.log.outcome}`,
+    );
+  }
+
   async extract(cvText: string, signal?: AbortSignal): Promise<ResumeData> {
     const first = await attempt(this.primary.name, () => this.primary.extract(cvText, signal));
     if (first.ok) return first.value;

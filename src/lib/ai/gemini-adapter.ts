@@ -37,6 +37,10 @@ export class GeminiAdapter implements AiProvider {
     return validateAnalysis(content, this.name);
   }
 
+  async callRaw({ system, user, signal }: AnalyzeInput): Promise<string> {
+    return this.call(`${system}\n\n${user}`, 3000, signal);
+  }
+
   async extract(cvText: string, signal?: AbortSignal): Promise<ResumeData> {
     const prompt = `${CV_EXTRACT_SYSTEM_PROMPT}\n\nParse this CV:\n\n"""\n${cvText.slice(0, 8000)}\n"""`;
     const content = await this.call(prompt, 2500, signal);

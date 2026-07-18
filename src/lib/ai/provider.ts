@@ -39,6 +39,12 @@ export interface AiProvider {
   analyze(input: AnalyzeInput): Promise<RawLlmResponse>;
   /** Extract structured ResumeData from raw CV text. */
   extract(cvText: string, signal?: AbortSignal): Promise<ResumeData>;
+  /**
+   * Low-level transport: send system+user to the model and return the raw
+   * text response WITHOUT applying any schema validation.
+   * Used by runMergedCall to apply its own merged schema.
+   */
+  callRaw(input: AnalyzeInput): Promise<string>;
 }
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────

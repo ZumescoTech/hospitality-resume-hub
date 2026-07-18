@@ -37,6 +37,19 @@ export class GroqAdapter implements AiProvider {
     return validateAnalysis(content, this.name);
   }
 
+  async callRaw({ system, user, signal }: AnalyzeInput): Promise<string> {
+    try {
+      return await groqChatCompletion(
+        this.apiKey,
+        { model: MODEL, max_tokens: 3000, temperature: 0.1,
+          messages: [{ role: 'system', content: system }, { role: 'user', content: user }] },
+        { signal },
+      );
+    } catch (err) {
+      throw mapGroqError(err, this.name);
+    }
+  }
+
   async extract(cvText: string, signal?: AbortSignal): Promise<ResumeData> {
     let content: string;
     try {

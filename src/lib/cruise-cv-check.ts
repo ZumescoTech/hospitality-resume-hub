@@ -10,6 +10,7 @@ import { runDeterministicChecks, scoreKeywordAlignment } from '@/lib/cvDetermini
 import { createRouter } from '@/lib/ai/router';
 import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
+import { runMergedCall } from '@/lib/ai/merged-call';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -80,7 +81,17 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   });
 
-  const llmParsed = await router.analyze({ system, user });
+  const mergedCallEnabled = process.env.MERGED_CALL === 'true';
+
+  let llmParsed;
+  if (mergedCallEnabled) {
+    // Single-prompt mode: analysis + CV extraction in one LLM call (gated)
+    const merged = await runMergedCall(router, system, user, parsed.cvText);
+    llmParsed = merged.analysis;
+    // merged.resumeData is available for the builder; currently unused in the check path
+  } else {
+    llmParsed = await router.analyze({ system, user });
+  }
 
   // 6. Compute final score deterministically — LLM output never changes the score directly
   const result = computeCvScore(llmParsed, matchedKeywords, missingKeywords);
