@@ -76,10 +76,11 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     jobDescription: parsed.jobDescription,
   });
 
-  // 5. Call via router (Groq → Gemini on 429/5xx/bad_json)
+  // 5. Call via router (Groq → Gemini → Workers AI when WORKERS_AI_ENABLED=true)
   const router = createRouter({
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,
   });
 
   const mergedCallEnabled = process.env.MERGED_CALL === 'true';
