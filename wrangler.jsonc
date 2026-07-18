@@ -1,17 +1,16 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hospitality-resume-hub",
-  "compatibility_date": "2025-09-24",
-  "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
-  "vars": {},
-  "kv_namespaces": [
-    {
-      "binding": "CV_RESULT_CACHE",
-      // Replace with real IDs after running: npx wrangler kv namespace create CV_RESULT_CACHE
-      // and: npx wrangler kv namespace create CV_RESULT_CACHE --preview
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID",
-      "preview_id": "REPLACE_WITH_KV_PREVIEW_ID"
-    }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "hospitality-resume-hub",
+	"compatibility_date": "2025-09-24",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"main": "@tanstack/react-start/server-entry",
+	"vars": {},
+	"kv_namespaces": [
+		{
+			"binding": "CV_RESULT_CACHE",
+			"id": "2944ed03c2b847e6905bc5e069b2f205"
+		}
+	]
 }
