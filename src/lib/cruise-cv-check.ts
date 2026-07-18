@@ -9,6 +9,7 @@ import {
 import { runDeterministicChecks, scoreKeywordAlignment } from '@/lib/cvDeterministicChecks';
 import { createRouter } from '@/lib/ai/router';
 import { ProviderError } from '@/lib/ai/provider';
+import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -43,17 +44,26 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
 
-  // 1. Deterministic signals
+  // 1. KV cache check (before any AI work)
+  const cacheKey = await buildCacheKey(parsed.cvText, parsed.jobDescription);
+  const cached = await getCachedResult(cacheKey);
+  if (cached) {
+    console.log(`[cv-check] cache hit: ${cacheKey}`);
+    return cached;
+  }
+  console.log(`[cv-check] cache miss: ${cacheKey}`);
+
+  // 2. Deterministic signals
   const signals = runDeterministicChecks(parsed.cvText);
 
-  // 2. Keyword alignment
+  // 3. Keyword alignment
   const { matchedKeywords, missingKeywords, matchRatio } = scoreKeywordAlignment(
     parsed.cvText,
     role.keywords,
     parsed.jobDescription,
   );
 
-  // 3. Build prompt
+  // 4. Build prompt
   const { system, user } = buildCvCheckPrompt({
     cvText: parsed.cvText,
     role,
@@ -64,7 +74,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     jobDescription: parsed.jobDescription,
   });
 
-  // 4. Call via router (Groq → Gemini on 429/5xx/bad_json)
+  // 5. Call via router (Groq → Gemini on 429/5xx/bad_json)
   const router = createRouter({
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
@@ -72,8 +82,13 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
 
   const llmParsed = await router.analyze({ system, user });
 
-  // 5. Compute final score deterministically — LLM output never changes the score directly
-  return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
+  // 6. Compute final score deterministically — LLM output never changes the score directly
+  const result = computeCvScore(llmParsed, matchedKeywords, missingKeywords);
+
+  // 7. Store in KV cache (fire-and-forget — non-fatal on failure)
+  void setCachedResult(cacheKey, result);
+
+  return result;
 });
 
 // ─── Save WhatsApp lead to webhook ────────────────────────────────────────────

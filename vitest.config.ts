@@ -12,6 +12,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': '/src',
+      // Stub the Cloudflare Workers runtime module so tests that import code
+      // using KV bindings don't crash in Node.js.
+      'cloudflare:workers': '/tests/__mocks__/cloudflare-workers.ts',
     },
   },
 })
