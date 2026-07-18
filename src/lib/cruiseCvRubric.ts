@@ -56,6 +56,12 @@ export interface CvScoreResult {
   topFixes: string[];
   matchedKeywords: string[];
   missingKeywords: string[];
+  /** Zero-token deterministic suggestions. Always present when returned from the server. */
+  deterministicFeedback?: string[];
+  /** Confidence in the analysis quality based on text signals. */
+  confidence?: import('./cvFeedback').ConfidenceResult;
+  /** True when AI providers were unavailable and scores are deterministic approximations. */
+  isDegraded?: boolean;
 }
 
 // ─── Weights & labels ─────────────────────────────────────────────────────────

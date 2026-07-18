@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
+  Lightbulb,
 } from 'lucide-react';
 
 import { checkCruiseCv, getRoleOptions } from '@/lib/cruise-cv-check';
@@ -35,6 +37,7 @@ import type { ResumeData } from '@/types/resume';
 import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
 import { UploadProgressBar } from '@/components/checker/UploadProgressBar';
 import { trackEvent } from '@/lib/clarity';
+import type { ConfidenceResult } from '@/lib/cvFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -84,6 +87,25 @@ function TierBadge({ tier }: { tier: CvScoreResult['tier'] }) {
     <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold', cls)}>
       <ShieldCheck className="h-3.5 w-3.5" />
       {tier}
+    </span>
+  );
+}
+
+// ─── Confidence badge ──────────────────────────────────────────────────────────
+
+function ConfidenceBadge({ confidence }: { confidence: ConfidenceResult }) {
+  const map: Record<ConfidenceResult['level'], { cls: string; label: string }> = {
+    High:   { cls: 'bg-primary/8 text-primary border-primary/20',          label: 'High confidence' },
+    Medium: { cls: 'bg-accent/8 text-accent border-accent/20',             label: 'Medium confidence' },
+    Low:    { cls: 'bg-destructive/8 text-destructive border-destructive/20', label: 'Low confidence' },
+  };
+  const { cls, label } = map[confidence.level];
+  return (
+    <span
+      title={confidence.reasons.join(' · ')}
+      className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium cursor-help', cls)}
+    >
+      {label}
     </span>
   );
 }
@@ -313,8 +335,6 @@ function CruiseCvCheckerPage() {
         userAgent: navigator.userAgent,
       });
 
-      const isExhausted =
-        err instanceof Error && err.message.includes('exhausted');
       const isScoreParseFailure =
         err instanceof Error && err.message.includes('ScoreParseError');
       const knownMessage =
@@ -325,28 +345,13 @@ function CruiseCvCheckerPage() {
           err.message.includes("couldn't extract") ||
           err.message.includes('taking too long'));
 
-      if (isExhausted) {
-        toast.error(
-          'High demand — try again in a minute.',
-          {
-            duration: 12000,
-            action: {
-              label: 'Retry',
-              onClick: () => {
-                void handleSubmit(new Event('submit') as unknown as React.FormEvent);
-              },
-            },
-          },
-        );
-      } else {
-        toast.error(
-          isScoreParseFailure
-            ? "We couldn't analyse this CV right now — please try again in a moment."
-            : knownMessage
-              ? err.message
-              : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
-        );
-      }
+      toast.error(
+        isScoreParseFailure
+          ? "We couldn't analyse this CV right now — please try again in a moment."
+          : knownMessage
+            ? err.message
+            : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
+      );
     } finally {
       setLoading(false);
     }
@@ -508,11 +513,22 @@ function CruiseCvCheckerPage() {
           <div className="space-y-5">
             {/* Score card */}
             <div className="rounded-2xl bg-card border border-border shadow-soft p-6">
-              <div className="mb-4 flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:justify-between">
+              {result!.isDegraded && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/8 px-3 py-2.5">
+                  <AlertTriangle className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                  <p className="text-xs text-accent">
+                    AI scoring is temporarily unavailable. Your score is based on keyword matching and CV structure only — recheck when service resumes for a full analysis.
+                  </p>
+                </div>
+              )}
+              <div className="mb-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="font-display text-xl font-bold text-foreground">
                   {selectedRole?.label ?? 'CV'} Analysis
                 </h2>
-                <TierBadge tier={result!.tier} />
+                <div className="flex items-center gap-2 flex-wrap">
+                  {result!.confidence && <ConfidenceBadge confidence={result!.confidence} />}
+                  <TierBadge tier={result!.tier} />
+                </div>
               </div>
               <AtsScoreRing score={result!.overallScore} topFixes={result!.topFixes} />
             </div>
@@ -547,6 +563,26 @@ function CruiseCvCheckerPage() {
                     />
                   ))}
                 </div>
+
+                {/* Deterministic improvement tips */}
+                {result!.deterministicFeedback && result!.deterministicFeedback.length > 0 && (
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 text-accent shrink-0" />
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                        What to Fix
+                      </h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {result!.deterministicFeedback.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Keyword lists */}
                 {(result!.matchedKeywords.length > 0 || result!.missingKeywords.length > 0) && (

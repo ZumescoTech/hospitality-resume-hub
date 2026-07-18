@@ -11,6 +11,7 @@ import { createRouter } from '@/lib/ai/router';
 import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
 import { runMergedCall } from '@/lib/ai/merged-call';
+import { buildDeterministicFeedback, computeConfidence, buildNeutralLlmResponse } from '@/lib/cvFeedback';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -83,18 +84,41 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
 
   const mergedCallEnabled = process.env.MERGED_CALL === 'true';
 
+  // 5b. Deterministic feedback + confidence (always computed, zero tokens)
+  const deterministicFeedback = buildDeterministicFeedback(missingKeywords, signals, role.role);
+
   let llmParsed;
-  if (mergedCallEnabled) {
-    // Single-prompt mode: analysis + CV extraction in one LLM call (gated)
-    const merged = await runMergedCall(router, system, user, parsed.cvText);
-    llmParsed = merged.analysis;
-    // merged.resumeData is available for the builder; currently unused in the check path
-  } else {
-    llmParsed = await router.analyze({ system, user });
+  try {
+    if (mergedCallEnabled) {
+      // Single-prompt mode: analysis + CV extraction in one LLM call (gated)
+      const merged = await runMergedCall(router, system, user, parsed.cvText);
+      llmParsed = merged.analysis;
+      // merged.resumeData is available for the builder; currently unused in the check path
+    } else {
+      llmParsed = await router.analyze({ system, user });
+    }
+  } catch (err) {
+    if (err instanceof ProviderError && err.kind === 'exhausted') {
+      // Both providers unavailable — return a degraded but useful result
+      console.log('[cv-check] exhausted: returning deterministic-only result');
+      const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
+      const degradedResult = {
+        ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords),
+        deterministicFeedback,
+        confidence: computeConfidence(signals, matchRatio, true),
+        isDegraded: true,
+      };
+      return degradedResult;
+    }
+    throw err;
   }
 
   // 6. Compute final score deterministically — LLM output never changes the score directly
-  const result = computeCvScore(llmParsed, matchedKeywords, missingKeywords);
+  const result = {
+    ...computeCvScore(llmParsed, matchedKeywords, missingKeywords),
+    deterministicFeedback,
+    confidence: computeConfidence(signals, matchRatio),
+  };
 
   // 7. Store in KV cache (fire-and-forget — non-fatal on failure)
   void setCachedResult(cacheKey, result);
