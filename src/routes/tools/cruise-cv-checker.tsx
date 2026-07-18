@@ -313,6 +313,8 @@ function CruiseCvCheckerPage() {
         userAgent: navigator.userAgent,
       });
 
+      const isExhausted =
+        err instanceof Error && err.message.includes('exhausted');
       const isScoreParseFailure =
         err instanceof Error && err.message.includes('ScoreParseError');
       const knownMessage =
@@ -322,13 +324,29 @@ function CruiseCvCheckerPage() {
           err.message.includes('Unsupported file type') ||
           err.message.includes("couldn't extract") ||
           err.message.includes('taking too long'));
-      toast.error(
-        isScoreParseFailure
-          ? "We couldn't analyse this CV right now — please try again in a moment."
-          : knownMessage
-            ? err.message
-            : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
-      );
+
+      if (isExhausted) {
+        toast.error(
+          'High demand — try again in a minute.',
+          {
+            duration: 12000,
+            action: {
+              label: 'Retry',
+              onClick: () => {
+                void handleSubmit(new Event('submit') as unknown as React.FormEvent);
+              },
+            },
+          },
+        );
+      } else {
+        toast.error(
+          isScoreParseFailure
+            ? "We couldn't analyse this CV right now — please try again in a moment."
+            : knownMessage
+              ? err.message
+              : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
+        );
+      }
     } finally {
       setLoading(false);
     }

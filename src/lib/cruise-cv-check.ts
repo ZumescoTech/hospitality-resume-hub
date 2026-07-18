@@ -2,14 +2,13 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import {
   buildCvCheckPrompt,
-  parseCvCheckResponse,
   computeCvScore,
-  ScoreParseError,
   type CruiseRolesData,
   type CvScoreResult,
 } from '@/lib/cruiseCvRubric';
 import { runDeterministicChecks, scoreKeywordAlignment } from '@/lib/cvDeterministicChecks';
-import { groqChatCompletion } from '@/lib/ai/groq-client';
+import { createRouter } from '@/lib/ai/router';
+import { ProviderError } from '@/lib/ai/provider';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -35,17 +34,14 @@ export type CvCheckInput = z.infer<typeof CvCheckSchema>;
 export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
 // ─── CV check ─────────────────────────────────────────────────────────────────
-// Uses Groq (llama-3.3-70b-versatile) via OpenAI-compatible endpoint.
-// GROQ_API_KEY env var holds the Groq key.
+// Uses AiRouter (Groq primary → Gemini fallback).  ProviderError{exhausted}
+// propagates to the client so the UI can show a graceful retry message.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvScoreResult> => {
   const parsed = CvCheckSchema.parse(ctx.data as CvCheckInput);
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
-
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) throw new Error('GROQ_API_KEY is not configured');
 
   // 1. Deterministic signals
   const signals = runDeterministicChecks(parsed.cvText);
@@ -68,29 +64,16 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     jobDescription: parsed.jobDescription,
   });
 
-  // 4. Call Groq (retries on 429 — see groq-client.ts)
-  const content = await groqChatCompletion(groqKey, {
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 1500,
-    temperature: 0.1,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
+  // 4. Call via router (Groq → Gemini on 429/5xx/bad_json)
+  const router = createRouter({
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   });
 
-  // 5. Parse LLM output + compute final score deterministically
-  // ScoreParseError propagates as-is so the client can show a specific retry message.
-  try {
-    const llmParsed = parseCvCheckResponse(content);
-    return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
-  } catch (err) {
-    if (err instanceof ScoreParseError) throw err;
-    throw new ScoreParseError(
-      `Unexpected error processing model response: ${err instanceof Error ? err.message : String(err)}`,
-      content,
-    );
-  }
+  const llmParsed = await router.analyze({ system, user });
+
+  // 5. Compute final score deterministically — LLM output never changes the score directly
+  return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
 });
 
 // ─── Save WhatsApp lead to webhook ────────────────────────────────────────────

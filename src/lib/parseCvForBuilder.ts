@@ -1,150 +1,24 @@
 // parseCvForBuilder.ts
-// Server function: extract CV text → Groq → structured ResumeData
-// Uses the same Groq endpoint + GROQ_API_KEY convention as cruise-cv-check.ts
+// Server function: extract CV text → AI router → structured ResumeData.
+// Uses AiRouter (Groq primary → Gemini fallback) via the shared provider layer.
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { emptyResume } from '@/types/resume';
 import type { ResumeData } from '@/types/resume';
-import { groqChatCompletion } from '@/lib/ai/groq-client';
-import { CV_EXTRACT_SYSTEM_PROMPT } from '@/lib/ai/extract-prompt';
-import { uid } from '@/lib/utils';
+import { createRouter } from '@/lib/ai/router';
 
 const ParseCvSchema = z.object({ cvText: z.string().min(50) });
-
-const WINE_LEVELS = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Sommelier'] as const;
-const SPIRITS_LEVELS = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Mixologist'] as const;
-const LANG_LEVELS = ['Basic', 'Conversational', 'Fluent', 'Native'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseCvForBuilder = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<ResumeData> => {
   const { cvText } = ParseCvSchema.parse(ctx.data);
 
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) throw new Error('GROQ_API_KEY is not configured');
-
-  // Retries on 429 — see groq-client.ts
-  const content = await groqChatCompletion(groqKey, {
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 2500,
-    temperature: 0.0,
-    messages: [
-      { role: 'system', content: CV_EXTRACT_SYSTEM_PROMPT },
-      { role: 'user', content: `Parse this CV:\n\n"""\n${cvText.slice(0, 8000)}\n"""` },
-    ],
+  const router = createRouter({
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   });
 
-  return buildResumeData(content);
+  // Router calls adapter.extract() which uses CV_EXTRACT_SYSTEM_PROMPT and
+  // validates via Zod boundary schema.  IDs are assigned inside the adapter.
+  return router.extract(cvText);
 });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildResumeData(raw: string): ResumeData {
-  const cleaned = raw.replace(/```json\s*|\s*```/g, '').trim();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let parsed: any;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    console.warn('[parseCvForBuilder] JSON parse failed — returning empty resume');
-    return { ...emptyResume };
-  }
-
-  const safeStr = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
-  const safeBool = (v: unknown): boolean => (typeof v === 'boolean' ? v : false);
-  const safeStrArr = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && s.trim().length > 0) : [];
-
-  /**
-   * Coerce model output to a clean string[].
-   * The model should return bullets:string[] but may still return a description:string
-   * blob if it ignores the schema. Split that blob defensively.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseBulletsField = (e: any): string[] => {
-    if (Array.isArray(e.bullets)) {
-      return safeStrArr(e.bullets);
-    }
-    // Fallback: model returned a description string — split on newlines and strip markers
-    const desc = safeStr(e.description);
-    if (!desc) return [];
-    return desc
-      .split('\n')
-      .map((l: string) => l.replace(/^[\u2022\-\*\·]\s*/, '').trim())
-      .filter(Boolean);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const p = (parsed.personal ?? {}) as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const h = (parsed.hospitality ?? {}) as any;
-
-  return {
-    personal: {
-      fullName: safeStr(p.fullName),
-      title: safeStr(p.title),
-      email: safeStr(p.email),
-      phone: safeStr(p.phone),
-      location: safeStr(p.location),
-      photo: undefined,
-      links: Array.isArray(p.links)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? p.links.filter((l: any) => l?.label && l?.url).map((l: any) => ({ label: safeStr(l.label), url: safeStr(l.url) }))
-        : [],
-    },
-    summary: safeStr(parsed.summary),
-    experience: Array.isArray(parsed.experience)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? parsed.experience.map((e: any) => ({
-          id: uid(),
-          role: safeStr(e.role),
-          venue: safeStr(e.venue),
-          location: safeStr(e.location),
-          startDate: safeStr(e.startDate),
-          endDate: safeStr(e.endDate),
-          current: safeBool(e.current),
-          description: '',
-          bullets: parseBulletsField(e),
-        }))
-      : [],
-    education: Array.isArray(parsed.education)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? parsed.education.map((e: any) => ({
-          id: uid(),
-          school: safeStr(e.school),
-          degree: safeStr(e.degree),
-          field: safeStr(e.field),
-          startDate: safeStr(e.startDate),
-          endDate: safeStr(e.endDate),
-          bullets: parseBulletsField(e),
-        }))
-      : [],
-    skills: safeStrArr(parsed.skills),
-    certifications: Array.isArray(parsed.certifications)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? parsed.certifications.map((c: any) => ({
-          id: uid(),
-          name: safeStr(c.name),
-          issuer: safeStr(c.issuer),
-          year: safeStr(c.year),
-        }))
-      : [],
-    hospitality: {
-      serviceStyles: safeStrArr(h.serviceStyles),
-      posSystems: safeStrArr(h.posSystems),
-      wineKnowledge: WINE_LEVELS.includes(h.wineKnowledge) ? h.wineKnowledge : 'None',
-      spiritsKnowledge: SPIRITS_LEVELS.includes(h.spiritsKnowledge) ? h.spiritsKnowledge : 'None',
-      languages: Array.isArray(h.languages)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? h.languages.filter((l: any) => safeStr(l?.name)).map((l: any) => ({
-            name: safeStr(l.name),
-            level: LANG_LEVELS.includes(l.level) ? l.level : 'Fluent',
-          }))
-        : [],
-      allergens: safeBool(h.allergens),
-      foodSafety: safeStr(h.foodSafety),
-    },
-    // Preserve the user's current template — the CV text contains no template preference
-    templateId: 'classic',
-  };
-}
