@@ -1,11 +1,12 @@
 // builder-assist.ts
 // Server functions for the two AI assistance layers in the Plate & Pen builder.
 // Both call Groq llama-3.3-70b-versatile via the OpenAI-compatible endpoint.
-// ANTHROPIC_API_KEY holds the Groq key following the project convention.
+// GROQ_API_KEY holds the Groq key.
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { buildRolePatternBlock } from '@/lib/ai/role-patterns';
+import { groqChatCompletion } from '@/lib/ai/groq-client';
 
 // ─── Shared types (exported for client components) ─────────────────────────────
 
@@ -79,18 +80,18 @@ export const checkWritingFn = createServerFn({ method: 'POST' }).handler(async (
   const { text, fieldType } = CheckWritingSchema.parse(ctx.data);
   if (text.trim().length < 10) return [];
 
-  const groqKey = process.env.ANTHROPIC_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) return [];
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4000);
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-      signal: controller.signal,
-      body: JSON.stringify({
+    // maxRetries: 0 — this pass has a hard 4s budget and a fail-silent
+    // contract; waiting out a rate limit is worse than skipping the pass.
+    const content = await groqChatCompletion(
+      groqKey,
+      {
         model: 'llama-3.3-70b-versatile',
         max_tokens: 400,
         temperature: 0.0,
@@ -98,13 +99,10 @@ export const checkWritingFn = createServerFn({ method: 'POST' }).handler(async (
           { role: 'system', content: CHECK_WRITING_SYSTEM },
           { role: 'user', content: `Check this CV ${fieldType} text:\n\n"""${text}"""` },
         ],
-      }),
-    });
+      },
+      { maxRetries: 0, signal: controller.signal },
+    );
 
-    if (!response.ok) return [];
-
-    const json = (await response.json()) as { choices: Array<{ message: { content: string } }> };
-    const content = json.choices?.[0]?.message?.content ?? '';
     const cleaned = content.replace(/```json\s*|\s*```/g, '').trim();
     const parsed: unknown = JSON.parse(cleaned);
 
@@ -134,7 +132,7 @@ export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async 
   const { fieldType, currentText, jobTitle, jobDescription, otherContext, targetRoleSlug } =
     TailorContentSchema.parse(ctx.data);
 
-  const groqKey = process.env.ANTHROPIC_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) throw new Error('AI key not configured');
 
   // Select role-specific pattern: targetRoleSlug (primary) → jobTitle text match (fallback)
@@ -178,27 +176,17 @@ export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async 
     `\nText to tailor:\n"""\n${currentText}\n"""`,
   ].filter(Boolean) as string[];
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 800,
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userParts.join('\n\n') },
-      ],
-    }),
+  // Retries on 429 — see groq-client.ts. Errors propagate to the caller's UI feedback.
+  const content = await groqChatCompletion(groqKey, {
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 800,
+    temperature: 0.3,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userParts.join('\n\n') },
+    ],
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`AI error ${response.status}: ${err}`);
-  }
-
-  const json = (await response.json()) as { choices: Array<{ message: { content: string } }> };
-  const content = json.choices?.[0]?.message?.content ?? '';
   const cleaned = content.replace(/```json\s*|\s*```/g, '').trim();
 
   try {

@@ -9,6 +9,7 @@ import {
   type CvScoreResult,
 } from '@/lib/cruiseCvRubric';
 import { runDeterministicChecks, scoreKeywordAlignment } from '@/lib/cvDeterministicChecks';
+import { groqChatCompletion } from '@/lib/ai/groq-client';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -35,7 +36,7 @@ export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
 // ─── CV check ─────────────────────────────────────────────────────────────────
 // Uses Groq (llama-3.3-70b-versatile) via OpenAI-compatible endpoint.
-// ANTHROPIC_API_KEY env var holds the Groq key for historical reasons.
+// GROQ_API_KEY env var holds the Groq key.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvScoreResult> => {
@@ -43,8 +44,8 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
 
-  const groqKey = process.env.ANTHROPIC_API_KEY;
-  if (!groqKey) throw new Error('ANTHROPIC_API_KEY (Groq key) is not configured');
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) throw new Error('GROQ_API_KEY is not configured');
 
   // 1. Deterministic signals
   const signals = runDeterministicChecks(parsed.cvText);
@@ -67,34 +68,16 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     jobDescription: parsed.jobDescription,
   });
 
-  // 4. Call Groq
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${groqKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 1500,
-      temperature: 0.1,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-    }),
+  // 4. Call Groq (retries on 429 — see groq-client.ts)
+  const content = await groqChatCompletion(groqKey, {
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 1500,
+    temperature: 0.1,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
   });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${err}`);
-  }
-
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  const content = json.choices?.[0]?.message?.content;
-  if (!content) throw new Error('No content in Groq response');
 
   // 5. Parse LLM output + compute final score deterministically
   // ScoreParseError propagates as-is so the client can show a specific retry message.

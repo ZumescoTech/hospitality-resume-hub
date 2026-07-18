@@ -38,12 +38,14 @@ test('debug: checker flow with URL logging', async ({ page, context }) => {
     }
   })
 
-  // Select role via Radix click
+  // Select role via Radix click. Clicks that land before React hydration are
+  // silently lost on this server-rendered page — retry until options render.
   const trigger = page.locator('[role="combobox"]').first()
-  await trigger.click()
-  await page.waitForTimeout(600)
   const option = page.getByRole('option', { name: /Sommelier/i }).first()
-  await option.waitFor({ state: 'visible', timeout: 5000 })
+  await expect(async () => {
+    await trigger.click()
+    await expect(option).toBeVisible({ timeout: 1500 })
+  }).toPass({ timeout: 20_000 })
   await option.click()
   console.log(`[T+${Date.now()-t0}ms] role set`)
 

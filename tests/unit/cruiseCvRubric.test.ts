@@ -11,13 +11,13 @@ import {
 function makeValidRaw(overrides: Partial<RawLlmResponse> = {}): RawLlmResponse {
   return {
     keywordAlignment:        { score: 70, feedback: 'Good keyword coverage.' },
-    atsParseability:         { score: 75, feedback: 'Clean structure.' },
+    experienceDepth:         { score: 72, feedback: 'Relevant cruise experience.' },
     quantifiedAchievements:  { score: 60, feedback: 'Some metrics present.' },
-    experienceDepth:         { score: 65, feedback: 'Relevant experience.' },
-    jobTitleAlignment:       { score: 80, feedback: 'Title matches well.' },
     qualifications:          { score: 70, feedback: 'WSET present.' },
-    readabilityAndSummary:   { score: 75, feedback: 'Good summary.' },
-    topFixes: ['Add seafarer documents', 'Quantify more achievements'],
+    cruiseReadiness:         { score: 65, feedback: 'ENG1 and C1/D listed.' },
+    atsParseability:         { score: 75, feedback: 'Clean structure.' },
+    summaryQuality:          { score: 75, feedback: 'Good summary.' },
+    topFixes: ['Add STCW certification', 'Quantify beverage revenue impact'],
     ...overrides,
   };
 }
@@ -45,10 +45,9 @@ describe('parseCvCheckResponse', () => {
   });
 
   it('T1: handles prose prefix before JSON object', () => {
-    // LLM sometimes adds "Here is the evaluation:" before the JSON
     const raw = 'Here is my evaluation:\n' + JSON.stringify(makeValidRaw());
     const result = parseCvCheckResponse(raw);
-    expect(result.experienceDepth.score).toBe(65);
+    expect(result.experienceDepth.score).toBe(72);
   });
 
   it('T1: handles prose suffix after JSON object', () => {
@@ -76,11 +75,16 @@ describe('parseCvCheckResponse', () => {
     expect(() => parseCvCheckResponse(badScore)).toThrow('ScoreParseError');
   });
 
+  it('T2: throws ScoreParseError when new required category cruiseReadiness is missing', () => {
+    const raw = makeValidRaw();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (raw as any).cruiseReadiness;
+    expect(() => parseCvCheckResponse(JSON.stringify(raw))).toThrow('ScoreParseError');
+  });
+
   it('T2: never returns a result with any category score of exactly 0 from a default/fallback', () => {
-    // If parsing succeeds, every score must come from the LLM, not a hardcoded 0
     const raw = JSON.stringify(makeValidRaw({ keywordAlignment: { score: 45, feedback: 'Low match.' } }));
     const result = parseCvCheckResponse(raw);
-    // score of 45 is the LLM's actual value, not a default — this must pass through
     expect(result.keywordAlignment.score).toBe(45);
   });
 });
@@ -91,12 +95,12 @@ describe('computeCvScore', () => {
   it('T3: tier and overallScore are always consistent — score < 50 → Major Gaps', () => {
     const low = makeValidRaw({
       keywordAlignment:       { score: 10, feedback: 'Poor.' },
-      atsParseability:        { score: 15, feedback: 'Poor.' },
-      quantifiedAchievements: { score: 5,  feedback: 'None.' },
       experienceDepth:        { score: 10, feedback: 'Minimal.' },
-      jobTitleAlignment:      { score: 20, feedback: 'Weak.' },
+      quantifiedAchievements: { score: 5,  feedback: 'None.' },
       qualifications:         { score: 10, feedback: 'None.' },
-      readabilityAndSummary:  { score: 15, feedback: 'Poor.' },
+      cruiseReadiness:        { score: 5,  feedback: 'None.' },
+      atsParseability:        { score: 15, feedback: 'Poor.' },
+      summaryQuality:         { score: 15, feedback: 'Poor.' },
     });
     const result = computeCvScore(low, [], []);
     expect(result.overallScore).toBeLessThan(50);
@@ -106,12 +110,12 @@ describe('computeCvScore', () => {
   it('T3: tier and overallScore are always consistent — score 50-69 → Needs Work', () => {
     const mid = makeValidRaw({
       keywordAlignment:       { score: 55, feedback: 'ok' },
-      atsParseability:        { score: 60, feedback: 'ok' },
-      quantifiedAchievements: { score: 50, feedback: 'ok' },
       experienceDepth:        { score: 55, feedback: 'ok' },
-      jobTitleAlignment:      { score: 60, feedback: 'ok' },
+      quantifiedAchievements: { score: 50, feedback: 'ok' },
       qualifications:         { score: 55, feedback: 'ok' },
-      readabilityAndSummary:  { score: 60, feedback: 'ok' },
+      cruiseReadiness:        { score: 50, feedback: 'ok' },
+      atsParseability:        { score: 60, feedback: 'ok' },
+      summaryQuality:         { score: 60, feedback: 'ok' },
     });
     const result = computeCvScore(mid, [], []);
     expect(result.overallScore).toBeGreaterThanOrEqual(50);
@@ -122,12 +126,12 @@ describe('computeCvScore', () => {
   it('T3: tier and overallScore are always consistent — score 70-84 → Good', () => {
     const good = makeValidRaw({
       keywordAlignment:       { score: 75, feedback: 'ok' },
-      atsParseability:        { score: 70, feedback: 'ok' },
-      quantifiedAchievements: { score: 70, feedback: 'ok' },
       experienceDepth:        { score: 72, feedback: 'ok' },
-      jobTitleAlignment:      { score: 75, feedback: 'ok' },
+      quantifiedAchievements: { score: 70, feedback: 'ok' },
       qualifications:         { score: 70, feedback: 'ok' },
-      readabilityAndSummary:  { score: 72, feedback: 'ok' },
+      cruiseReadiness:        { score: 70, feedback: 'ok' },
+      atsParseability:        { score: 70, feedback: 'ok' },
+      summaryQuality:         { score: 72, feedback: 'ok' },
     });
     const result = computeCvScore(good, [], []);
     expect(result.overallScore).toBeGreaterThanOrEqual(70);
@@ -138,12 +142,12 @@ describe('computeCvScore', () => {
   it('T3: tier and overallScore are always consistent — score >= 85 → Strong', () => {
     const strong = makeValidRaw({
       keywordAlignment:       { score: 90, feedback: 'ok' },
-      atsParseability:        { score: 88, feedback: 'ok' },
-      quantifiedAchievements: { score: 85, feedback: 'ok' },
       experienceDepth:        { score: 90, feedback: 'ok' },
-      jobTitleAlignment:      { score: 88, feedback: 'ok' },
+      quantifiedAchievements: { score: 85, feedback: 'ok' },
       qualifications:         { score: 85, feedback: 'ok' },
-      readabilityAndSummary:  { score: 88, feedback: 'ok' },
+      cruiseReadiness:        { score: 85, feedback: 'ok' },
+      atsParseability:        { score: 88, feedback: 'ok' },
+      summaryQuality:         { score: 88, feedback: 'ok' },
     });
     const result = computeCvScore(strong, [], []);
     expect(result.overallScore).toBeGreaterThanOrEqual(85);
@@ -151,18 +155,47 @@ describe('computeCvScore', () => {
   });
 
   it('T3: overallScore=0 is impossible from defaults — missing categories use ?? 50 not ?? 0', () => {
-    // Even if all categories default, the score should be ~50, never 0
     const allDefaults = makeValidRaw();
     Object.keys(allDefaults).forEach((k) => {
       if (k !== 'topFixes') {
         (allDefaults as Record<string, unknown>)[k] = undefined;
       }
     });
-    // computeCvScore with undefined categories should not produce 0
     const result = computeCvScore(allDefaults, [], []);
-    // With ?? 50 defaults, weighted average of 50 across all weights = 50
     expect(result.overallScore).toBeGreaterThan(0);
-    expect(result.tier).not.toBe('Major Gaps'); // 50 → Needs Work, not Major Gaps
+    expect(result.tier).not.toBe('Major Gaps');
+  });
+
+  // ─── B-1 T6: headline == weighted sum of seven categories ────────────────
+
+  it('T6: headline score equals weighted sum of the seven B-1 §2 category scores', () => {
+    const raw = makeValidRaw({
+      keywordAlignment:       { score: 80, feedback: 'ok' },
+      experienceDepth:        { score: 75, feedback: 'ok' },
+      quantifiedAchievements: { score: 60, feedback: 'ok' },
+      qualifications:         { score: 70, feedback: 'ok' },
+      cruiseReadiness:        { score: 50, feedback: 'ok' },
+      atsParseability:        { score: 65, feedback: 'ok' },
+      summaryQuality:         { score: 70, feedback: 'ok' },
+    });
+    const result = computeCvScore(raw, [], []);
+    // Manual weighted sum: 0.25*80 + 0.25*75 + 0.15*60 + 0.10*70 + 0.10*50 + 0.10*65 + 0.05*70
+    // = 20 + 18.75 + 9 + 7 + 5 + 6.5 + 3.5 = 69.75 → 70
+    expect(result.overallScore).toBe(70);
+  });
+
+  it('T6: computeCvScore exposes all seven B-1 §2 categories with correct weights', () => {
+    const result = computeCvScore(makeValidRaw(), [], []);
+    expect(result.categories.keywordAlignment.weight).toBe(0.25);
+    expect(result.categories.experienceDepth.weight).toBe(0.25);
+    expect(result.categories.quantifiedAchievements.weight).toBe(0.15);
+    expect(result.categories.qualifications.weight).toBe(0.10);
+    expect(result.categories.cruiseReadiness.weight).toBe(0.10);
+    expect(result.categories.atsParseability.weight).toBe(0.10);
+    expect(result.categories.summaryQuality.weight).toBe(0.05);
+    // Verify the sum of all weights equals 1.00
+    const total = Object.values(result.categories).reduce((acc, c) => acc + c.weight, 0);
+    expect(total).toBeCloseTo(1.0, 5);
   });
 });
 

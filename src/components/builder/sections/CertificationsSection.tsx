@@ -1,7 +1,7 @@
 import { ResumeData, Certification, Hospitality } from "@/types/resume";
 import { Field } from "../Field";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ClipboardList, Languages as LanguagesIcon } from "lucide-react";
 import { uid } from "@/lib/resume-store";
 import {
   Select,
@@ -101,7 +101,7 @@ export function CertificationsSection({
       {/* ── Section 1: Certificates & Training ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-base">⚓</span>
+          <ClipboardList size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />
           <h3 className="font-semibold text-foreground">Certificates &amp; Training</h3>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -145,14 +145,14 @@ export function CertificationsSection({
                 <Field label="Expiry date (optional)" hint="Leave blank if certificate does not expire.">
                   <div className="flex gap-2">
                     <Select
-                      value={month}
-                      onValueChange={(m) => updateCert(i, { expiry: buildExpiry(m, exYear) })}
+                      value={month || "__none__"}
+                      onValueChange={(m) => updateCert(i, { expiry: buildExpiry(m === "__none__" ? "" : m, exYear) })}
                     >
                       <SelectTrigger className="w-[130px]">
                         <SelectValue placeholder="Month" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No month</SelectItem>
+                        <SelectItem value="__none__">No month</SelectItem>
                         {MONTHS.map((m) => (
                           <SelectItem key={m} value={m.slice(0, 2)}>{m}</SelectItem>
                         ))}
@@ -160,14 +160,14 @@ export function CertificationsSection({
                     </Select>
 
                     <Select
-                      value={exYear}
-                      onValueChange={(y) => updateCert(i, { expiry: buildExpiry(month, y) })}
+                      value={exYear || "__none__"}
+                      onValueChange={(y) => updateCert(i, { expiry: buildExpiry(month, y === "__none__" ? "" : y) })}
                     >
                       <SelectTrigger className="w-[110px]">
                         <SelectValue placeholder="Year" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No year</SelectItem>
+                        <SelectItem value="__none__">No year</SelectItem>
                         {EXPIRY_YEARS.map((y) => (
                           <SelectItem key={y} value={y}>{y}</SelectItem>
                         ))}
@@ -207,7 +207,10 @@ export function CertificationsSection({
 
       {/* ── Section 2: Languages ── */}
       <div className="space-y-3">
-        <h3 className="font-semibold text-foreground">Languages</h3>
+        <div className="flex items-center gap-2">
+          <LanguagesIcon size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, color: 'var(--brand)' }} />
+          <h3 className="font-semibold text-foreground">Languages</h3>
+        </div>
 
         {/* Language name datalist */}
         <datalist id="lang-names">

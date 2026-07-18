@@ -70,13 +70,17 @@ async function selectRole(page: import('@playwright/test').Page, roleSlug: strin
   // Radix UI Select: click the trigger to open the portal dropdown, then click the option.
   // The native hidden <select> manipulation does NOT update Radix React state.
   const trigger = page.locator('[role="combobox"]').first()
-  await trigger.click()
-  // Give Radix portal time to mount in the DOM
-  await page.waitForTimeout(600)
-
   // Options render in a Radix portal at the document root
   const option = page.getByRole('option', { name: new RegExp(firstWord, 'i') }).first()
-  await option.waitFor({ state: 'visible', timeout: 8000 })
+
+  // The page is server-rendered: a click that lands before React hydration is
+  // silently lost and the dropdown never opens. Retry the open until options
+  // are actually visible instead of clicking once and hoping.
+  await expect(async () => {
+    await trigger.click()
+    await expect(option).toBeVisible({ timeout: 1500 })
+  }).toPass({ timeout: 20_000 })
+
   await option.click()
 
   // Verify selection was applied

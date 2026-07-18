@@ -8,7 +8,7 @@
  * prompt from docs/cv-judging-protocol.md, runs 3×, takes median scores,
  * and writes test-results/cv-journey/<id>/judge-result.json.
  *
- * Requires ANTHROPIC_API_KEY in .env (holds the Groq key).
+ * Requires GROQ_API_KEY in .env.
  */
 
 import fs from 'fs'
@@ -28,9 +28,9 @@ if (fs.existsSync(envPath)) {
     if (m) env[m[1]] = m[2]
   }
 }
-const GROQ_KEY = env['ANTHROPIC_API_KEY'] || process.env.ANTHROPIC_API_KEY
+const GROQ_KEY = env['GROQ_API_KEY'] || process.env.GROQ_API_KEY
 if (!GROQ_KEY) {
-  console.error('ERROR: ANTHROPIC_API_KEY not found in .env — cannot call Groq')
+  console.error('ERROR: GROQ_API_KEY not found in .env — cannot call Groq')
   process.exit(1)
 }
 

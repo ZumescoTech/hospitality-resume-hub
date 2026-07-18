@@ -1,0 +1,356 @@
+# =============================================================================
+# GetHired — AI Optimization & MVP Release · Build Scope
+# =============================================================================
+# HOW TO USE THIS FILE (read first, Claude):
+#   - Work ONE iteration at a time, in order. Do not start iteration N+1
+#     until every task in iteration N passes its `verify` block.
+#   - Within an iteration, respect `depends_on`. Tasks without dependencies
+#     may be done in any order.
+#   - Every task ships WITH its tests in the same commit. A task without
+#     green verification is not done — it is not "done pending tests".
+#   - Commit per task using the `commit` message given. Small commits,
+#     always buildable. Never batch multiple tasks into one commit.
+#   - If a task reveals scope not in this file: do NOT build it. Add it to
+#     `parking_lot` at the bottom with one line of context and move on.
+#   - If a `verify` step fails after 2 fix attempts, stop, write findings
+#     under the task as `blocked_notes:` and continue with non-dependent
+#     tasks only.
+# =============================================================================
+
+project:
+  name: gethired-ai-optimization
+  repo_context: >
+    React (Vite) SPA on Cloudflare Workers. CV checker at
+    /tools/cruise-cv-checker. AI calls in src/lib/ai/* currently Groq
+    llama-3.3-70b-versatile via a client that reads a misnamed secret.
+    Deterministic ATS checks + weighted scoring already exist in app code.
+  source_spec: gethired-ai-optimization-requirements.md
+  north_star: >
+    A 30-user validation round completes at $0 AI spend with zero
+    user-visible failures and byte-identical scores for identical CVs.
+
+working_agreements:
+  - Deterministic scoring engine is the only source of numeric truth.
+    LLM output must never change a score.
+  - Every provider response is schema-validated at the boundary.
+    No provider is trusted, including the primary.
+  - Prefer deleting an AI call over optimizing one.
+  - No paid-only providers. Free tiers + hard $5/mo ceiling.
+  - Any scoring-logic change bumps SCORING_VERSION (cache salt + golden
+    files) in the same commit.
+
+# =============================================================================
+# ITERATION 0 — UNBLOCK  (target: under an hour, mostly human actions)
+# =============================================================================
+iteration_0:
+  goal: Fresh clone builds; secrets correctly named; repo is safe to build on.
+  human_prerequisite:
+    owner: tino
+    action: >
+      BEFORE Claude touches anything: open src/lib/ai/groq-client.ts in the
+      main checkout and check for a hardcoded API key. If present, rotate
+      the key at console.groq.com FIRST (git history is forever), replace
+      with env access, then proceed.
+  tasks:
+    - id: T0.1
+      title: Commit groq-client.ts and clear phantom type errors
+      depends_on: []
+      steps:
+        - Verify groq-client.ts reads its key from env binding only (no literals).
+        - Commit the file from the main checkout.
+        - Run tsc; fix or explicitly annotate remaining errors caused by the
+          previously-missing file. Repo-wide pre-existing lint noise is out of scope.
+      verify:
+        - Fresh `git clone` + install + build succeeds with no manual file copying.
+        - tsc error count attributable to missing ai module == 0.
+      commit: "fix: commit groq-client, restore buildable main"
+
+    - id: T0.2
+      title: Rename misnamed secret ANTHROPIC_API_KEY -> GROQ_API_KEY
+      depends_on: [T0.1]
+      steps:
+        - Add GROQ_API_KEY via wrangler secret put (human runs the command;
+          Claude prepares it and the code change).
+        - Update all code references and .dev.vars.example / env docs.
+        - Deploy; confirm live checker works; THEN delete ANTHROPIC_API_KEY.
+      verify:
+        - grep for ANTHROPIC_API_KEY returns zero code references.
+        - Live /tools/cruise-cv-checker completes one real check post-deploy.
+      commit: "chore: rename AI secret to GROQ_API_KEY (zero-downtime cutover)"
+
+# =============================================================================
+# ITERATION 1 — TEST HARNESS + SCORE TRUTH  (do this BEFORE touching AI code)
+# Rationale: we are about to rewire the AI layer. Lock in current correct
+# behavior first so every later change diffs against a trusted baseline.
+# =============================================================================
+iteration_1:
+  goal: Golden-file safety net green in CI before any pipeline surgery.
+  tasks:
+    - id: T1.1
+      title: Test runner + fixtures scaffold
+      depends_on: [T0.1]
+      steps:
+        - Add vitest (or the repo's existing runner if one exists) wired
+          into the build/CI script.
+        - Create tests/fixtures/cvs/ with 5 SYNTHETIC hospitality CVs as .txt
+          (waiter, bartender, sommelier, housekeeping, F&B supervisor).
+          Realistic structure, invented people. No real personal data ever
+          committed.
+      verify:
+        - `npm test` runs and reports; build script fails if tests fail.
+      commit: "test: add runner + 5 synthetic CV fixtures"
+
+    - id: T1.2
+      title: Golden-file score tests (R6)
+      depends_on: [T1.1]
+      steps:
+        - Introduce SCORING_VERSION constant (single module, exported).
+        - Run the deterministic scoring engine on the 5 fixtures; snapshot
+          exact numeric scores, category breakdowns, and tiers as the
+          golden expectations.
+        - Test A: each fixture matches its golden score exactly.
+        - Test B: each fixture scored 3x in-process yields identical output.
+        - Test C (guard): assert the final score is computed purely from
+          deterministic inputs — construct a fake LLM response with absurd
+          category claims and assert the numeric score is unaffected.
+      verify:
+        - All three test groups green; intentionally perturbing a scoring
+          weight makes Test A fail (prove the net catches).
+      commit: "test: golden-file score lock + SCORING_VERSION"
+
+# =============================================================================
+# ITERATION 2 — PROVIDER LAYER + FAILOVER  (R3)
+# =============================================================================
+iteration_2:
+  goal: >
+    One AI interface, two adapters, automatic 429/5xx failover, schema
+    validation at the boundary. User never sees a provider failure.
+  tasks:
+    - id: T2.1
+      title: Define provider interface + response schemas
+      depends_on: [T1.2]
+      steps:
+        - Create src/lib/ai/provider.ts exporting the interface
+          (analyze(input), extract(input)) and zod (or equivalent) schemas
+          for AnalysisResult and ResumeData.
+        - Schema validation is a standalone function used by ALL adapters;
+          malformed => typed ProviderError{kind:"bad_json"}.
+      verify:
+        - Unit tests - valid payload parses; 3 malformed variants (truncated,
+          wrong types, markdown-fenced JSON) are rejected or repaired
+          (fence-stripping allowed) deterministically.
+      commit: "feat: AI provider interface + boundary schemas"
+
+    - id: T2.2
+      title: Groq adapter (port existing client behind interface)
+      depends_on: [T2.1]
+      steps:
+        - Wrap current groq-client logic as the Groq adapter. No behavior
+          change; call sites still produce identical results.
+      verify:
+        - Existing checker flow works end-to-end against real Groq (manual
+          smoke) AND unit tests pass with a mocked fetch.
+        - Golden-file tests still green (scores untouched by refactor).
+      commit: "refactor: groq behind provider interface"
+
+    - id: T2.3
+      title: Gemini 2.5 Flash adapter (AI Studio free tier)
+      depends_on: [T2.1]
+      steps:
+        - Adapter using the Generative Language API, JSON response mode,
+          key from new secret GEMINI_API_KEY (add to .dev.vars.example;
+          human sets real secret).
+        - Check current free-tier limits at implementation time; record them
+          in a comment (do not hardcode assumptions from this file).
+      verify:
+        - Mocked-fetch unit tests for happy path + 429 + malformed JSON.
+        - One real manual call succeeds and passes schema validation.
+      commit: "feat: gemini flash fallback adapter"
+
+    - id: T2.4
+      title: Failover orchestrator
+      depends_on: [T2.2, T2.3]
+      steps:
+        - Router - try primary (Groq); on 429/5xx/bad_json retry ONCE on
+          fallback (Gemini). Both fail => typed exhaustion error.
+        - Structured log per attempt {provider, ms, outcome} (console is fine).
+        - UI - exhaustion error renders "High demand — try again in a
+          minute" with a retry button. Never an infinite spinner, never a
+          zeroed score.
+      verify:
+        - Unit tests - primary-ok uses 1 call; primary-429 => fallback-ok
+          returns success with 2 calls; both-fail => typed error.
+        - Manual - force a fake 429 (env flag or mock) in dev and observe
+          fallback + UI error state for double failure.
+      commit: "feat: automatic provider failover + graceful failure UI"
+
+# =============================================================================
+# ITERATION 3 — STOP PAYING TWICE  (R4 cache, R9 call merge)
+# =============================================================================
+iteration_3:
+  goal: AI calls per completed check drops to <=1.0 average.
+  tasks:
+    - id: T3.1
+      title: KV result cache keyed on normalized text hash
+      depends_on: [T2.4]
+      steps:
+        - Normalize extracted text (trim, collapse whitespace, lowercase for
+          hashing only); SHA-256; key = `check:{SCORING_VERSION}:{hash}` and
+          include a job-description hash segment when a JD was provided.
+        - Cache the full {analysis, resumeData} result. TTL 30 days.
+        - KV binding added to wrangler config; hit/miss logged.
+      verify:
+        - Unit tests - same text differing only in whitespace/case => same
+          key; different JD => different key; bumped SCORING_VERSION =>
+          different key.
+        - Manual - upload same CV twice; second check makes ZERO AI calls
+          (log-verified) and renders an identical results page.
+      commit: "feat: KV cache for check results (version-salted)"
+
+    - id: T3.2
+      title: Merge analysis + extraction into one call (R9 — gated)
+      depends_on: [T3.1]
+      steps:
+        - Single prompt returning {analysis, resumeData} under one schema,
+          behind a feature flag MERGED_CALL.
+        - Gate - run both modes on the 5 fixtures + 5 more synthetic CVs;
+          compare malformed-JSON rate and extraction completeness.
+      verify:
+        - If merged mode's failure rate <= two-call baseline: flag ON,
+          record numbers in the task's notes. Otherwise flag stays OFF and
+          findings are written to parking_lot — that outcome also counts
+          as task complete.
+      commit: "feat: merged single-call mode behind flag (gated rollout)"
+
+# =============================================================================
+# ITERATION 4 — SHRINK & DE-AI  (R5 prompt slimming, R7 deterministic value)
+# =============================================================================
+iteration_4:
+  goal: >
+    -40% tokens per AI call; feedback and confidence generated with zero
+    tokens; keyword map covers the hospitality domain properly.
+  tasks:
+    - id: T4.1
+      title: Expand deterministic hospitality keyword/synonym map (R7c)
+      depends_on: [T1.2]   # only needs the safety net, can parallel iter 2/3
+      steps:
+        - Add with synonyms/variants - Opera PMS, Micros, Simphony, Fidelio,
+          Lightspeed, HACCP, STCW, WSET (L1-L4 patterns), Cape Wine Academy,
+          cruise contract terms, guest satisfaction (GSS/NPS), upselling,
+          wine service, silver service.
+        - Bump SCORING_VERSION; regenerate golden expectations in the SAME
+          commit (agreed workflow, not a test dodge — review the diff).
+      verify:
+        - New unit tests - each new keyword and >=1 synonym matches; obvious
+          negatives don't (e.g. "microscope" != Micros).
+        - Golden tests green against regenerated expectations.
+      commit: "feat: hospitality keyword map expansion + SCORING_VERSION bump"
+
+    - id: T4.2
+      title: Deterministic improvement feedback + confidence score (R7a/b)
+      depends_on: [T4.1]
+      steps:
+        - Template engine mapping missing keywords + ATS findings to
+          specific suggestions ("Mention Micros POS experience if you have
+          it", "Quantify achievements in your Cunard role").
+        - Confidence (High/Med/Low) from - OCR-used flag, garbled-text flag,
+          extraction completeness, keyword coverage; with 1-2 human-readable
+          reasons.
+        - Render both in results UI; these display even when AI explanation
+          is unavailable (provider exhaustion path from T2.4 now shows a
+          degraded-but-useful result instead of only an error).
+      verify:
+        - Unit tests - fixture with known gaps produces the expected
+          suggestion strings; OCR fixture => Low/Medium confidence with
+          OCR reason.
+        - Manual - kill both providers (mock) and confirm results page still
+          shows score + deterministic feedback + confidence.
+      commit: "feat: zero-token feedback + confidence; degraded-mode results"
+
+    - id: T4.3
+      title: Prompt slimming — structured signals replace raw CV (R5)
+      depends_on: [T4.2, T3.1]
+      steps:
+        - Analysis prompt input becomes {relevant sections, ATS metrics,
+          matched/missing keywords, job requirements} — never the full raw
+          CV. LLM's job narrows to explaining scores + polishing the
+          deterministic suggestions.
+        - Measure tokens before/after on the 10 synthetic CVs; record table
+          in commit message or notes.
+      verify:
+        - Token reduction >= 40% on the sample.
+        - Golden scores unchanged (they must be — LLM can't touch them).
+        - Manual review of 3 outputs - explanations remain specific, no
+          fabricated CV details (nothing referenced that isn't in the input).
+      commit: "perf: structured-signal prompts (-40% tokens)"
+
+# =============================================================================
+# ITERATION 5 — FAST FOLLOWS  (P1; each independently shippable, skippable)
+# =============================================================================
+iteration_5:
+  goal: Extra resilience and conversion polish. None block the release gate.
+  tasks:
+    - id: T5.1
+      title: Workers AI adapter, dark-launched (R8)
+      depends_on: [T2.4]
+      steps:
+        - Adapter for @cf/meta/llama-3.3-70b-instruct-fp8-fast behind the
+          same interface, behind flag WORKERS_AI_ENABLED=false.
+        - Test 20 analysis calls on fixtures; record malformed-JSON rate.
+      verify:
+        - Rate <=5% after one schema-retry => document and enable as third
+          in failover chain; otherwise leave dark with findings noted.
+      commit: "feat: workers-ai adapter (dark launch)"
+
+    - id: T5.2
+      title: Hybrid deterministic extraction (R10 — gated)
+      depends_on: [T4.3]
+      steps:
+        - Regex extraction - email, phone, URLs/LinkedIn, cert patterns
+          (WSET/STCW/HACCP/CWA), date ranges.
+        - Confidence heuristic decides per-CV whether AI extraction runs.
+        - Side-by-side on 20 synthetic CVs - hybrid vs AI-only pre-fill
+          completeness for Build My CV.
+      verify:
+        - Hybrid >= AI-only on the comparison => enable; else keep AI-only
+          and record findings. AI path is never deleted either way.
+      commit: "feat: hybrid extraction behind quality gate"
+
+    - id: T5.3
+      title: Transparent score breakdown UI (R11)
+      depends_on: [T1.2]
+      steps:
+        - Results page renders per-category points (Experience 28/35 style)
+          from the weighted engine's existing data.
+      verify:
+        - Displayed category sums equal the engine's final score on all
+          fixtures (unit-tested against the same data source, no re-derive).
+      commit: "feat: transparent score breakdown"
+
+# =============================================================================
+# RELEASE GATE — all must be true before the 30-user validation round
+# =============================================================================
+release_gate:
+  checklist:
+    - All iteration 0-4 tasks verified (iteration 5 optional).
+    - Golden-file tests green in CI on the release commit.
+    - Forced-429 drill on production preview - fallback succeeds.
+    - Same CV uploaded twice on production preview - second is a cache hit.
+    - Both-providers-down drill - degraded results page (score + feedback +
+      confidence) renders, no hang.
+    - Template track merged - Vintage default + Winelands live, five
+      original templates unchanged.
+    - Landing copy updated - "5 templates" -> "6 templates" (and template
+      count anywhere else it appears).
+    - Provider dashboards checked - spend $0, quota headroom confirmed.
+  rollback_plan: >
+    Every feature flag (MERGED_CALL, WORKERS_AI_ENABLED, hybrid extraction)
+    defaults OFF-able via env without redeploy. Provider order revertible to
+    Groq-only by config.
+
+parking_lot:
+  # Claude: append discovered-but-out-of-scope items here. One line each.
+  - Formal 4-provider benchmark (revisit >500 checks/month)
+  - Embeddings-based matching (keyword module kept isolated for swap)
+  - Analytics dashboard (raw events logged from iteration 4 onward)
+  - Recruiter dashboard / cover letters / interview prep (V2)

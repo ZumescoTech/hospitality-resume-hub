@@ -9,6 +9,7 @@
 // while delivering the same accept/dismiss workflow.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -157,7 +158,8 @@ export function AssistedTextarea({
         } as any);
         setTailorState({ status: 'preview', result, checkedSkills: new Set(), isDraft });
       } catch {
-        // Tailor failure: silently revert — user sees no error banner
+        // The user's text is untouched — value only changes on explicit accept.
+        toast.error("We couldn't generate a suggestion right now — please try again in a moment.");
         setTailorState({ status: 'idle' });
       }
     },

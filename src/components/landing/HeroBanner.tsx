@@ -3,6 +3,7 @@
 // Video URL lives in src/lib/config.ts — swap it there when moving to a custom domain.
 
 import { ASSETS } from '@/lib/config'
+import { TEMPLATES } from '@/components/templates/registry'
 
 export function HeroBanner() {
   // Skip autoplay on slow connections or reduced motion preference
@@ -198,7 +199,7 @@ export function HeroBanner() {
         >
           {[
             { num: '2 min', label: 'to build' },
-            { num: '13+', label: 'templates' },
+            { num: `${TEMPLATES.length}`, label: 'templates' },
             { num: 'ATS', label: 'optimised' },
           ].map((s, i) => (
             <div key={s.label} style={{ display: 'flex', alignItems: 'center' }}>
