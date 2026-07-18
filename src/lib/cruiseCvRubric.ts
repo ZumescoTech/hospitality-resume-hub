@@ -9,6 +9,11 @@
 
 import type { DeterministicSignals } from './cvDeterministicChecks';
 
+// ─── Scoring version (cache salt + golden-file contract) ─────────────────────
+// Bump whenever scoring logic, weights, or the keyword map changes.
+// KV cache keys are salted with this value; stale cache entries are ignored.
+export const SCORING_VERSION = '1';
+
 // ─── Role types ───────────────────────────────────────────────────────────────
 
 export interface CruiseRole {
