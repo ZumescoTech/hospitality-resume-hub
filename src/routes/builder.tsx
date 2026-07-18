@@ -71,12 +71,12 @@ export const Route = createFileRoute("/builder")({
       {
         name: "description",
         content:
-          "A modern resume builder for waiters, sommeliers, bartenders and chefs. Live preview, 10+ editorial templates, hospitality-specific sections.",
+          "A modern resume builder for waiters, sommeliers, bartenders and chefs. Live preview, 7 editorial templates, hospitality-specific sections.",
       },
       { property: "og:title", content: "GetHired — Resume Builder for Hospitality" },
       {
         property: "og:description",
-        content: "Build a beautiful, hospitality-focused CV with live preview and 10+ templates.",
+        content: "Build a beautiful, hospitality-focused CV with live preview and 7 templates.",
       },
     ],
   }),

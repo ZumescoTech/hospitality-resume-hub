@@ -1,4 +1,6 @@
 import { ResumeData } from "@/types/resume";
+import { VintageTemplate } from "./premium/VintageTemplate";
+import { WinelandsTemplate } from "./premium/WinelandsTemplate";
 import { PremiumNoirTemplate } from "./premium/PremiumNoirTemplate";
 import { ExecutiveTemplate } from "./premium/ExecutiveTemplate";
 import { HarbourTemplate } from "./premium/HarbourTemplate";
@@ -17,6 +19,9 @@ export interface TemplateMeta {
 }
 
 export const TEMPLATES: TemplateMeta[] = [
+  // Vintage is the default template (first element). Classic elegant layout.
+  { id: "vintage", name: "Vintage", description: "Classic elegant · all roles", swatch: ["#ffffff", "#0d6b5e"], purpose: "All hospitality roles", Component: VintageTemplate },
+  { id: "winelands", name: "Winelands", description: "Warm serif · sommeliers & wine", swatch: ["#f5f0e8", "#0d6b5e"], purpose: "Sommelier & wine roles", Component: WinelandsTemplate },
   { id: "noir-premium", name: "Noir", description: "Clean minimal · cruise lines", swatch: ["#ffffff", "#0d6b5e"], purpose: "Luxury cruise lines", Component: PremiumNoirTemplate },
   { id: "executive", name: "Executive", description: "Crisp single-column · management", swatch: ["#ffffff", "#0d6b5e"], purpose: "Ship's management", Component: ExecutiveTemplate },
   { id: "harbour", name: "Harbour", description: "Two-column · hotel & resort", swatch: ["#0d6b5e", "#ffffff"], purpose: "Hotel & resort", Component: HarbourTemplate },
