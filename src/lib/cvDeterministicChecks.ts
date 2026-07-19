@@ -122,6 +122,42 @@ export function parseQualityGate(
   return null; // quality acceptable
 }
 
+// ─── Job description validation ──────────────────────────────────────────────
+
+/** Max chars processed from a job description — prevents slow keyword extraction on full-page scrapes. */
+const JD_MAX_CHARS = 5000;
+
+/**
+ * Sanitise and validate a job description before feeding it to keyword extraction.
+ * Returns null if the JD is empty, too short to be useful, or appears to be garbage
+ * (HTML, code, random characters). Otherwise returns a trimmed/capped version.
+ */
+export function sanitizeJobDescription(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+
+  let text = raw.trim();
+
+  // Strip HTML tags (user may have pasted from a web page with markup)
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // Collapse whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+
+  // Too short to extract meaningful keywords
+  if (text.length < 30) return null;
+
+  // Detect obvious garbage: high ratio of special characters / code patterns
+  const codePatterns = /[{}<>].*[{}<>]|function\s*\(|const\s+\w+|import\s+\{|<\/?\w+>/;
+  if (codePatterns.test(text.slice(0, 500))) return null;
+
+  // Cap length to prevent slow extraction
+  if (text.length > JD_MAX_CHARS) {
+    text = text.slice(0, JD_MAX_CHARS);
+  }
+
+  return text;
+}
+
 // ─── Job description keyword extractor ────────────────────────────────────────
 
 const JD_STOPWORDS = new Set([
@@ -209,10 +245,11 @@ export function scoreKeywordAlignment(
 
   // JD bonus pool: JD-extracted terms found in the CV are added to matchedKeywords
   // (boosting what the LLM sees). Unmatched JD terms are silently dropped — no penalty.
-  if (jobDescription?.trim()) {
+  const cleanJd = sanitizeJobDescription(jobDescription);
+  if (cleanJd) {
     const roleSet = new Set(roleKeywords.map((k) => k.toLowerCase()));
     const alreadyMatched = new Set(matched.map((k) => k.toLowerCase()));
-    for (const jdKw of extractJobDescriptionKeywords(jobDescription)) {
+    for (const jdKw of extractJobDescriptionKeywords(cleanJd)) {
       if (roleSet.has(jdKw) || alreadyMatched.has(jdKw)) continue;
       if (termInText(cvText, jdKw)) {
         matched.push(jdKw);

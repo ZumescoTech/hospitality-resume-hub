@@ -7,7 +7,7 @@ import {
   type CvScoreResult,
   type CvCheckOutcome,
 } from '@/lib/cruiseCvRubric';
-import { runDeterministicChecks, scoreKeywordAlignment, parseQualityGate } from '@/lib/cvDeterministicChecks';
+import { runDeterministicChecks, scoreKeywordAlignment, parseQualityGate, sanitizeJobDescription } from '@/lib/cvDeterministicChecks';
 import { createRouter } from '@/lib/ai/router';
 import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
@@ -49,8 +49,11 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
 
+  // 0. Sanitize optional job description (strip HTML, reject garbage, cap length)
+  const cleanJd = sanitizeJobDescription(parsed.jobDescription) ?? undefined;
+
   // 1. KV cache check (before any AI work)
-  const cacheKey = await buildCacheKey(parsed.cvText, parsed.jobDescription);
+  const cacheKey = await buildCacheKey(parsed.cvText, cleanJd);
   const cached = await getCachedResult(cacheKey);
   if (cached) {
     console.log(`[cv-check] cache hit: ${cacheKey}`);
@@ -74,7 +77,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const { matchedKeywords, missingKeywords, matchRatio } = scoreKeywordAlignment(
     parsed.cvText,
     role.keywords,
-    parsed.jobDescription,
+    cleanJd,
   );
 
   // 4. Build prompt
@@ -85,7 +88,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     matchedKeywords,
     missingKeywords,
     matchRatio,
-    jobDescription: parsed.jobDescription,
+    jobDescription: cleanJd,
   });
 
   // 5. Call via router (Groq → Gemini → Workers AI when WORKERS_AI_ENABLED=true)
