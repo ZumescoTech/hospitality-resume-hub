@@ -28,7 +28,7 @@ import {
 import { checkCruiseCv, getRoleOptions } from '@/lib/cruise-cv-check';
 import { WhatsAppCaptureForm } from '@/components/checker/WhatsAppCaptureForm';
 import { AtsScoreRing } from '@/components/checker/AtsScoreRing';
-import type { CvScoreResult, CategoryKey } from '@/lib/cruiseCvRubric';
+import type { CvScoreResult, CvCheckOutcome, CategoryKey } from '@/lib/cruiseCvRubric';
 import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
 import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
@@ -187,6 +187,7 @@ function CruiseCvCheckerPage() {
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvScoreResult | null>(null);
+  const [parseFailure, setParseFailure] = useState<Extract<CvCheckOutcome, { kind: 'parse_failed' | 'insufficient_content' }> | null>(null);
   const [parsedCv, setParsedCv] = useState<ResumeData | null>(null);
   const [whatsappCaptured, setWhatsappCaptured] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -225,8 +226,9 @@ function CruiseCvCheckerPage() {
 
   // A2-2: Sync URL step with result state (browser back clears results) ───────
   useEffect(() => {
-    if (step === 'form' && result) {
+    if (step === 'form' && (result || parseFailure)) {
       setResult(null);
+      setParseFailure(null);
       setParsedCv(null);
       setWhatsappCaptured(false);
     }
@@ -265,6 +267,7 @@ function CruiseCvCheckerPage() {
     }
     setLoading(true);
     setResult(null);
+    setParseFailure(null);
     setParsedCv(null);
     setWhatsappCaptured(false);
 
@@ -310,8 +313,20 @@ function CruiseCvCheckerPage() {
         throw scoreResult.reason;
       }
 
+      const outcome = scoreResult.value as CvCheckOutcome;
+
+      // Handle parse quality gate failures — distinct from a low score
+      if (outcome.kind === 'parse_failed' || outcome.kind === 'insufficient_content') {
+        progress.setStage('done', 100);
+        setParseFailure(outcome);
+        trackEvent('cv_parse_failed');
+        setTimeout(() => progress.reset(), 1500);
+        void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'results' } });
+        return;
+      }
+
       progress.setStage('done', 100);
-      setResult(scoreResult.value);
+      setResult(outcome.result);
       trackEvent('cv_upload_succeeded');
       trackEvent('score_viewed');
       if (parseResult.status === 'fulfilled') {
@@ -343,8 +358,11 @@ function CruiseCvCheckerPage() {
         err instanceof Error &&
         (err.message.includes('scanned image') ||
           err.message.includes('encrypted or corrupted') ||
+          err.message.includes('password-protected') ||
           err.message.includes('Unsupported file type') ||
+          err.message.includes('Legacy .doc') ||
           err.message.includes("couldn't extract") ||
+          err.message.includes('pages. CVs should be') ||
           err.message.includes('taking too long'));
 
       toast.error(
@@ -364,6 +382,7 @@ function CruiseCvCheckerPage() {
     // A0-1: clear saved draft so next user starts fresh
     try { localStorage.removeItem(CHECKER_STORAGE_KEY); } catch { /* ignore */ }
     setResult(null);
+    setParseFailure(null);
     setParsedCv(null);
     setWhatsappCaptured(false);
     setPendingFile(null);
@@ -382,8 +401,8 @@ function CruiseCvCheckerPage() {
     'Major Gaps': 'Your CV has critical gaps that will likely cause instant rejection.',
   };
 
-  // Show results view when URL says results AND we have a result
-  const showResults = step === 'results' && result != null && !loading;
+  // Show results view when URL says results AND we have a result (or parse failure)
+  const showResults = step === 'results' && (result != null || parseFailure != null) && !loading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -510,8 +529,47 @@ function CruiseCvCheckerPage() {
           </form>
         )}
 
+        {/* Parse failure — distinct from a numeric score */}
+        {showResults && parseFailure && (
+          <div className="space-y-5">
+            <div className="rounded-2xl bg-card border border-destructive/30 shadow-soft p-6 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                {parseFailure.kind === 'parse_failed'
+                  ? "We couldn't read your CV"
+                  : 'Not enough content to score'}
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                {parseFailure.reason}
+              </p>
+              <div className="rounded-lg bg-muted border border-border px-4 py-3 text-left">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-accent shrink-0" />
+                  What to do
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {parseFailure.suggestion}
+                </p>
+              </div>
+            </div>
+
+            {/* Try again */}
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={handleCheckAnother}
+                className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+              >
+                Try again with a different file
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Results */}
-        {showResults && (
+        {showResults && result && (
           <div className="space-y-5">
             {/* Score card */}
             <div className="rounded-2xl bg-card border border-border shadow-soft p-6">

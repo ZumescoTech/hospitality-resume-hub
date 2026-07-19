@@ -14,6 +14,10 @@ const RETRY_DELAYS_MS = [1000, 3000, 8000];
 // client-side 35s analysis timeout would expire before the retry landed.
 const MAX_RETRY_DELAY_MS = 15_000;
 
+// Server-side fetch timeout — prevents hung requests when the API is
+// unreachable or unresponsive (distinct from the client-side 35s timeout).
+const FETCH_TIMEOUT_MS = 20_000;
+
 export interface GroqChatBody {
   model: string;
   max_tokens: number;
@@ -47,15 +51,38 @@ export async function groqChatCompletion(
 
   let attempt = 0;
   for (;;) {
-    const response = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      signal,
-      body: JSON.stringify(body),
-    });
+    // Compose caller signal with a per-request timeout so a hung connection
+    // doesn't block indefinitely (the caller's 35s budget is broader).
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), FETCH_TIMEOUT_MS);
+
+    // If the caller provides a signal, forward its abort to our controller.
+    const onCallerAbort = () => timeoutController.abort();
+    signal?.addEventListener('abort', onCallerAbort);
+
+    let response: Response;
+    try {
+      response = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        signal: timeoutController.signal,
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onCallerAbort);
+      // AbortError from our timeout → throw as a descriptive timeout error
+      if (timeoutController.signal.aborted && !signal?.aborted) {
+        throw new Error(`Groq API timeout after ${FETCH_TIMEOUT_MS}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onCallerAbort);
+    }
 
     if (response.status === 429 && attempt < maxRetries) {
       const retryAfterSec = Number(response.headers.get('retry-after'));

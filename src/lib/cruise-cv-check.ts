@@ -5,8 +5,9 @@ import {
   computeCvScore,
   type CruiseRolesData,
   type CvScoreResult,
+  type CvCheckOutcome,
 } from '@/lib/cruiseCvRubric';
-import { runDeterministicChecks, scoreKeywordAlignment } from '@/lib/cvDeterministicChecks';
+import { runDeterministicChecks, scoreKeywordAlignment, parseQualityGate } from '@/lib/cvDeterministicChecks';
 import { createRouter } from '@/lib/ai/router';
 import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
@@ -41,7 +42,7 @@ export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 // propagates to the client so the UI can show a graceful retry message.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvScoreResult> => {
+export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvCheckOutcome> => {
   const parsed = CvCheckSchema.parse(ctx.data as CvCheckInput);
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
@@ -51,12 +52,19 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const cached = await getCachedResult(cacheKey);
   if (cached) {
     console.log(`[cv-check] cache hit: ${cacheKey}`);
-    return cached;
+    return { kind: 'scored', result: cached };
   }
   console.log(`[cv-check] cache miss: ${cacheKey}`);
 
   // 2. Deterministic signals
   const signals = runDeterministicChecks(parsed.cvText);
+
+  // 2b. Parse quality gate — reject garbled/insufficient text BEFORE scoring
+  const qualityFailure = parseQualityGate(parsed.cvText, signals);
+  if (qualityFailure) {
+    console.log(`[cv-check] quality gate: ${qualityFailure.kind}`);
+    return qualityFailure;
+  }
 
   // 3. Keyword alignment
   const { matchedKeywords, missingKeywords, matchRatio } = scoreKeywordAlignment(
@@ -109,13 +117,13 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
         confidence: computeConfidence(signals, matchRatio, true),
         isDegraded: true,
       };
-      return degradedResult;
+      return { kind: 'scored', result: degradedResult };
     }
     throw err;
   }
 
   // 6. Compute final score deterministically — LLM output never changes the score directly
-  const result = {
+  const result: CvScoreResult = {
     ...computeCvScore(llmParsed, matchedKeywords, missingKeywords),
     deterministicFeedback,
     confidence: computeConfidence(signals, matchRatio),
@@ -124,7 +132,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   // 7. Store in KV cache (fire-and-forget — non-fatal on failure)
   void setCachedResult(cacheKey, result);
 
-  return result;
+  return { kind: 'scored', result };
 });
 
 // ─── Save WhatsApp lead to webhook ────────────────────────────────────────────

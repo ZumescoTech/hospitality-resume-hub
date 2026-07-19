@@ -63,6 +63,65 @@ export function runDeterministicChecks(cvText: string): DeterministicSignals {
   };
 }
 
+// ─── Parse quality gate ───────────────────────────────────────────────────────
+// Returns null if text quality is acceptable for scoring, or a failure descriptor
+// if the extracted text is too garbled/empty to produce a trustworthy score.
+
+export type ParseQualityFailure =
+  | { kind: 'parse_failed'; reason: string; suggestion: string }
+  | { kind: 'insufficient_content'; reason: string; suggestion: string };
+
+/**
+ * Ratio of non-ASCII/control characters to total length — high values indicate
+ * garbled text from a bad PDF export (font encoding issues, etc.).
+ */
+function garbledCharRatio(text: string): number {
+  if (text.length === 0) return 0;
+  // Count characters that are non-printable ASCII or replacement chars
+  const garbled = text.replace(/[\x20-\x7E\n\r\t\u00A0-\u024F]/g, '');
+  return garbled.length / text.length;
+}
+
+export function parseQualityGate(
+  cvText: string,
+  signals: DeterministicSignals,
+): ParseQualityFailure | null {
+  // Gate 1: Garbled text — high ratio of non-printable characters indicates
+  // font encoding issues or image-only PDF that OCR partially decoded.
+  // Check this BEFORE word count, since garbled text is often also short.
+  const ratio = garbledCharRatio(cvText);
+  if (ratio > 0.15) {
+    return {
+      kind: 'parse_failed',
+      reason: 'Your CV file appears to contain garbled or unreadable text, likely due to font encoding in the PDF.',
+      suggestion: 'Try re-exporting your CV from Word as a .docx, or paste the text directly.',
+    };
+  }
+
+  // Gate 2: Long garbled runs (the existing GARBLED_RE) combined with lack of
+  // structure — a single garbled run is suspect but tolerable if the rest of
+  // the CV has recognizable structure
+  if (signals.suspectGarbledText && signals.headingsFound.length === 0 && signals.wordCount < 100) {
+    return {
+      kind: 'parse_failed',
+      reason: "We couldn't reliably read text from this file — it may be a scanned image or use non-standard fonts.",
+      suggestion: 'Try uploading a .docx version, or paste your CV text directly.',
+    };
+  }
+
+  // Gate 3: Insufficient content (passed the 50-char extraction threshold but
+  // still too short to meaningfully score)
+  if (signals.wordCount < 30) {
+    return {
+      kind: 'insufficient_content',
+      reason: 'Your CV file contained very little readable text.',
+      suggestion: 'Try re-uploading as a .docx file, or paste your CV text directly into the text box.',
+    };
+  }
+
+  return null; // quality acceptable
+}
+
 // ─── Job description keyword extractor ────────────────────────────────────────
 
 const JD_STOPWORDS = new Set([

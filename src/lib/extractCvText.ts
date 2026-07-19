@@ -178,6 +178,9 @@ async function ocrPdfPages(
 
 // ─── .pdf ─────────────────────────────────────────────────────────────────────
 
+/** Max pages to extract text from — prevents hung requests on very large PDFs. */
+const PDF_MAX_PAGES = 10;
+
 async function extractTextFromPdf(
   file: File,
   onProgress?: ExtractionProgressCallback,
@@ -192,9 +195,23 @@ async function extractTextFromPdf(
   let pdf: pdfjs.PDFDocumentProxy;
   try {
     pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-  } catch {
+  } catch (err: unknown) {
+    // pdfjs throws PasswordException for password-protected files
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/password/i.test(msg)) {
+      throw new Error(
+        'This PDF is password-protected. Please remove the password and re-upload, or use a .docx file.',
+      );
+    }
     throw new Error(
       "We couldn't read text from this PDF — it may be encrypted or corrupted. Try uploading a .docx instead.",
+    );
+  }
+
+  // Reject excessively long PDFs (likely not a CV — e.g. a book, portfolio)
+  if (pdf.numPages > PDF_MAX_PAGES) {
+    throw new Error(
+      `This PDF has ${pdf.numPages} pages. CVs should be 1–${PDF_MAX_PAGES} pages. Please upload just your CV.`,
     );
   }
 
@@ -239,6 +256,16 @@ export async function extractTextFromFile(
   onProgress?: ExtractionProgressCallback,
 ): Promise<string> {
   const name = file.name.toLowerCase();
+
+  // Reject legacy .doc format early with a specific message
+  if (
+    file.type === 'application/msword' ||
+    name.endsWith('.doc') && !name.endsWith('.docx')
+  ) {
+    throw new Error(
+      'Legacy .doc files are not supported. Please re-save as .docx (Word 2007+) or .pdf and upload again.',
+    );
+  }
 
   let text: string;
 

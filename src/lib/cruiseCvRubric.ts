@@ -64,6 +64,15 @@ export interface CvScoreResult {
   isDegraded?: boolean;
 }
 
+// ─── Check outcome (discriminated union) ──────────────────────────────────
+// A parse failure or insufficient content is a THIRD state — never rendered
+// as a numeric score. The UI must have a distinct render path for these.
+
+export type CvCheckOutcome =
+  | { kind: 'scored'; result: CvScoreResult }
+  | { kind: 'parse_failed'; reason: string; suggestion: string }
+  | { kind: 'insufficient_content'; reason: string; suggestion: string };
+
 // ─── Weights & labels ─────────────────────────────────────────────────────────
 
 export const CATEGORY_WEIGHTS = {

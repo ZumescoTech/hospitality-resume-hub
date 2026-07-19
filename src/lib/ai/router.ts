@@ -53,6 +53,12 @@ export class AiRouter implements AiProvider {
     const first = await attempt(this.primary.name, () => this.primary.analyze(input));
     if (first.ok) return first.value;
 
+    // Retry primary once on bad_json (transient truncation) before switching providers
+    if (first.kind === 'bad_json') {
+      const retry = await attempt(this.primary.name, () => this.primary.analyze(input));
+      if (retry.ok) return retry.value;
+    }
+
     const second = await attempt(this.fallback.name, () => this.fallback.analyze(input));
     if (second.ok) return second.value;
 

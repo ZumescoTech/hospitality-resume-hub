@@ -23,6 +23,9 @@ import { uid } from '@/lib/utils';
 const MODEL = 'gemini-2.5-flash';
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+// Server-side fetch timeout — prevents hung requests when the API is unreachable.
+const FETCH_TIMEOUT_MS = 20_000;
+
 export class GeminiAdapter implements AiProvider {
   readonly name = 'gemini';
 
@@ -59,16 +62,27 @@ export class GeminiAdapter implements AiProvider {
       },
     });
 
+    // Per-request timeout so a hung connection doesn't block indefinitely.
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), FETCH_TIMEOUT_MS);
+    const onCallerAbort = () => timeoutController.abort();
+    signal?.addEventListener('abort', onCallerAbort);
+
     let res: Response;
     try {
       res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
-        signal,
+        signal: timeoutController.signal,
       });
     } catch (err) {
-      throw new ProviderError('server_error', err instanceof Error ? err.message : String(err), this.name, err);
+      const msg = err instanceof Error ? err.message : String(err);
+      const isTimeout = timeoutController.signal.aborted && !signal?.aborted;
+      throw new ProviderError('server_error', isTimeout ? `Gemini API timeout after ${FETCH_TIMEOUT_MS}ms` : msg, this.name, err);
+    } finally {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onCallerAbort);
     }
 
     if (res.status === 429) {
