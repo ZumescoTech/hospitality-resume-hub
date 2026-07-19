@@ -6,7 +6,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getMetricsForDate, type DailyMetrics } from '@/lib/telemetry';
-import { getUploadFailuresForDate } from '@/lib/upload-failure-log';
+import { getUploadFailuresForDate } from '@/lib/upload-failure-kv';
 import type { DailyUploadFailures } from '@/lib/upload-failure-types';
 
 const MetricsQuerySchema = z.object({
