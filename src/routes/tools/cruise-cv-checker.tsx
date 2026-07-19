@@ -31,6 +31,9 @@ import { AtsScoreRing } from '@/components/checker/AtsScoreRing';
 import type { CvScoreResult, CvCheckOutcome, CategoryKey } from '@/lib/cruiseCvRubric';
 import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
+import { ExtractionError } from '@/lib/extraction-error';
+import type { ExtractionReasonCode } from '@/lib/extraction-error';
+import { logUploadFailure } from '@/lib/upload-failure-log';
 import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
 import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
 import type { ResumeData } from '@/types/resume';
@@ -44,6 +47,11 @@ import type { ConfidenceResult } from '@/lib/cvFeedback';
 const CHECKER_STORAGE_KEY = 'checker-draft-v1';
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB (A0-2)
 const ANALYZE_TIMEOUT_MS = 35_000; // 35 s (A0-2)
+
+/** Stable session ID for correlating telemetry events in one page visit. */
+const SESSION_ID = typeof crypto !== 'undefined' && crypto.randomUUID
+  ? crypto.randomUUID()
+  : `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 interface CheckerDraft {
   roleSlug: string;
@@ -246,6 +254,23 @@ function CruiseCvCheckerPage() {
     if (file.size > MAX_FILE_SIZE_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(1);
       toast.error(`This file is ${sizeMb} MB. Please upload a CV under 5 MB.`);
+      // Log to server telemetry
+      void logUploadFailure({
+        data: {
+          sessionId: SESSION_ID,
+          reasonCode: 'file_too_large' as ExtractionReasonCode,
+          stage: 'reading',
+          fileMeta: {
+            size: file.size,
+            mimeType: file.type,
+            extension: (file.name.split('.').pop() ?? '').toLowerCase(),
+            pageCount: null,
+          },
+          errorMessage: `File is ${sizeMb} MB, limit is 5 MB`,
+          timestamp: new Date().toISOString(),
+        },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any).catch(() => {});
       return;
     }
 
@@ -341,37 +366,72 @@ function CruiseCvCheckerPage() {
       progress.setStage('error');
       trackEvent('cv_upload_failed');
 
-      const fileInfo = pendingFile
-        ? { name: pendingFile.name, size: pendingFile.size, type: pendingFile.type }
-        : null;
+      // Determine the reason code and stage for telemetry
+      let reasonCode: ExtractionReasonCode;
+      let failStage: string = 'unknown';
+      let pageCount: number | null = null;
+
+      if (err instanceof ExtractionError) {
+        reasonCode = err.reasonCode;
+        failStage = err.stage;
+        pageCount = err.pageCount ?? null;
+      } else if (err instanceof Error && err.message.includes('taking too long')) {
+        // Client-side 35s timeout — record which stage was active
+        reasonCode = 'client_timeout';
+        failStage = progress.currentStage ?? 'unknown';
+      } else if (err instanceof Error && err.message.includes('ScoreParseError')) {
+        reasonCode = 'parser_exception';
+        failStage = 'analyzing';
+      } else {
+        reasonCode = 'parser_exception';
+        failStage = 'unknown';
+      }
+
+      // Build file metadata for logging
+      const file = pendingFile;
+      const fileMeta = {
+        size: file?.size ?? 0,
+        mimeType: file?.type ?? 'text/plain',
+        extension: file ? (file.name.split('.').pop() ?? '').toLowerCase() : 'paste',
+        pageCount,
+      };
+
+      // Log to console for local debugging
       console.error('[CV checker] extraction/scoring error', {
-        name: err instanceof Error ? err.name : typeof err,
+        sessionId: SESSION_ID,
+        reasonCode,
+        stage: failStage,
         message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
-        fileInfo,
-        userAgent: navigator.userAgent,
+        stack: err instanceof Error ? err.stack?.slice(0, 500) : undefined,
+        fileMeta,
       });
 
-      const isScoreParseFailure =
-        err instanceof Error && err.message.includes('ScoreParseError');
-      const knownMessage =
-        err instanceof Error &&
-        (err.message.includes('scanned image') ||
-          err.message.includes('encrypted or corrupted') ||
-          err.message.includes('password-protected') ||
-          err.message.includes('Unsupported file type') ||
-          err.message.includes('Legacy .doc') ||
-          err.message.includes("couldn't extract") ||
-          err.message.includes('pages. CVs should be') ||
-          err.message.includes('taking too long'));
+      // Fire-and-forget: send structured failure to server telemetry
+      void logUploadFailure({
+        data: {
+          sessionId: SESSION_ID,
+          reasonCode,
+          stage: failStage,
+          fileMeta,
+          errorMessage: err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300),
+          errorStack: err instanceof Error ? err.stack?.slice(0, 500) : undefined,
+          timestamp: new Date().toISOString(),
+        },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any).catch(() => { /* telemetry failure is non-fatal */ });
 
-      toast.error(
-        isScoreParseFailure
-          ? "We couldn't analyse this CV right now — please try again in a moment."
-          : knownMessage
-            ? err.message
-            : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
-      );
+      // Show user-facing message — use the ExtractionError's specific message, not a generic one
+      if (err instanceof ExtractionError) {
+        toast.error(err.message);
+      } else if (err instanceof Error && err.message.includes('taking too long')) {
+        toast.error('Analysis is taking too long. Please try again.');
+      } else if (err instanceof Error && err.message.includes('ScoreParseError')) {
+        toast.error("We couldn't analyse this CV right now — please try again in a moment.");
+      } else {
+        toast.error(
+          err instanceof Error ? err.message : 'An unexpected error occurred. Please try a .docx or .txt file, or paste your CV text directly.',
+        );
+      }
     } finally {
       setLoading(false);
     }

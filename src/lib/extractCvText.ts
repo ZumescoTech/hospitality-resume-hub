@@ -14,6 +14,7 @@
 
 import * as mammoth from 'mammoth';
 import * as pdfjs from 'pdfjs-dist';
+import { ExtractionError } from '@/lib/extraction-error';
 // @ts-ignore — Vite ?url import for the worker bundle
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -79,7 +80,11 @@ function extractTextFromTxt(
       onProgress?.({ stage: 'extracting', percent: 70 }); // txt needs no parse step
       resolve((ev.target?.result as string) ?? '');
     };
-    reader.onerror = () => reject(new Error('Could not read the file.'));
+    reader.onerror = () => reject(new ExtractionError(
+      'filereader_error',
+      'Could not read the file. It may be damaged or inaccessible.',
+      { stage: 'reading' },
+    ));
     reader.readAsText(file);
   });
 }
@@ -91,12 +96,29 @@ async function extractTextFromDocx(
   onProgress?: ExtractionProgressCallback,
 ): Promise<string> {
   onProgress?.({ stage: 'reading', percent: 0 });
-  const arrayBuffer = await readArrayBuffer(file);
+  let arrayBuffer: ArrayBuffer;
+  try {
+    arrayBuffer = await readArrayBuffer(file);
+  } catch (err) {
+    throw new ExtractionError(
+      'filereader_error',
+      'Could not read the file. It may be damaged or inaccessible.',
+      { stage: 'reading', cause: err },
+    );
+  }
   // readArrayBuffer() has no progress events — jump straight to 10%.
   onProgress?.({ stage: 'extracting', percent: 10 });
-  const result = await mammoth.extractRawText({ arrayBuffer });
-  onProgress?.({ stage: 'extracting', percent: 70 });
-  return result.value;
+  try {
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    onProgress?.({ stage: 'extracting', percent: 70 });
+    return result.value;
+  } catch (err) {
+    throw new ExtractionError(
+      'mammoth_failure',
+      'This .docx file appears to be corrupted or in an unsupported format. Try re-saving it from Word, or upload a .pdf instead.',
+      { stage: 'extracting', cause: err },
+    );
+  }
 }
 
 // ─── OCR via Tesseract.js (lazy-loaded) ───────────────────────────────────────
@@ -199,19 +221,32 @@ async function extractTextFromPdf(
     // pdfjs throws PasswordException for password-protected files
     const msg = err instanceof Error ? err.message : String(err);
     if (/password/i.test(msg)) {
-      throw new Error(
+      throw new ExtractionError(
+        'password_protected',
         'This PDF is password-protected. Please remove the password and re-upload, or use a .docx file.',
+        { stage: 'extracting', cause: err },
       );
     }
-    throw new Error(
-      "We couldn't read text from this PDF — it may be encrypted or corrupted. Try uploading a .docx instead.",
+    if (/encrypt/i.test(msg)) {
+      throw new ExtractionError(
+        'encrypted_pdf',
+        'This PDF is encrypted and cannot be read. Try uploading a .docx instead.',
+        { stage: 'extracting', cause: err },
+      );
+    }
+    throw new ExtractionError(
+      'corrupted_pdf',
+      "We couldn't read this PDF — it may be corrupted or in an unsupported format. Try uploading a .docx instead.",
+      { stage: 'extracting', cause: err },
     );
   }
 
   // Reject excessively long PDFs (likely not a CV — e.g. a book, portfolio)
   if (pdf.numPages > PDF_MAX_PAGES) {
-    throw new Error(
+    throw new ExtractionError(
+      'too_many_pages',
       `This PDF has ${pdf.numPages} pages. CVs should be 1–${PDF_MAX_PAGES} pages. Please upload just your CV.`,
+      { stage: 'extracting', pageCount: pdf.numPages },
     );
   }
 
@@ -226,9 +261,11 @@ async function extractTextFromPdf(
         .join(' ');
       pageTexts.push(pageText);
     }
-  } catch {
-    throw new Error(
+  } catch (err) {
+    throw new ExtractionError(
+      'pdfjs_internal_error',
       "We couldn't extract text from this PDF. It may be encrypted or corrupted.",
+      { stage: 'extracting', pageCount: pdf.numPages, cause: err },
     );
   }
 
@@ -243,9 +280,11 @@ async function extractTextFromPdf(
   const ocrText = await ocrPdfPages(pdf, onProgress);
   if (ocrText.length >= 50) return ocrText;
 
-  // ── Stage 3: manual paste (throw so caller shows the paste panel) ──────────
-  throw new Error(
-    "We couldn't read text from this PDF — it may be a scanned image. Try uploading a .docx instead.",
+  // ── Stage 3: manual paste (throw so caller shows the paste panel) ─────────���
+  throw new ExtractionError(
+    'no_text_layer',
+    "We couldn't read text from this PDF — it appears to be a scanned image without a text layer. Try uploading a .docx instead.",
+    { stage: 'extracting', pageCount: pdf.numPages },
   );
 }
 
@@ -262,8 +301,10 @@ export async function extractTextFromFile(
     file.type === 'application/msword' ||
     name.endsWith('.doc') && !name.endsWith('.docx')
   ) {
-    throw new Error(
+    throw new ExtractionError(
+      'legacy_doc',
       'Legacy .doc files are not supported. Please re-save as .docx (Word 2007+) or .pdf and upload again.',
+      { stage: 'reading' },
     );
   }
 
@@ -279,14 +320,18 @@ export async function extractTextFromFile(
   } else if (file.type === 'application/pdf' || name.endsWith('.pdf')) {
     text = await extractTextFromPdf(file, onProgress);
   } else {
-    throw new Error(
-      'Unsupported file type. Please upload a .pdf, .docx, or .txt file.',
+    throw new ExtractionError(
+      'unsupported_mime',
+      `Unsupported file type (${file.type || name.split('.').pop()}). Please upload a .pdf, .docx, or .txt file.`,
+      { stage: 'reading' },
     );
   }
 
   if (text.trim().length < 50) {
-    throw new Error(
+    throw new ExtractionError(
+      'insufficient_text',
       "We couldn't extract enough text from this file. Try copying and pasting your CV text directly.",
+      { stage: 'extracting' },
     );
   }
 

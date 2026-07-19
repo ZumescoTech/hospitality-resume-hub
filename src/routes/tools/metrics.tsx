@@ -8,12 +8,14 @@ import {
   AlertTriangle,
   BarChart3,
   Clock,
+  FileWarning,
   RefreshCw,
   ShieldCheck,
   TrendingUp,
 } from 'lucide-react';
-import { getMetrics } from '@/lib/metrics-api';
+import { getMetrics, getUploadFailures } from '@/lib/metrics-api';
 import type { DailyMetrics } from '@/lib/telemetry';
+import type { DailyUploadFailures, UploadFailureEntry } from '@/lib/upload-failure-types';
 
 export const Route = createFileRoute('/tools/metrics')({
   component: MetricsDashboardPage,
@@ -24,6 +26,7 @@ export const Route = createFileRoute('/tools/metrics')({
 
 function MetricsDashboardPage() {
   const [metrics, setMetrics] = useState<DailyMetrics[]>([]);
+  const [uploadFailures, setUploadFailures] = useState<DailyUploadFailures[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState(7);
@@ -33,8 +36,12 @@ function MetricsDashboardPage() {
     setError(null);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await getMetrics({ data: { days } } as any);
-      setMetrics(data);
+      const [metricsData, failuresData] = await Promise.all([
+        getMetrics({ data: { days } } as any),
+        getUploadFailures({ data: { days } } as any),
+      ]);
+      setMetrics(metricsData);
+      setUploadFailures(failuresData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load metrics');
     } finally {
@@ -217,7 +224,118 @@ function MetricsDashboardPage() {
             <p className="text-sm text-muted-foreground">No data available.</p>
           )}
         </div>
+        {/* Upload Failures */}
+        <UploadFailuresSection failures={uploadFailures} />
       </main>
+    </div>
+  );
+}
+
+// ─── Upload Failures Section ─────────────────────────────────────────────────
+
+function UploadFailuresSection({ failures }: { failures: DailyUploadFailures[] }) {
+  // Aggregate totals across all days
+  const totalFailures = failures.reduce((sum, d) => sum + d.total, 0);
+  const aggregatedByCode: Record<string, number> = {};
+  for (const day of failures) {
+    for (const [code, count] of Object.entries(day.byReasonCode)) {
+      aggregatedByCode[code] = (aggregatedByCode[code] ?? 0) + count;
+    }
+  }
+
+  // Collect all recent entries, sorted most recent first
+  const allEntries: UploadFailureEntry[] = failures
+    .flatMap((d) => d.recentEntries)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 50);
+
+  const sortedCodes = Object.entries(aggregatedByCode).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 mt-6">
+      <div className="flex items-center gap-2 mb-4">
+        <FileWarning className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-sm font-semibold text-foreground">Upload Failures</h2>
+        <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+          {totalFailures} total
+        </span>
+      </div>
+
+      {totalFailures === 0 ? (
+        <p className="text-sm text-muted-foreground">No upload failures in this period.</p>
+      ) : (
+        <>
+          {/* Failure count by reason code */}
+          <div className="mb-4">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              By Reason Code
+            </h3>
+            <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              {sortedCodes.map(([code, count]) => (
+                <div
+                  key={code}
+                  className="flex items-center justify-between rounded-lg border border-border px-3 py-1.5 text-sm"
+                >
+                  <span className="font-mono text-xs text-foreground">{code}</span>
+                  <span className="font-bold tabular-nums text-destructive">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent failures list */}
+          <div>
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Recent Failures
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase tracking-wider">
+                    <th className="pb-2 pr-3">Time</th>
+                    <th className="pb-2 pr-3">Session</th>
+                    <th className="pb-2 pr-3">Reason</th>
+                    <th className="pb-2 pr-3">Stage</th>
+                    <th className="pb-2 pr-3">File</th>
+                    <th className="pb-2">Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allEntries.map((entry, idx) => (
+                    <tr key={`${entry.sessionId}-${idx}`} className="border-b border-border/50 last:border-0">
+                      <td className="py-1.5 pr-3 text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+                        {new Date(entry.timestamp).toLocaleString(undefined, {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="py-1.5 pr-3 font-mono text-xs text-muted-foreground">
+                        {entry.sessionId.slice(0, 8)}
+                      </td>
+                      <td className="py-1.5 pr-3">
+                        <span className="inline-flex rounded bg-destructive/10 px-1.5 py-0.5 text-xs font-medium text-destructive">
+                          {entry.reasonCode}
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-3 text-xs text-muted-foreground">
+                        {entry.stage ?? '—'}
+                      </td>
+                      <td className="py-1.5 pr-3 text-xs text-muted-foreground">
+                        .{entry.fileMeta.extension} ({entry.fileMeta.mimeType.split('/')[1] ?? entry.fileMeta.mimeType})
+                      </td>
+                      <td className="py-1.5 text-xs tabular-nums text-muted-foreground">
+                        {entry.fileMeta.size > 0
+                          ? `${(entry.fileMeta.size / 1024).toFixed(0)} KB`
+                          : '—'}
+                        {entry.fileMeta.pageCount != null && ` · ${entry.fileMeta.pageCount}p`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

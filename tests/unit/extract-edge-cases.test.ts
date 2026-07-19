@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { extractTextFromFile } from '@/lib/extractCvText';
+import { ExtractionError } from '@/lib/extraction-error';
 
 // These tests exercise the extraction dispatcher with synthetic File objects.
 // They verify error messages and guards without requiring real PDF binaries.
@@ -9,19 +10,37 @@ function makeFile(content: string, name: string, type: string): File {
 }
 
 describe('extractTextFromFile — edge case guards', () => {
-  it('rejects .doc files with a specific message', async () => {
+  it('rejects .doc files with reasonCode legacy_doc', async () => {
     const file = makeFile('binary garbage', 'resume.doc', 'application/msword');
     await expect(extractTextFromFile(file)).rejects.toThrow('Legacy .doc files are not supported');
+    try {
+      await extractTextFromFile(file);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ExtractionError);
+      expect((err as ExtractionError).reasonCode).toBe('legacy_doc');
+    }
   });
 
-  it('rejects unsupported file types', async () => {
+  it('rejects unsupported file types with reasonCode unsupported_mime', async () => {
     const file = makeFile('data', 'image.png', 'image/png');
     await expect(extractTextFromFile(file)).rejects.toThrow('Unsupported file type');
+    try {
+      await extractTextFromFile(file);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ExtractionError);
+      expect((err as ExtractionError).reasonCode).toBe('unsupported_mime');
+    }
   });
 
-  it('rejects .txt files with less than 50 chars', async () => {
+  it('rejects .txt files with less than 50 chars with reasonCode insufficient_text', async () => {
     const file = makeFile('Too short', 'cv.txt', 'text/plain');
     await expect(extractTextFromFile(file)).rejects.toThrow("couldn't extract enough text");
+    try {
+      await extractTextFromFile(file);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ExtractionError);
+      expect((err as ExtractionError).reasonCode).toBe('insufficient_text');
+    }
   });
 
   it('extracts text from valid .txt files', async () => {
@@ -50,5 +69,12 @@ Connaissance approfondie des vins du Rhône et de Bourgogne.`;
     const content = '  '.repeat(100); // 200 spaces
     const file = makeFile(content, 'cv.txt', 'text/plain');
     await expect(extractTextFromFile(file)).rejects.toThrow("couldn't extract enough text");
+    try {
+      await extractTextFromFile(file);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ExtractionError);
+      expect((err as ExtractionError).reasonCode).toBe('insufficient_text');
+      expect((err as ExtractionError).stage).toBe('extracting');
+    }
   });
 });

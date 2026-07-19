@@ -6,6 +6,8 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getMetricsForDate, type DailyMetrics } from '@/lib/telemetry';
+import { getUploadFailuresForDate } from '@/lib/upload-failure-log';
+import type { DailyUploadFailures } from '@/lib/upload-failure-types';
 
 const MetricsQuerySchema = z.object({
   /** Number of days to include (default 7, max 30). */
@@ -26,6 +28,23 @@ export const getMetrics = createServerFn({ method: 'GET' }).handler(async (ctx: 
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
     results.push(await getMetricsForDate(dateStr));
+  }
+
+  return results;
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getUploadFailures = createServerFn({ method: 'GET' }).handler(async (ctx: any): Promise<DailyUploadFailures[]> => {
+  const { days } = MetricsQuerySchema.parse(ctx.data ?? {});
+
+  const results: DailyUploadFailures[] = [];
+  const now = new Date();
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    results.push(await getUploadFailuresForDate(dateStr));
   }
 
   return results;
