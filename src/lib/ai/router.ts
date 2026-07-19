@@ -8,6 +8,7 @@
 import { ProviderError, type AiProvider, type AnalyzeInput } from './provider';
 import type { RawLlmResponse } from '@/lib/cruiseCvRubric';
 import type { ResumeData } from '@/types/resume';
+import { recordApiAttempt } from '@/lib/telemetry';
 
 type Outcome = 'ok' | 'rate_limit' | 'server_error' | 'bad_json' | 'exhausted';
 
@@ -20,6 +21,7 @@ interface AttemptLog {
 function log(entry: AttemptLog) {
   // CV text and personal fields never appear in logs.
   console.log(`[ai-router] ${entry.provider} ${entry.outcome} ${entry.ms}ms`);
+  recordApiAttempt(entry.provider, entry.outcome, entry.ms);
 }
 
 async function attempt<T>(

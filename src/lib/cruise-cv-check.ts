@@ -13,6 +13,7 @@ import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
 import { runMergedCall } from '@/lib/ai/merged-call';
 import { buildDeterministicFeedback, computeConfidence, buildNeutralLlmResponse } from '@/lib/cvFeedback';
+import { recordCheckOutcome, recordLatencyMs } from '@/lib/telemetry';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -43,6 +44,7 @@ export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvCheckOutcome> => {
+  const startMs = Date.now();
   const parsed = CvCheckSchema.parse(ctx.data as CvCheckInput);
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
@@ -63,6 +65,8 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   const qualityFailure = parseQualityGate(parsed.cvText, signals);
   if (qualityFailure) {
     console.log(`[cv-check] quality gate: ${qualityFailure.kind}`);
+    recordCheckOutcome(qualityFailure.kind);
+    recordLatencyMs(Date.now() - startMs);
     return qualityFailure;
   }
 
@@ -117,6 +121,8 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
         confidence: computeConfidence(signals, matchRatio, true),
         isDegraded: true,
       };
+      recordCheckOutcome('scored', degradedResult.overallScore);
+      recordLatencyMs(Date.now() - startMs);
       return { kind: 'scored', result: degradedResult };
     }
     throw err;
@@ -131,6 +137,10 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
 
   // 7. Store in KV cache (fire-and-forget — non-fatal on failure)
   void setCachedResult(cacheKey, result);
+
+  // 8. Telemetry (fire-and-forget)
+  recordCheckOutcome('scored', result.overallScore);
+  recordLatencyMs(Date.now() - startMs);
 
   return { kind: 'scored', result };
 });
