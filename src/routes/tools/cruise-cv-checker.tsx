@@ -521,7 +521,7 @@ function CruiseCvCheckerPage() {
 
             {/* CV upload */}
             <div className="space-y-1.5">
-              <Label htmlFor="cvText" className="text-sm font-medium text-foreground">
+              <Label htmlFor="cvFile" className="text-sm font-medium text-foreground">
                 Your CV <span className="text-destructive">*</span>
               </Label>
               <div className="flex items-center gap-2 flex-wrap">
@@ -544,6 +544,8 @@ function CruiseCvCheckerPage() {
                 <span className="text-xs text-muted-foreground/60">max 5 MB</span>
               </div>
               <input
+                id="cvFile"
+                name="cvFile"
                 ref={fileRef}
                 type="file"
                 accept=".txt,.text,.docx,.pdf"
