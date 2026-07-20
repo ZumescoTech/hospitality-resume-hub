@@ -72,7 +72,7 @@ export const parseCvForBuilder = createServerFn({ method: 'POST' }).handler(asyn
   }
 
   // Default (flag off, or low-confidence): full AI extraction
-  const router = createRouter({
+  const router = await createRouter({
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,

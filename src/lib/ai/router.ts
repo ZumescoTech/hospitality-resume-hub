@@ -98,17 +98,14 @@ export class AiRouter implements AiProvider {
 }
 
 /** Factory used by server functions.  Reads API keys from env at call time. */
-export function createRouter(env: {
+export async function createRouter(env: {
   GROQ_API_KEY?: string;
   GEMINI_API_KEY?: string;
   /** Feature flag: add Workers AI as third provider in failover chain. Default: false (dark launch). */
   WORKERS_AI_ENABLED?: string;
-}): AiRouter {
-  // Import dynamically at call time so the module graph stays side-effect free.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { GroqAdapter } = require('./groq-adapter') as typeof import('./groq-adapter');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { GeminiAdapter } = require('./gemini-adapter') as typeof import('./gemini-adapter');
+}): Promise<AiRouter> {
+  const { GroqAdapter } = await import('./groq-adapter');
+  const { GeminiAdapter } = await import('./gemini-adapter');
 
   const groqKey = env.GROQ_API_KEY ?? '';
   const geminiKey = env.GEMINI_API_KEY ?? '';
@@ -120,15 +117,11 @@ export function createRouter(env: {
 
   let fallback: AiProvider;
   if (workersAiEnabled) {
-    // Three-provider chain: Groq → Gemini (or Groq) → Workers AI
-    // Nested router: the outer primary=Groq, outer fallback=(Gemini→WorkersAI)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { WorkersAiAdapter } = require('./workers-ai-adapter') as typeof import('./workers-ai-adapter');
+    const { WorkersAiAdapter } = await import('./workers-ai-adapter');
     const second: AiProvider = geminiKey ? new GeminiAdapter(geminiKey) : new GroqAdapter(groqKey);
     fallback = new AiRouter(second, new WorkersAiAdapter());
     console.log('[ai-router] WORKERS_AI_ENABLED: chain = groq → gemini → workers-ai');
   } else {
-    // Default (flag off): Groq → Gemini (or Groq retry if no Gemini key)
     fallback = geminiKey ? new GeminiAdapter(geminiKey) : new GroqAdapter(groqKey);
   }
 
