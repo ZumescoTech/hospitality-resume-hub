@@ -46,7 +46,7 @@ export function BottomNav({ activeTab, onTabChange, onDownload }: Props) {
     <nav
       role="navigation"
       aria-label="Builder navigation"
-      className="no-print lg:hidden"
+      className="no-print builder-bottom-nav"
       style={{
         position: 'fixed',
         bottom: 0,
@@ -56,8 +56,6 @@ export function BottomNav({ activeTab, onTabChange, onDownload }: Props) {
         height: 'var(--nav-h)',
         background: '#ffffff',
         borderTop: '1px solid var(--border-brand)',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
         boxShadow: '0 -4px 20px rgba(0,0,0,0.07)',
       }}
     >

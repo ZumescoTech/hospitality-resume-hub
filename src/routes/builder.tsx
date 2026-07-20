@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { AppHeader } from "@/components/ui/AppHeader";
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useResumeStore } from "@/lib/resume-store";
-import { ResumeData, STORAGE_KEY } from "@/types/resume";
+import { ResumeData, STORAGE_KEY, sampleResume } from "@/types/resume";
 import { Section } from "@/components/builder/Section";
 import { StepProgress } from "@/components/builder/StepProgress";
 import { BottomNav } from "@/components/builder/BottomNav";
@@ -37,6 +37,7 @@ import { pdf } from "@react-pdf/renderer";
 import { ResumePDF } from "@/lib/pdf/ResumePDF";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/clarity";
+import { MobileModeSwitcher } from "@/components/builder/MobileModeSwitcher";
 
 export function BuilderSkeleton() {
   return (
@@ -92,6 +93,39 @@ const BUILDER_SECTIONS = [
   { id: "hospitality",    label: "Hospitality", subtitle: "Wine, spirits, POS, languages, service style" },
 ];
 
+/**
+ * Does a section hold user-entered content? Drives which accordions are
+ * expanded by default on load — content-bearing sections open, empty ones
+ * collapsed. Defensive against partially-shaped data during import.
+ */
+function sectionHasContent(id: string, d: ResumeData): boolean {
+  switch (id) {
+    case "personal": {
+      const p = d.personal;
+      return Boolean(p?.fullName || p?.email || p?.phone || p?.title || p?.location || d.summary);
+    }
+    case "experience":     return (d.experience?.length ?? 0) > 0;
+    case "education":      return (d.education?.length ?? 0) > 0;
+    case "skills":         return (d.skills?.length ?? 0) > 0;
+    case "certifications": return (d.certifications?.length ?? 0) > 0;
+    case "hospitality": {
+      const h = d.hospitality;
+      if (!h) return false;
+      return (
+        (h.serviceStyles?.length ?? 0) > 0 ||
+        (h.posSystems?.length ?? 0) > 0 ||
+        (h.wineKnowledge && h.wineKnowledge !== "None") ||
+        (h.spiritsKnowledge && h.spiritsKnowledge !== "None") ||
+        Boolean(h.allergens) ||
+        Boolean(h.foodSafety) ||
+        // languages defaults to a single English entry — treat that as empty
+        (h.languages?.length ?? 0) > 1
+      );
+    }
+    default: return false;
+  }
+}
+
 function BuilderPage() {
   const { data, setData, hydrated, syncing, resumeId, setTemplateColours, resetTemplateColours, loadSample } = useResumeStore();
 
@@ -112,23 +146,46 @@ function BuilderPage() {
   const [showPasteFallback, setShowPasteFallback] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [parsingPaste, setParsingPaste] = useState(false);
-  const [openSection, setOpenSection] = useState<string | null>('personal');
+  // Multi-open accordion: any number of sections may be expanded at once.
+  // Seeded once after hydration from which sections hold content (see effect).
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>(['personal']));
+  const didInitOpenRef = useRef(false);
   const [downloading, setDownloading] = useState(false);
 
   const toggleSection = (id: string) => {
-    setOpenSection(prev => {
-      const next = prev === id ? null : id;
-      if (next !== null) {
-        // Scroll into view after state update paints
-        setTimeout(() => {
-          document.getElementById(`section-${id}`)?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          });
-        }, 50);
+    const willOpen = !openSections.has(id);
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (willOpen) {
+      // Scroll into view after state update paints
+      setTimeout(() => {
+        document.getElementById(`section-${id}`)?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 50);
+    }
+  };
+
+  // Ensure every content-bearing section is expanded (used on import).
+  const openContentSections = (d: ResumeData) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      for (const s of BUILDER_SECTIONS) {
+        if (sectionHasContent(s.id, d)) next.add(s.id);
       }
       return next;
     });
+  };
+
+  // Load the sample CV and expand the sections it fills.
+  const handleLoadSample = () => {
+    loadSample();
+    openContentSections(sampleResume);
   };
 
   const search = useSearch({ from: "/builder" });
@@ -163,6 +220,16 @@ function BuilderPage() {
     trackEvent('builder_entered');
   }, []);
 
+  // ── Seed accordion open-state from content (once, after hydration) ─────────
+  useEffect(() => {
+    if (!hydrated || didInitOpenRef.current) return;
+    didInitOpenRef.current = true;
+    const initial = new Set(BUILDER_SECTIONS.map(s => s.id).filter(id => sectionHasContent(id, data)));
+    // Never leave the whole form collapsed — Personal is the natural entry point.
+    if (initial.size === 0) initial.add('personal');
+    setOpenSections(initial);
+  }, [hydrated, data]);
+
   // ── CV import from handoff (ATS checker → builder) ─────────────────────────
   useEffect(() => {
     if (!hydrated || search.from !== "import") return;
@@ -171,12 +238,14 @@ function BuilderPage() {
     if (!imported) return;
     const hasExistingDraft = Boolean(data.personal.fullName);
     const applyHandoffImport = () => {
-      setData({
+      const next = {
         ...mapParsedCvToBuilderForm(imported.data),
         templateId: data.templateId,
         ...(imported.roleSlug ? { targetRoleSlug: imported.roleSlug } : {}),
-      });
+      };
+      setData(next);
       setImportedFile("CV check");
+      openContentSections(next);
     };
     if (hasExistingDraft) {
       setImportConfirm({ description: "This replaces your current draft with the information from your CV check.", onConfirm: applyHandoffImport });
@@ -203,8 +272,10 @@ function BuilderPage() {
       const cvText = await extractTextFromFile(file);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parsed = await parseCvForBuilder({ data: { cvText } } as any);
-      setData({ ...parsed, templateId: data.templateId });
+      const next = { ...parsed, templateId: data.templateId };
+      setData(next);
       setImportedFile(file.name);
+      openContentSections(next);
       trackEvent('cv_upload_succeeded');
     } catch (err) {
       trackEvent('cv_upload_failed');
@@ -240,8 +311,10 @@ function BuilderPage() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parsed = await parseCvForBuilder({ data: { cvText: text } } as any);
-      setData({ ...parsed, templateId: data.templateId });
+      const next = { ...parsed, templateId: data.templateId };
+      setData(next);
       setImportedFile("pasted text");
+      openContentSections(next);
       setShowPasteFallback(false);
       setPasteText("");
     } catch (err) {
@@ -288,11 +361,14 @@ function BuilderPage() {
       {/* ── Teal header ─────────────────────────────────────────────────────── */}
       <AppHeader />
 
+      {/* ── Mobile mode switcher (< 1024px) ──────────────────────────────────── */}
+      <MobileModeSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
+
       {/* ── Step pill bar (edit tab only) ────────────────────────────────────── */}
       <StepProgress
         sections={BUILDER_SECTIONS}
         activeTab={activeTab}
-        onSectionOpen={(id) => setOpenSection(id)}
+        onSectionOpen={(id) => setOpenSections(prev => (prev.has(id) ? prev : new Set(prev).add(id)))}
       />
 
       {/* ── PDF loading overlay ───────────────────────────────────────────────── */}
@@ -363,7 +439,7 @@ function BuilderPage() {
               {!data.personal.fullName && (
                 <button
                   type="button"
-                  onClick={loadSample}
+                  onClick={handleLoadSample}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -440,22 +516,22 @@ function BuilderPage() {
 
           {/* Section accordions */}
           <div style={{ paddingBottom: '16px' }}>
-            <Section id="personal" title="Personal details" isOpen={openSection === 'personal'} onToggle={() => toggleSection('personal')}>
+            <Section id="personal" title="Personal details" isOpen={openSections.has('personal')} onToggle={() => toggleSection('personal')}>
               <PersonalSection {...sectionProps} showErrors={false} />
             </Section>
-            <Section id="experience" title="Work experience" isOpen={openSection === 'experience'} onToggle={() => toggleSection('experience')}>
+            <Section id="experience" title="Work experience" isOpen={openSections.has('experience')} onToggle={() => toggleSection('experience')}>
               <ExperienceSection {...sectionProps} showErrors={false} />
             </Section>
-            <Section id="education" title="Education" isOpen={openSection === 'education'} onToggle={() => toggleSection('education')}>
+            <Section id="education" title="Education" isOpen={openSections.has('education')} onToggle={() => toggleSection('education')}>
               <EducationSection {...sectionProps} />
             </Section>
-            <Section id="skills" title="Skills" isOpen={openSection === 'skills'} onToggle={() => toggleSection('skills')}>
+            <Section id="skills" title="Skills" isOpen={openSections.has('skills')} onToggle={() => toggleSection('skills')}>
               <SkillsSection {...sectionProps} />
             </Section>
-            <Section id="certifications" title="Certifications" isOpen={openSection === 'certifications'} onToggle={() => toggleSection('certifications')}>
+            <Section id="certifications" title="Certifications" isOpen={openSections.has('certifications')} onToggle={() => toggleSection('certifications')}>
               <CertificationsSection {...sectionProps} />
             </Section>
-            <Section id="hospitality" title="Hospitality profile" isOpen={openSection === 'hospitality'} onToggle={() => toggleSection('hospitality')}>
+            <Section id="hospitality" title="Hospitality profile" isOpen={openSections.has('hospitality')} onToggle={() => toggleSection('hospitality')}>
               <HospitalitySection {...sectionProps} />
             </Section>
           </div>

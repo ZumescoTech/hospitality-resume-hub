@@ -250,6 +250,71 @@ button, [role="button"] {
   body { background: white !important; }
 }
 
+/* ── Mobile mode switcher (< 1024px) ───────────────────────────────────────── */
+.mobile-mode-switcher {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  background: var(--surface-warm, #f7f7f5);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-brand);
+}
+/* Spacer keeps content from hiding behind the fixed switcher */
+.mobile-mode-switcher-spacer {
+  height: 53px; /* 8+36+8+1 = padding + button + padding + border */
+}
+
+.mobile-mode-switcher__track {
+  display: flex;
+  background: #e5e7eb;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mobile-mode-switcher__tab {
+  flex: 1;
+  min-height: 36px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  background: transparent;
+  color: var(--text-secondary, #555);
+}
+
+.mobile-mode-switcher__tab--active {
+  background: #ffffff;
+  color: var(--brand, #0d6b5e);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 1024px) {
+  .mobile-mode-switcher {
+    display: none;
+  }
+  .mobile-mode-switcher-spacer {
+    display: none;
+  }
+}
+
+/* ── Mobile bottom navigation (< 1024px) ───────────────────────────────────── */
+/* Grid on mobile; hidden on desktop. Defined in CSS (not an inline style) so the
+   desktop hide actually wins — an inline `display` would override `lg:hidden`. */
+.builder-bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (min-width: 1024px) {
+  .builder-bottom-nav {
+    display: none;
+  }
+}
+
 /* ── Builder layout ─────────────────────────────────────────────────────────── */
 .builder-layout {
   grid-template-columns: 1fr;
