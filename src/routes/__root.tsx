@@ -1,5 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { initClarity } from "@/lib/clarity";
 
 import appCss from "../styles.css?url";
 
@@ -31,7 +33,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "GetHired — Hospitality CV Builder" },
-      { name: "description", content: "Build an ATS-ready hospitality CV in minutes. Designed for cruise lines, hotels, and restaurants. Live preview, 11 editorial templates, PDF export." },
+      { name: "description", content: "Build an ATS-ready hospitality CV in minutes. Designed for cruise lines, hotels, and restaurants. Live preview, 7 editorial templates, PDF export." },
       { name: "author", content: "GetHired" },
       { name: "theme-color", content: "#0d6b5e" },
       // Open Graph
@@ -92,6 +94,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => {
+    initClarity();
+  }, []);
+
   return (
     <>
       <Outlet />

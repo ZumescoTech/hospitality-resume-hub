@@ -42,9 +42,10 @@ export function PersonalSection({ data, onChange, showErrors }: Props) {
           <TextField
             label="Full name"
             required
+            data-testid="input-fullname"
             value={data.personal.fullName}
             onChange={(e) => set({ fullName: e.target.value })}
-            placeholder="Elena Marchetti"
+            placeholder="Your full name"
           />
           {showErrors && !data.personal.fullName.trim() && (
             <p className="mt-1 text-xs font-medium text-destructive">Full name is required to continue</p>

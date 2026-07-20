@@ -31,6 +31,8 @@ export interface ProgressHook extends ProgressState {
   setLabel: (label: string) => void;
   /** Reset to idle and cancel any running animation. */
   reset: () => void;
+  /** Current stage name (alias for stage, used by error telemetry). */
+  currentStage: ProgressStage;
 }
 
 const IDLE: ProgressState = { stage: 'idle', percent: 0, label: '' };
@@ -92,5 +94,5 @@ export function useCvUploadProgress(): ProgressHook {
   // Cancel animation on unmount.
   useEffect(() => clearTimer, [clearTimer]);
 
-  return { ...state, setStage, setPercent, setLabel, reset };
+  return { ...state, setStage, setPercent, setLabel, reset, currentStage: state.stage };
 }

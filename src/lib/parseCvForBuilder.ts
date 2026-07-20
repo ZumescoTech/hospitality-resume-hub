@@ -1,235 +1,87 @@
 // parseCvForBuilder.ts
-// Server function: extract CV text → Groq → structured ResumeData
-// Uses the same Groq endpoint + ANTHROPIC_API_KEY convention as cruise-cv-check.ts
+// Server function: extract CV text → AI router → structured ResumeData.
+// Uses AiRouter (Groq primary → Gemini fallback) via the shared provider layer.
+//
+// T5.2: Hybrid extraction behind HYBRID_EXTRACTION=true feature flag.
+//   - Always run deterministic regex extraction first.
+//   - If the CV has high-confidence signals (email + phone + ≥2 date ranges),
+//     skip the AI extraction call and return a skeleton with regex-filled fields.
+//   - Otherwise run AI extraction and overlay the regex results on top.
+//   - AI path is never deleted; flag defaults OFF.
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { emptyResume } from '@/types/resume';
 import type { ResumeData } from '@/types/resume';
+import { createRouter } from '@/lib/ai/router';
+import {
+  extractFieldsDeterministically,
+  overlayDeterministicExtract,
+} from '@/lib/cvExtractDeterministic';
+import { uid } from '@/lib/utils';
 
 const ParseCvSchema = z.object({ cvText: z.string().min(50) });
 
-// Same ID convention as resume-store.ts uid()
-const uid = () => Math.random().toString(36).slice(2, 10);
+/** Minimal skeleton used when AI extraction is skipped in hybrid mode. */
+function buildSkeletonResumeData(cvText: string): ResumeData {
+  // Extract name heuristic: first non-empty line that looks like a name
+  // (2-4 words, no @, no digits, not a section heading)
+  const firstLine = cvText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.length > 0 && l.length < 60 && /^[A-Za-z\s\-']+$/.test(l) && l.split(/\s+/).length >= 2);
 
-const WINE_LEVELS = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Sommelier'] as const;
-const SPIRITS_LEVELS = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Mixologist'] as const;
-const LANG_LEVELS = ['Basic', 'Conversational', 'Fluent', 'Native'] as const;
-
-const SYSTEM_PROMPT = `You are a CV parser. Extract structured data from the provided CV text and return ONLY valid JSON — no markdown fences, no commentary.
-
-Return exactly this JSON shape:
-{
-  "personal": {
-    "fullName": "",
-    "title": "",
-    "email": "",
-    "phone": "",
-    "location": "",
-    "links": [{ "label": "", "url": "" }]
-  },
-  "summary": "",
-  "experience": [
-    {
-      "role": "",
-      "venue": "",
-      "location": "",
-      "startDate": "",
-      "endDate": "",
-      "current": false,
-      "bullets": [""]
-    }
-  ],
-  "education": [
-    {
-      "school": "",
-      "degree": "",
-      "field": "",
-      "startDate": "",
-      "endDate": "",
-      "bullets": [""]
-    }
-  ],
-  "skills": [],
-  "certifications": [
-    {
-      "name": "",
-      "issuer": "",
-      "year": ""
-    }
-  ],
-  "hospitality": {
-    "serviceStyles": [],
-    "posSystems": [],
-    "wineKnowledge": "None",
-    "spiritsKnowledge": "None",
-    "languages": [{ "name": "", "level": "Fluent" }],
-    "allergens": false,
-    "foodSafety": ""
-  }
+  return {
+    personal: {
+      fullName: firstLine ?? '',
+      title: '',
+      email: '',
+      phone: '',
+      location: '',
+      links: [],
+    },
+    summary: '',
+    experience: [],
+    education: [],
+    certifications: [],
+    skills: [],
+    languages: [],
+    templateId: 'vintage',
+  } as unknown as ResumeData;
 }
-
-Strict rules:
-- Extract ONLY information explicitly present in the CV. Never fabricate, infer, or fill in data not stated.
-- Missing fields: use "" for strings, [] for arrays, false for booleans.
-- experience startDate/endDate: "YYYY-MM" (e.g. "2021-03"). Year-only: "YYYY". Currently employed: current=true and endDate="".
-- education startDate/endDate: "YYYY" if only year is known, "YYYY-MM" otherwise.
-- skills: array of individual skill strings, 1–5 words each.
-- wineKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Sommelier" — use "None" if not mentioned.
-- spiritsKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Mixologist" — use "None" if not mentioned.
-- languages[].level: one of exactly: "Basic","Conversational","Fluent","Native".
-- serviceStyles: populate ONLY if the CV explicitly names service styles (fine dining, à la carte, banquet, etc.).
-- posSystems: populate ONLY if POS system names appear in the CV (Toast, Micros, Lightspeed, etc.).
-- allergens: true ONLY if allergen awareness training is explicitly mentioned.
-- experience/education bullets: return each bullet point as a separate string in the "bullets" array. Strip the leading marker character (*, -, •, ·) from each item. Preserve the candidate's exact wording — do NOT rewrite or paraphrase. If the description is a single sentence with no bullet markers, return it as a one-item array.
-- summary: use the candidate's actual profile/summary text verbatim.
-- Do NOT include an "id" field — IDs will be assigned by the application.
-- Respond with ONLY the JSON object.`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseCvForBuilder = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<ResumeData> => {
   const { cvText } = ParseCvSchema.parse(ctx.data);
 
-  const groqKey = process.env.ANTHROPIC_API_KEY;
-  if (!groqKey) throw new Error('ANTHROPIC_API_KEY (Groq key) is not configured');
+  // T5.2: deterministic extraction always runs (zero-cost)
+  const det = extractFieldsDeterministically(cvText);
+  const hybridEnabled = process.env.HYBRID_EXTRACTION === 'true';
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${groqKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 2500,
-      temperature: 0.0,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Parse this CV:\n\n"""\n${cvText.slice(0, 8000)}\n"""` },
-      ],
-    }),
+  if (hybridEnabled && det.skipAi) {
+    // High-confidence CV: skip AI call, return regex-filled skeleton
+    console.log('[parse-cv] hybrid: skipping AI extraction (high-confidence signals)');
+    const skeleton = buildSkeletonResumeData(cvText);
+    const result = overlayDeterministicExtract(skeleton, det);
+    // Assign IDs to empty arrays (IDs expected by builder)
+    return {
+      ...result,
+      experience:     result.experience.map((e) => ({ ...e, id: uid() })),
+      education:      result.education.map((e) => ({ ...e, id: uid() })),
+      certifications: result.certifications.map((c) => ({ ...c, id: uid() })),
+    };
+  }
+
+  // Default (flag off, or low-confidence): full AI extraction
+  const router = await createRouter({
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${err}`);
-  }
+  // Router calls adapter.extract() which uses CV_EXTRACT_SYSTEM_PROMPT and
+  // validates via Zod boundary schema.  IDs are assigned inside the adapter.
+  const aiResult = await router.extract(cvText);
 
-  const json = (await response.json()) as { choices: Array<{ message: { content: string } }> };
-  const content = json.choices?.[0]?.message?.content;
-  if (!content) throw new Error('No content in Groq response');
-
-  return buildResumeData(content);
+  // Overlay deterministic results: regex email/phone/LinkedIn override AI values
+  return overlayDeterministicExtract(aiResult, det);
 });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildResumeData(raw: string): ResumeData {
-  const cleaned = raw.replace(/```json\s*|\s*```/g, '').trim();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let parsed: any;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch {
-    console.warn('[parseCvForBuilder] JSON parse failed — returning empty resume');
-    return { ...emptyResume };
-  }
-
-  const safeStr = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
-  const safeBool = (v: unknown): boolean => (typeof v === 'boolean' ? v : false);
-  const safeStrArr = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string' && s.trim().length > 0) : [];
-
-  /**
-   * Coerce model output to a clean string[].
-   * The model should return bullets:string[] but may still return a description:string
-   * blob if it ignores the schema. Split that blob defensively.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseBulletsField = (e: any): string[] => {
-    if (Array.isArray(e.bullets)) {
-      return safeStrArr(e.bullets);
-    }
-    // Fallback: model returned a description string — split on newlines and strip markers
-    const desc = safeStr(e.description);
-    if (!desc) return [];
-    return desc
-      .split('\n')
-      .map((l: string) => l.replace(/^[\u2022\-\*\·]\s*/, '').trim())
-      .filter(Boolean);
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const p = (parsed.personal ?? {}) as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const h = (parsed.hospitality ?? {}) as any;
-
-  return {
-    personal: {
-      fullName: safeStr(p.fullName),
-      title: safeStr(p.title),
-      email: safeStr(p.email),
-      phone: safeStr(p.phone),
-      location: safeStr(p.location),
-      photo: undefined,
-      links: Array.isArray(p.links)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? p.links.filter((l: any) => l?.label && l?.url).map((l: any) => ({ label: safeStr(l.label), url: safeStr(l.url) }))
-        : [],
-    },
-    summary: safeStr(parsed.summary),
-    experience: Array.isArray(parsed.experience)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? parsed.experience.map((e: any) => ({
-          id: uid(),
-          role: safeStr(e.role),
-          venue: safeStr(e.venue),
-          location: safeStr(e.location),
-          startDate: safeStr(e.startDate),
-          endDate: safeStr(e.endDate),
-          current: safeBool(e.current),
-          description: '',
-          bullets: parseBulletsField(e),
-        }))
-      : [],
-    education: Array.isArray(parsed.education)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? parsed.education.map((e: any) => ({
-          id: uid(),
-          school: safeStr(e.school),
-          degree: safeStr(e.degree),
-          field: safeStr(e.field),
-          startDate: safeStr(e.startDate),
-          endDate: safeStr(e.endDate),
-          bullets: parseBulletsField(e),
-        }))
-      : [],
-    skills: safeStrArr(parsed.skills),
-    certifications: Array.isArray(parsed.certifications)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? parsed.certifications.map((c: any) => ({
-          id: uid(),
-          name: safeStr(c.name),
-          issuer: safeStr(c.issuer),
-          year: safeStr(c.year),
-        }))
-      : [],
-    hospitality: {
-      serviceStyles: safeStrArr(h.serviceStyles),
-      posSystems: safeStrArr(h.posSystems),
-      wineKnowledge: WINE_LEVELS.includes(h.wineKnowledge) ? h.wineKnowledge : 'None',
-      spiritsKnowledge: SPIRITS_LEVELS.includes(h.spiritsKnowledge) ? h.spiritsKnowledge : 'None',
-      languages: Array.isArray(h.languages)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? h.languages.filter((l: any) => safeStr(l?.name)).map((l: any) => ({
-            name: safeStr(l.name),
-            level: LANG_LEVELS.includes(l.level) ? l.level : 'Fluent',
-          }))
-        : [],
-      allergens: safeBool(h.allergens),
-      foodSafety: safeStr(h.foodSafety),
-    },
-    // Preserve the user's current template — the CV text contains no template preference
-    templateId: 'classic',
-  };
-}

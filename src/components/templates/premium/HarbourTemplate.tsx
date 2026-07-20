@@ -15,20 +15,21 @@ import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
+import { hasExperience, hasEducation, hasSkills, hasCertifications, filledLanguages } from '@/lib/cv-utils';
 
 export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
   const C = {
-    sidebarBg:   colours?.primary    ?? '#7c3aed',
+    sidebarBg:   '#ffffff',
     mainBg:      colours?.background ?? '#ffffff',
-    sideHeading: '#ede9fe',
-    sideBody:    '#e9d5ff',
-    sideMuted:   '#c4b5fd',
-    mainName:    '#1e293b',
-    mainTitle:   colours?.primary    ?? '#7c3aed',
-    mainHeading: '#1e293b',
-    mainBody:    colours?.text       ?? '#334155',
-    mainMuted:   '#64748b',
-    divider:     colours?.accent     ?? '#ddd6fe',
+    sideHeading: colours?.primary    ?? '#0d6b5e',
+    sideBody:    '#1a1a1a',
+    sideMuted:   '#4a4a4a',
+    mainName:    '#1a1a1a',
+    mainTitle:   colours?.primary    ?? '#0d6b5e',
+    mainHeading: colours?.primary    ?? '#0d6b5e',
+    mainBody:    colours?.text       ?? '#1a1a1a',
+    mainMuted:   '#4a4a4a',
+    divider:     colours?.primary    ?? '#0d6b5e',
   };
 
   function SideHeading({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,7 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
           letterSpacing: '0.15em',
           margin:        '16pt 0 6pt',
           lineHeight:    1.2,
-          borderBottom:  `1px solid rgba(255,255,255,0.2)`,
+          borderBottom:  `1px solid #e2e8f0`,
           paddingBottom:  4,
         }}
       >
@@ -81,9 +82,8 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
     datesRight: true,
   };
 
-  const langs = hospitality.languages.length > 0
-    ? hospitality.languages.map((l) => `${l.name} (${l.level})`).join(', ')
-    : null;
+  const filled = filledLanguages(hospitality);
+  const langs = filled.length > 0 ? filled.map((l) => `${l.name} (${l.level})`).join(', ') : null;
 
   const additionalInfo: { label: string; value: string }[] = [];
   if (hospitality.wineKnowledge && hospitality.wineKnowledge !== 'None') additionalInfo.push({ label: 'Wine', value: hospitality.wineKnowledge });
@@ -105,11 +105,12 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
       {/* ── Sidebar ── */}
       <aside
         style={{
-          flex:       '0 0 35%',
-          background: C.sidebarBg,
-          padding:    '48px 24px 48px 28px',
-          color:      C.sideBody,
-          minWidth:   0,
+          flex:        '0 0 35%',
+          background:  C.sidebarBg,
+          padding:     '48px 24px 48px 28px',
+          color:       C.sideBody,
+          minWidth:    0,
+          borderRight: '1px solid #e2e8f0',
         }}
       >
         {/* Photo */}
@@ -118,17 +119,17 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
             src={personal.photo}
             size={68}
             shape="circle"
-            border="3px solid rgba(255,255,255,0.4)"
+            border="2px solid #e2e8f0"
           />
         </div>
 
         {/* Name + title in sidebar */}
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
-          <p style={{ fontWeight: 700, fontSize: '12pt', color: '#ffffff', margin: 0, lineHeight: 1.2, wordBreak: 'break-word' }}>
+          <p style={{ fontWeight: 700, fontSize: '12pt', color: '#1a1a1a', margin: 0, lineHeight: 1.2, wordBreak: 'break-word' }}>
             {personal.fullName || 'Your Name'}
           </p>
           {personal.title && (
-            <p style={{ fontSize: '9pt', color: C.sideMuted, margin: '4px 0 0', lineHeight: 1.3 }}>
+            <p style={{ fontSize: '9pt', color: C.sideHeading, margin: '4px 0 0', lineHeight: 1.3 }}>
               {personal.title}
             </p>
           )}
@@ -145,7 +146,7 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
         </div>
 
         <CvSection
-          empty={skills.length === 0}
+          empty={!hasSkills(skills)}
           renderHeading={() => <SideHeading>Skills</SideHeading>}
         >
           {skills.map((s) => (
@@ -154,7 +155,7 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={certifications.length === 0}
+          empty={!hasCertifications(certifications)}
           renderHeading={() => <SideHeading>Certifications</SideHeading>}
         >
           {certifications.map((c) => (
@@ -210,7 +211,7 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={experience.length === 0}
+          empty={!hasExperience(experience)}
           renderHeading={() => <MainHeading>Experience</MainHeading>}
         >
           {experience.map((e) => (
@@ -227,7 +228,7 @@ export function HarbourTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={education.length === 0}
+          empty={!hasEducation(education)}
           renderHeading={() => <MainHeading>Education</MainHeading>}
         >
           {education.map((e) => (

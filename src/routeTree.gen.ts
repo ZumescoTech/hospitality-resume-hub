@@ -15,6 +15,7 @@ import { Route as LandingRouteImport } from './routes/landing'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BuilderRouteImport } from './routes/builder'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ToolsMetricsRouteImport } from './routes/tools/metrics'
 import { Route as ToolsCruiseCvCheckerRouteImport } from './routes/tools/cruise-cv-checker'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -47,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsMetricsRoute = ToolsMetricsRouteImport.update({
+  id: '/tools/metrics',
+  path: '/tools/metrics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsCruiseCvCheckerRoute = ToolsCruiseCvCheckerRouteImport.update({
   id: '/tools/cruise-cv-checker',
   path: '/tools/cruise-cv-checker',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/tools/cruise-cv-checker': typeof ToolsCruiseCvCheckerRoute
+  '/tools/metrics': typeof ToolsMetricsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/tools/cruise-cv-checker': typeof ToolsCruiseCvCheckerRoute
+  '/tools/metrics': typeof ToolsMetricsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/tools/cruise-cv-checker': typeof ToolsCruiseCvCheckerRoute
+  '/tools/metrics': typeof ToolsMetricsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/tools/cruise-cv-checker'
+    | '/tools/metrics'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/tools/cruise-cv-checker'
+    | '/tools/metrics'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/tools/cruise-cv-checker'
+    | '/tools/metrics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ToolsCruiseCvCheckerRoute: typeof ToolsCruiseCvCheckerRoute
+  ToolsMetricsRoute: typeof ToolsMetricsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/metrics': {
+      id: '/tools/metrics'
+      path: '/tools/metrics'
+      fullPath: '/tools/metrics'
+      preLoaderRoute: typeof ToolsMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/cruise-cv-checker': {
       id: '/tools/cruise-cv-checker'
       path: '/tools/cruise-cv-checker'
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ToolsCruiseCvCheckerRoute: ToolsCruiseCvCheckerRoute,
+  ToolsMetricsRoute: ToolsMetricsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

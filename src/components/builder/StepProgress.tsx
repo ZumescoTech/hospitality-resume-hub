@@ -8,11 +8,13 @@ interface SectionDef {
 interface Props {
   sections: SectionDef[]
   activeTab: string
+  /** Called when a pill is clicked — parent should open the matching accordion */
+  onSectionOpen?: (id: string) => void
   /** Header height + progress bar height in px — used as rootMargin top offset */
   topOffset?: number
 }
 
-export function StepProgress({ sections, activeTab, topOffset = 92 }: Props) {
+export function StepProgress({ sections, activeTab, onSectionOpen, topOffset = 92 }: Props) {
   const [activeSectionId, setActiveSectionId] = useState<string>(sections[0]?.id ?? '')
   const navRef = useRef<HTMLElement>(null)
 
@@ -45,6 +47,7 @@ export function StepProgress({ sections, activeTab, topOffset = 92 }: Props) {
 
   function scrollToSection(id: string) {
     setActiveSectionId(id)
+    onSectionOpen?.(id)
     const el = document.getElementById(`section-${id}`)
     if (!el) return
     setTimeout(() => {

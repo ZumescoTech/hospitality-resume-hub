@@ -1,5 +1,5 @@
 // TemplateColourPicker.tsx
-// Colour customisation UI for premium CV templates.
+// Colour customisation UI for CV templates with colour support.
 // Renders colour slot rows with HexColorPicker + preset swatches + reset button.
 
 import { useState } from 'react';

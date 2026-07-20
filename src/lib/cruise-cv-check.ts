@@ -2,12 +2,18 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import {
   buildCvCheckPrompt,
-  parseCvCheckResponse,
   computeCvScore,
   type CruiseRolesData,
   type CvScoreResult,
+  type CvCheckOutcome,
 } from '@/lib/cruiseCvRubric';
-import { runDeterministicChecks, scoreKeywordAlignment } from '@/lib/cvDeterministicChecks';
+import { runDeterministicChecks, scoreKeywordAlignment, parseQualityGate, sanitizeJobDescription } from '@/lib/cvDeterministicChecks';
+import { createRouter } from '@/lib/ai/router';
+import { ProviderError } from '@/lib/ai/provider';
+import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
+import { runMergedCall } from '@/lib/ai/merged-call';
+import { buildDeterministicFeedback, computeConfidence, buildNeutralLlmResponse } from '@/lib/cvFeedback';
+import { recordCheckOutcome, recordLatencyMs } from '@/lib/telemetry';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
@@ -33,29 +39,48 @@ export type CvCheckInput = z.infer<typeof CvCheckSchema>;
 export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
 // ─── CV check ─────────────────────────────────────────────────────────────────
-// Uses Groq (llama-3.3-70b-versatile) via OpenAI-compatible endpoint.
-// ANTHROPIC_API_KEY env var holds the Groq key for historical reasons.
+// Uses AiRouter (Groq primary → Gemini fallback).  ProviderError{exhausted}
+// propagates to the client so the UI can show a graceful retry message.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvScoreResult> => {
+export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvCheckOutcome> => {
+  const startMs = Date.now();
   const parsed = CvCheckSchema.parse(ctx.data as CvCheckInput);
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
 
-  const groqKey = process.env.ANTHROPIC_API_KEY;
-  if (!groqKey) throw new Error('ANTHROPIC_API_KEY (Groq key) is not configured');
+  // 0. Sanitize optional job description (strip HTML, reject garbage, cap length)
+  const cleanJd = sanitizeJobDescription(parsed.jobDescription) ?? undefined;
 
-  // 1. Deterministic signals
+  // 1. KV cache check (before any AI work)
+  const cacheKey = await buildCacheKey(parsed.cvText, cleanJd);
+  const cached = await getCachedResult(cacheKey);
+  if (cached) {
+    console.log(`[cv-check] cache hit: ${cacheKey}`);
+    return { kind: 'scored', result: cached };
+  }
+  console.log(`[cv-check] cache miss: ${cacheKey}`);
+
+  // 2. Deterministic signals
   const signals = runDeterministicChecks(parsed.cvText);
 
-  // 2. Keyword alignment
+  // 2b. Parse quality gate — reject garbled/insufficient text BEFORE scoring
+  const qualityFailure = parseQualityGate(parsed.cvText, signals);
+  if (qualityFailure) {
+    console.log(`[cv-check] quality gate: ${qualityFailure.kind}`);
+    recordCheckOutcome(qualityFailure.kind);
+    recordLatencyMs(Date.now() - startMs);
+    return qualityFailure;
+  }
+
+  // 3. Keyword alignment
   const { matchedKeywords, missingKeywords, matchRatio } = scoreKeywordAlignment(
     parsed.cvText,
     role.keywords,
-    parsed.jobDescription,
+    cleanJd,
   );
 
-  // 3. Build prompt
+  // 4. Build prompt
   const { system, user } = buildCvCheckPrompt({
     cvText: parsed.cvText,
     role,
@@ -63,41 +88,64 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     matchedKeywords,
     missingKeywords,
     matchRatio,
-    jobDescription: parsed.jobDescription,
+    jobDescription: cleanJd,
   });
 
-  // 4. Call Groq
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${groqKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 1500,
-      temperature: 0.1,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-    }),
+  // 5. Call via router (Groq → Gemini → Workers AI when WORKERS_AI_ENABLED=true)
+  const router = await createRouter({
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${err}`);
+  const mergedCallEnabled = process.env.MERGED_CALL === 'true';
+
+  // 5b. Deterministic feedback + confidence (always computed, zero tokens)
+  const deterministicFeedback = buildDeterministicFeedback(missingKeywords, signals, role.role);
+
+  let llmParsed;
+  try {
+    if (mergedCallEnabled) {
+      // Single-prompt mode: analysis + CV extraction in one LLM call (gated)
+      const merged = await runMergedCall(router, system, user, parsed.cvText);
+      llmParsed = merged.analysis;
+      // merged.resumeData is available for the builder; currently unused in the check path
+    } else {
+      llmParsed = await router.analyze({ system, user });
+    }
+  } catch (err) {
+    if (err instanceof ProviderError && err.kind === 'exhausted') {
+      // Both providers unavailable — return a degraded but useful result
+      console.log('[cv-check] exhausted: returning deterministic-only result');
+      const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
+      const degradedResult = {
+        ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords),
+        deterministicFeedback,
+        confidence: computeConfidence(signals, matchRatio, true),
+        isDegraded: true,
+      };
+      recordCheckOutcome('scored', degradedResult.overallScore);
+      recordLatencyMs(Date.now() - startMs);
+      return { kind: 'scored', result: degradedResult };
+    }
+    throw err;
   }
 
-  const json = (await response.json()) as {
-    choices: Array<{ message: { content: string } }>;
+  // 6. Compute final score deterministically — LLM output never changes the score directly
+  const result: CvScoreResult = {
+    ...computeCvScore(llmParsed, matchedKeywords, missingKeywords),
+    deterministicFeedback,
+    confidence: computeConfidence(signals, matchRatio),
   };
-  const content = json.choices?.[0]?.message?.content;
-  if (!content) throw new Error('No content in Groq response');
 
-  // 5. Parse LLM output + compute final score deterministically
-  const llmParsed = parseCvCheckResponse(content);
-  return computeCvScore(llmParsed, matchedKeywords, missingKeywords);
+  // 7. Store in KV cache (fire-and-forget — non-fatal on failure)
+  void setCachedResult(cacheKey, result);
+
+  // 8. Telemetry (fire-and-forget)
+  recordCheckOutcome('scored', result.overallScore);
+  recordLatencyMs(Date.now() - startMs);
+
+  return { kind: 'scored', result };
 });
 
 // ─── Save WhatsApp lead to webhook ────────────────────────────────────────────

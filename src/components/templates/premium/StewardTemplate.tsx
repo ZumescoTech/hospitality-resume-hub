@@ -15,18 +15,21 @@ import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
+import { hasExperience, hasEducation, hasSkills, hasCertifications, filledLanguages } from '@/lib/cv-utils';
 
 export function StewardTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
   const C = {
-    headerBg:   colours?.primary    ?? '#7c3aed',
-    headerName: '#ffffff',
-    headerSub:  '#ddd6fe',
-    bg:         colours?.background ?? '#ffffff',
-    heading:    colours?.accent     ?? '#7c3aed',
-    body:       colours?.text       ?? '#334155',
-    muted:      '#64748b',
-    name:       '#1e293b',
-    divider:    '#e2e8f0',
+    headerBg:      '#ffffff',
+    headerBorder:  colours?.primary    ?? '#0d6b5e',
+    headerName:    '#1a1a1a',
+    headerTitle:   colours?.primary    ?? '#0d6b5e',
+    headerContact: '#4a4a4a',
+    bg:            colours?.background ?? '#ffffff',
+    heading:       colours?.accent     ?? '#0d6b5e',
+    body:          colours?.text       ?? '#1a1a1a',
+    muted:         '#4a4a4a',
+    name:          '#1a1a1a',
+    divider:       '#e2e8f0',
   };
 
   function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -59,9 +62,8 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
     datesRight: true,
   };
 
-  const langs = hospitality.languages.length > 0
-    ? hospitality.languages.map((l) => `${l.name} (${l.level})`).join(', ')
-    : null;
+  const filled = filledLanguages(hospitality);
+  const langs = filled.length > 0 ? filled.map((l) => `${l.name} (${l.level})`).join(', ') : null;
 
   const photoPos = personal.photoPosition ?? 'top-right';
   const photo = (
@@ -69,7 +71,7 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
       src={personal.photo}
       size={60}
       shape="circle"
-      border="3px solid rgba(255,255,255,0.5)"
+      border={`2px solid ${C.headerBorder}`}
     />
   );
 
@@ -85,7 +87,7 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
       }}
     >
       {/* ── Header band ── */}
-      <header style={{ background: C.headerBg, padding: '32px 52px' }}>
+      <header style={{ background: C.headerBg, padding: '32px 52px', borderBottom: `3px solid ${C.headerBorder}` }}>
         {photoPos === 'centre' && (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>{photo}</div>
         )}
@@ -102,15 +104,15 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
               {personal.fullName || 'Your Name'}
             </h1>
             {personal.title && (
-              <p style={{ fontSize: '11px', color: C.headerSub, margin: '6px 0 0', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              <p style={{ fontSize: '11px', color: C.headerTitle, margin: '6px 0 0', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 {personal.title}
               </p>
             )}
-            <p style={{ fontSize: '9pt', color: C.headerSub, margin: '10px 0 0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: '9pt', color: C.headerContact, margin: '10px 0 0', lineHeight: 1.4 }}>
               {[personal.location, personal.email, personal.phone].filter(Boolean).join(' · ')}
             </p>
             {personal.links && personal.links.length > 0 && (
-              <p style={{ fontSize: '9pt', color: C.headerSub, margin: '2px 0 0', lineHeight: 1.4 }}>
+              <p style={{ fontSize: '9pt', color: C.headerContact, margin: '2px 0 0', lineHeight: 1.4 }}>
                 {personal.links.map((l) => l.url).join(' · ')}
               </p>
             )}
@@ -129,7 +131,7 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={experience.length === 0}
+          empty={!hasExperience(experience)}
           renderHeading={() => <SectionHeading>Experience</SectionHeading>}
         >
           {experience.map((e) => (
@@ -146,7 +148,7 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={skills.length === 0}
+          empty={!hasSkills(skills)}
           renderHeading={() => <SectionHeading>Skills</SectionHeading>}
         >
           <p style={{ fontSize: '10pt', color: C.body, lineHeight: 1.6, margin: 0 }}>
@@ -155,7 +157,7 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={education.length === 0}
+          empty={!hasEducation(education)}
           renderHeading={() => <SectionHeading>Education</SectionHeading>}
         >
           {education.map((e) => (
@@ -171,7 +173,7 @@ export function StewardTemplate({ data, colours }: { data: ResumeData; colours?:
         </CvSection>
 
         <CvSection
-          empty={certifications.length === 0}
+          empty={!hasCertifications(certifications)}
           renderHeading={() => <SectionHeading>Certifications</SectionHeading>}
         >
           {certifications.map((c) => (

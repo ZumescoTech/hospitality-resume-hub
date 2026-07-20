@@ -18,16 +18,17 @@ import { dateRange } from '../utils';
 import { CvSection } from '@/lib/cv-templates/CvSection';
 import { CvEntry } from '@/lib/cv-templates/CvEntry';
 import { PremiumPhotoPlaceholder } from './PremiumPhotoPlaceholder';
+import { hasExperience, hasEducation, hasSkills, hasCertifications, filledLanguages } from '@/lib/cv-utils';
 
 export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colours?: TemplateColours }) {
   const C = {
-    bg:      colours?.background ?? '#0f172a',
-    name:    '#ffffff',
-    title:   colours?.accent     ?? '#a78bfa',
-    heading: colours?.primary    ?? '#7c3aed',
-    body:    colours?.text       ?? '#e2e8f0',
-    muted:   '#94a3b8',
-    divider: '#1e3a5f',
+    bg:      colours?.background ?? '#ffffff',
+    name:    '#1a1a1a',
+    title:   colours?.accent     ?? '#0d6b5e',
+    heading: colours?.primary    ?? '#0d6b5e',
+    body:    colours?.text       ?? '#1a1a1a',
+    muted:   '#4a4a4a',
+    divider: '#e2e8f0',
   };
 
   function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -60,9 +61,8 @@ export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colou
     datesRight: true,
   };
 
-  const langs = hospitality.languages.length > 0
-    ? hospitality.languages.map((l) => `${l.name} (${l.level})`).join(', ')
-    : null;
+  const filled = filledLanguages(hospitality);
+  const langs = filled.length > 0 ? filled.map((l) => `${l.name} (${l.level})`).join(', ') : null;
 
   const photoPos = personal.photoPosition ?? 'top-right';
   const photo = (
@@ -129,7 +129,7 @@ export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colou
       </CvSection>
 
       <CvSection
-        empty={experience.length === 0}
+        empty={!hasExperience(experience)}
         renderHeading={() => <SectionHeading>Experience</SectionHeading>}
       >
         {experience.map((e) => (
@@ -146,7 +146,7 @@ export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colou
       </CvSection>
 
       <CvSection
-        empty={skills.length === 0}
+        empty={!hasSkills(skills)}
         renderHeading={() => <SectionHeading>Skills</SectionHeading>}
       >
         <p style={{ fontSize: '10pt', color: C.body, lineHeight: 1.6, margin: 0 }}>
@@ -155,7 +155,7 @@ export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colou
       </CvSection>
 
       <CvSection
-        empty={education.length === 0}
+        empty={!hasEducation(education)}
         renderHeading={() => <SectionHeading>Education</SectionHeading>}
       >
         {education.map((e) => (
@@ -171,7 +171,7 @@ export function PremiumNoirTemplate({ data, colours }: { data: ResumeData; colou
       </CvSection>
 
       <CvSection
-        empty={certifications.length === 0}
+        empty={!hasCertifications(certifications)}
         renderHeading={() => <SectionHeading>Certifications</SectionHeading>}
       >
         {certifications.map((c) => (

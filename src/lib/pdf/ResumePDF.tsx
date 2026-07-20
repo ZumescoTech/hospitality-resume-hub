@@ -22,6 +22,14 @@ import type { ResumeData } from "@/types/resume";
 import type { FormattingSettings } from "@/types/formatting";
 import { defaultFormatting } from "@/types/formatting";
 import { dateRange } from "@/components/templates/utils";
+import {
+  hasExperience,
+  hasEducation,
+  hasSkills,
+  hasCertifications,
+  hasHospitalityProfile,
+  filledLanguages,
+} from "@/lib/cv-utils";
 
 // ─── Font Registration ─────────────────────────────────────────────────────────
 // Register Rubik from Google Fonts CDN (woff2). react-pdf fetches these
@@ -195,10 +203,10 @@ const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
   },
   // ── Premium templates ─────────────────────────────────────────────────────
   "noir-premium": {
-    primary: "#a78bfa",   // keep purple accent for Noir — deliberate dark-on-dark aesthetic
-    accent: "#a78bfa",
-    nameColour: "#f8fafc",
-    pageBg: "#0f172a",
+    primary: "#0d6b5e",
+    accent: "#0d6b5e",
+    nameColour: "#1a1a1a",
+    pageBg: "#ffffff",
     sectionStyle: "uppercase-spaced",
     layout: "single",
   },
@@ -552,10 +560,10 @@ function SidebarLayout({
         ))}
 
         {/* Skills */}
-        {skills.length > 0 && (
+        {hasSkills(skills) && (
           <>
             <Text style={sidebarLabel}>Skills</Text>
-            {skills.map((sk) => (
+            {skills.filter((sk) => sk.trim()).map((sk) => (
               <Text key={sk} style={sidebarItem}>
                 · {sk}
               </Text>
@@ -564,10 +572,10 @@ function SidebarLayout({
         )}
 
         {/* Languages */}
-        {hospitality.languages.length > 0 && (
+        {filledLanguages(hospitality).length > 0 && (
           <>
             <Text style={sidebarLabel}>Languages</Text>
-            {hospitality.languages.map((l) => (
+            {filledLanguages(hospitality).map((l) => (
               <Text key={l.name} style={sidebarItem}>
                 {l.name} · {l.level}
               </Text>
@@ -587,7 +595,7 @@ function SidebarLayout({
         )}
 
         {/* Experience */}
-        {experience.length > 0 && (
+        {hasExperience(experience) && (
           <View style={{ marginBottom: 14 }}>
             <SectionHead label="Experience" />
             {experience.map((e) => (
@@ -609,7 +617,7 @@ function SidebarLayout({
         )}
 
         {/* Education */}
-        {education.length > 0 && (
+        {hasEducation(education) && (
           <View>
             <SectionHead label="Education" />
             {education.map((e) => (
@@ -735,14 +743,7 @@ export function ResumePDF({
 
   const { personal, summary, experience, education, skills, certifications, hospitality } = data;
 
-  const hasHospitality =
-    hospitality.serviceStyles.length > 0 ||
-    hospitality.posSystems.length > 0 ||
-    hospitality.wineKnowledge !== "None" ||
-    hospitality.spiritsKnowledge !== "None" ||
-    hospitality.languages.length > 0 ||
-    hospitality.allergens ||
-    !!hospitality.foodSafety;
+  const showHospitality = hasHospitalityProfile(hospitality);
 
   // ── Sidebar layout ───────────────────────────────────────────────────────
   if (config.layout === "sidebar") {
@@ -825,7 +826,7 @@ export function ResumePDF({
           ) : null}
 
           {/* Experience */}
-          {experience.length > 0 ? (
+          {hasExperience(experience) ? (
             <View style={s.section}>
               <SectionHead label="Experience" />
               {experience.map((e) => (
@@ -851,7 +852,7 @@ export function ResumePDF({
           ) : null}
 
           {/* Education */}
-          {education.length > 0 ? (
+          {hasEducation(education) ? (
             <View style={s.section}>
               <SectionHead label="Education" />
               {education.map((e) => (
@@ -875,11 +876,11 @@ export function ResumePDF({
           ) : null}
 
           {/* Skills */}
-          {skills.length > 0 ? (
+          {hasSkills(skills) ? (
             <View style={s.section}>
               <SectionHead label="Skills" />
               <View style={s.skillsRow}>
-                {skills.map((sk) => (
+                {skills.filter((sk) => sk.trim()).map((sk) => (
                   <View key={sk} style={s.skillPill}>
                     <Text>{sk}</Text>
                   </View>
@@ -889,7 +890,7 @@ export function ResumePDF({
           ) : null}
 
           {/* Certifications */}
-          {certifications.length > 0 ? (
+          {hasCertifications(certifications) ? (
             <View style={s.section}>
               <SectionHead label="Certifications" />
               {certifications.map((c) => (
@@ -904,7 +905,7 @@ export function ResumePDF({
           ) : null}
 
           {/* Hospitality Profile */}
-          {hasHospitality ? (
+          {showHospitality ? (
             <View style={s.section}>
               <SectionHead label="Hospitality Profile" />
               {hospitality.serviceStyles.length > 0 && (
@@ -937,11 +938,11 @@ export function ResumePDF({
                   </Text>
                 </View>
               )}
-              {hospitality.languages.length > 0 && (
+              {filledLanguages(hospitality).length > 0 && (
                 <View style={s.hospRow}>
                   <Text style={s.hospLabel}>Languages</Text>
                   <Text style={s.hospValue}>
-                    {hospitality.languages
+                    {filledLanguages(hospitality)
                       .map((l) => `${l.name} (${l.level})`)
                       .join(", ")}
                   </Text>

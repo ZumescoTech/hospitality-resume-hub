@@ -21,25 +21,37 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
+  Lightbulb,
 } from 'lucide-react';
 
 import { checkCruiseCv, getRoleOptions } from '@/lib/cruise-cv-check';
 import { WhatsAppCaptureForm } from '@/components/checker/WhatsAppCaptureForm';
 import { AtsScoreRing } from '@/components/checker/AtsScoreRing';
-import type { CvScoreResult, CategoryKey } from '@/lib/cruiseCvRubric';
+import type { CvScoreResult, CvCheckOutcome, CategoryKey } from '@/lib/cruiseCvRubric';
 import { CATEGORY_LABELS, CATEGORY_WEIGHTS } from '@/lib/cruiseCvRubric';
 import { extractTextFromFile } from '@/lib/extractCvText';
+import { ExtractionError } from '@/lib/extraction-error';
+import type { ExtractionReasonCode } from '@/lib/extraction-error';
+import { logUploadFailure } from '@/lib/upload-failure-log';
 import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
 import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
 import type { ResumeData } from '@/types/resume';
 import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
 import { UploadProgressBar } from '@/components/checker/UploadProgressBar';
+import { trackEvent } from '@/lib/clarity';
+import type { ConfidenceResult } from '@/lib/cvFeedback';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CHECKER_STORAGE_KEY = 'checker-draft-v1';
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB (A0-2)
 const ANALYZE_TIMEOUT_MS = 35_000; // 35 s (A0-2)
+
+/** Stable session ID for correlating telemetry events in one page visit. */
+const SESSION_ID = typeof crypto !== 'undefined' && crypto.randomUUID
+  ? crypto.randomUUID()
+  : `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 interface CheckerDraft {
   roleSlug: string;
@@ -87,6 +99,25 @@ function TierBadge({ tier }: { tier: CvScoreResult['tier'] }) {
   );
 }
 
+// ─── Confidence badge ──────────────────────────────────────────────────────────
+
+function ConfidenceBadge({ confidence }: { confidence: ConfidenceResult }) {
+  const map: Record<ConfidenceResult['level'], { cls: string; label: string }> = {
+    High:   { cls: 'bg-primary/8 text-primary border-primary/20',          label: 'High confidence' },
+    Medium: { cls: 'bg-accent/8 text-accent border-accent/20',             label: 'Medium confidence' },
+    Low:    { cls: 'bg-destructive/8 text-destructive border-destructive/20', label: 'Low confidence' },
+  };
+  const { cls, label } = map[confidence.level];
+  return (
+    <span
+      title={confidence.reasons.join(' · ')}
+      className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium cursor-help', cls)}
+    >
+      {label}
+    </span>
+  );
+}
+
 // ─── Category score row ────────────────────────────────────────────────────────
 
 function CategoryScoreRow({
@@ -121,11 +152,13 @@ function CategoryScoreRow({
             <span className="text-sm font-medium text-foreground">
               {CATEGORY_LABELS[categoryKey]}
             </span>
-            <div className="flex items-center gap-2 shrink-0 ml-3">
-              <span className="text-xs text-muted-foreground">
-                {Math.round(weight * 100)}% weight
+            <div className="flex items-center gap-1 shrink-0 ml-3">
+              <span className="text-sm font-bold text-foreground tabular-nums">
+                {Math.round(score * weight)}
               </span>
-              <span className="text-sm font-bold text-foreground w-8 text-right">{score}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                / {Math.round(weight * 100)}
+              </span>
             </div>
           </div>
           <div className="h-1.5 w-full rounded-full bg-border">
@@ -162,6 +195,7 @@ function CruiseCvCheckerPage() {
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvScoreResult | null>(null);
+  const [parseFailure, setParseFailure] = useState<Extract<CvCheckOutcome, { kind: 'parse_failed' | 'insufficient_content' }> | null>(null);
   const [parsedCv, setParsedCv] = useState<ResumeData | null>(null);
   const [whatsappCaptured, setWhatsappCaptured] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -200,8 +234,9 @@ function CruiseCvCheckerPage() {
 
   // A2-2: Sync URL step with result state (browser back clears results) ───────
   useEffect(() => {
-    if (step === 'form' && result) {
+    if (step === 'form' && (result || parseFailure)) {
       setResult(null);
+      setParseFailure(null);
       setParsedCv(null);
       setWhatsappCaptured(false);
     }
@@ -219,12 +254,30 @@ function CruiseCvCheckerPage() {
     if (file.size > MAX_FILE_SIZE_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(1);
       toast.error(`This file is ${sizeMb} MB. Please upload a CV under 5 MB.`);
+      // Log to server telemetry
+      void logUploadFailure({
+        data: {
+          sessionId: SESSION_ID,
+          reasonCode: 'file_too_large' as ExtractionReasonCode,
+          stage: 'reading',
+          fileMeta: {
+            size: file.size,
+            mimeType: file.type,
+            extension: (file.name.split('.').pop() ?? '').toLowerCase(),
+            pageCount: null,
+          },
+          errorMessage: `File is ${sizeMb} MB, limit is 5 MB`,
+          timestamp: new Date().toISOString(),
+        },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any).catch(() => {});
       return;
     }
 
     setPendingFile(file);
     setCvText(''); // clear any previously extracted text
     progress.reset();
+    trackEvent('cv_upload_started');
   }
 
   const handleRoleChange = useCallback((value: string) => {
@@ -239,6 +292,7 @@ function CruiseCvCheckerPage() {
     }
     setLoading(true);
     setResult(null);
+    setParseFailure(null);
     setParsedCv(null);
     setWhatsappCaptured(false);
 
@@ -284,8 +338,22 @@ function CruiseCvCheckerPage() {
         throw scoreResult.reason;
       }
 
+      const outcome = scoreResult.value as CvCheckOutcome;
+
+      // Handle parse quality gate failures — distinct from a low score
+      if (outcome.kind === 'parse_failed' || outcome.kind === 'insufficient_content') {
+        progress.setStage('done', 100);
+        setParseFailure(outcome);
+        trackEvent('cv_parse_failed');
+        setTimeout(() => progress.reset(), 1500);
+        void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'results' } });
+        return;
+      }
+
       progress.setStage('done', 100);
-      setResult(scoreResult.value);
+      setResult(outcome.result);
+      trackEvent('cv_upload_succeeded');
+      trackEvent('score_viewed');
       if (parseResult.status === 'fulfilled') {
         setParsedCv(parseResult.value);
       }
@@ -296,30 +364,74 @@ function CruiseCvCheckerPage() {
       void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'results' } });
     } catch (err) {
       progress.setStage('error');
+      trackEvent('cv_upload_failed');
 
-      const fileInfo = pendingFile
-        ? { name: pendingFile.name, size: pendingFile.size, type: pendingFile.type }
-        : null;
+      // Determine the reason code and stage for telemetry
+      let reasonCode: ExtractionReasonCode;
+      let failStage: string = 'unknown';
+      let pageCount: number | null = null;
+
+      if (err instanceof ExtractionError) {
+        reasonCode = err.reasonCode;
+        failStage = err.stage;
+        pageCount = err.pageCount ?? null;
+      } else if (err instanceof Error && err.message.includes('taking too long')) {
+        // Client-side 35s timeout — record which stage was active
+        reasonCode = 'client_timeout';
+        failStage = progress.currentStage ?? 'unknown';
+      } else if (err instanceof Error && err.message.includes('ScoreParseError')) {
+        reasonCode = 'parser_exception';
+        failStage = 'analyzing';
+      } else {
+        reasonCode = 'parser_exception';
+        failStage = 'unknown';
+      }
+
+      // Build file metadata for logging
+      const file = pendingFile;
+      const fileMeta = {
+        size: file?.size ?? 0,
+        mimeType: file?.type ?? 'text/plain',
+        extension: file ? (file.name.split('.').pop() ?? '').toLowerCase() : 'paste',
+        pageCount,
+      };
+
+      // Log to console for local debugging
       console.error('[CV checker] extraction/scoring error', {
-        name: err instanceof Error ? err.name : typeof err,
+        sessionId: SESSION_ID,
+        reasonCode,
+        stage: failStage,
         message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined,
-        fileInfo,
-        userAgent: navigator.userAgent,
+        stack: err instanceof Error ? err.stack?.slice(0, 500) : undefined,
+        fileMeta,
       });
 
-      const knownMessage =
-        err instanceof Error &&
-        (err.message.includes('scanned image') ||
-          err.message.includes('encrypted or corrupted') ||
-          err.message.includes('Unsupported file type') ||
-          err.message.includes("couldn't extract") ||
-          err.message.includes('taking too long'));
-      toast.error(
-        knownMessage
-          ? err.message
-          : 'We hit a problem reading your CV. Try a .docx or .txt file, or paste your CV text directly.',
-      );
+      // Fire-and-forget: send structured failure to server telemetry
+      void logUploadFailure({
+        data: {
+          sessionId: SESSION_ID,
+          reasonCode,
+          stage: failStage,
+          fileMeta,
+          errorMessage: err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300),
+          errorStack: err instanceof Error ? err.stack?.slice(0, 500) : undefined,
+          timestamp: new Date().toISOString(),
+        },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any).catch(() => { /* telemetry failure is non-fatal */ });
+
+      // Show user-facing message — use the ExtractionError's specific message, not a generic one
+      if (err instanceof ExtractionError) {
+        toast.error(err.message);
+      } else if (err instanceof Error && err.message.includes('taking too long')) {
+        toast.error('Analysis is taking too long. Please try again.');
+      } else if (err instanceof Error && err.message.includes('ScoreParseError')) {
+        toast.error("We couldn't analyse this CV right now — please try again in a moment.");
+      } else {
+        toast.error(
+          err instanceof Error ? err.message : 'An unexpected error occurred. Please try a .docx or .txt file, or paste your CV text directly.',
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -330,6 +442,7 @@ function CruiseCvCheckerPage() {
     // A0-1: clear saved draft so next user starts fresh
     try { localStorage.removeItem(CHECKER_STORAGE_KEY); } catch { /* ignore */ }
     setResult(null);
+    setParseFailure(null);
     setParsedCv(null);
     setWhatsappCaptured(false);
     setPendingFile(null);
@@ -348,8 +461,8 @@ function CruiseCvCheckerPage() {
     'Major Gaps': 'Your CV has critical gaps that will likely cause instant rejection.',
   };
 
-  // Show results view when URL says results AND we have a result
-  const showResults = step === 'results' && result != null && !loading;
+  // Show results view when URL says results AND we have a result (or parse failure)
+  const showResults = step === 'results' && (result != null || parseFailure != null) && !loading;
 
   return (
     <div className="min-h-screen bg-background">
@@ -408,7 +521,7 @@ function CruiseCvCheckerPage() {
 
             {/* CV upload */}
             <div className="space-y-1.5">
-              <Label htmlFor="cvText" className="text-sm font-medium text-foreground">
+              <Label htmlFor="cvFile" className="text-sm font-medium text-foreground">
                 Your CV <span className="text-destructive">*</span>
               </Label>
               <div className="flex items-center gap-2 flex-wrap">
@@ -431,6 +544,8 @@ function CruiseCvCheckerPage() {
                 <span className="text-xs text-muted-foreground/60">max 5 MB</span>
               </div>
               <input
+                id="cvFile"
+                name="cvFile"
                 ref={fileRef}
                 type="file"
                 accept=".txt,.text,.docx,.pdf"
@@ -476,16 +591,66 @@ function CruiseCvCheckerPage() {
           </form>
         )}
 
+        {/* Parse failure — distinct from a numeric score */}
+        {showResults && parseFailure && (
+          <div className="space-y-5">
+            <div className="rounded-2xl bg-card border border-destructive/30 shadow-soft p-6 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                {parseFailure.kind === 'parse_failed'
+                  ? "We couldn't read your CV"
+                  : 'Not enough content to score'}
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                {parseFailure.reason}
+              </p>
+              <div className="rounded-lg bg-muted border border-border px-4 py-3 text-left">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-accent shrink-0" />
+                  What to do
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {parseFailure.suggestion}
+                </p>
+              </div>
+            </div>
+
+            {/* Try again */}
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={handleCheckAnother}
+                className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+              >
+                Try again with a different file
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Results */}
-        {showResults && (
+        {showResults && result && (
           <div className="space-y-5">
             {/* Score card */}
             <div className="rounded-2xl bg-card border border-border shadow-soft p-6">
-              <div className="mb-4 flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:justify-between">
+              {result!.isDegraded && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/8 px-3 py-2.5">
+                  <AlertTriangle className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                  <p className="text-xs text-accent">
+                    AI scoring is temporarily unavailable. Your score is based on keyword matching and CV structure only — recheck when service resumes for a full analysis.
+                  </p>
+                </div>
+              )}
+              <div className="mb-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="font-display text-xl font-bold text-foreground">
                   {selectedRole?.label ?? 'CV'} Analysis
                 </h2>
-                <TierBadge tier={result!.tier} />
+                <div className="flex items-center gap-2 flex-wrap">
+                  {result!.confidence && <ConfidenceBadge confidence={result!.confidence} />}
+                  <TierBadge tier={result!.tier} />
+                </div>
               </div>
               <AtsScoreRing score={result!.overallScore} topFixes={result!.topFixes} />
             </div>
@@ -520,6 +685,26 @@ function CruiseCvCheckerPage() {
                     />
                   ))}
                 </div>
+
+                {/* Deterministic improvement tips */}
+                {result!.deterministicFeedback && result!.deterministicFeedback.length > 0 && (
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 text-accent shrink-0" />
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                        What to Fix
+                      </h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {result!.deterministicFeedback.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Keyword lists */}
                 {(result!.matchedKeywords.length > 0 || result!.missingKeywords.length > 0) && (
@@ -571,10 +756,15 @@ function CruiseCvCheckerPage() {
                 <Button
                   className="gap-2 font-semibold shrink-0"
                   onClick={() => {
+                    trackEvent('builder_entered');
                     if (parsedCv) {
                       saveCvImport(parsedCv, roleSlug);
                       void navigate({ to: '/builder', search: { from: 'import' } as never });
                     } else {
+                      toast.info(
+                        "We couldn't pre-fill your details this time — you can enter them in the builder.",
+                        { duration: 6000 },
+                      );
                       void navigate({ to: '/builder', search: { role: roleSlug } as never });
                     }
                   }}

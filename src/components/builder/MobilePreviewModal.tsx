@@ -181,7 +181,7 @@ export function MobilePreviewModal({ data, onTemplateChange, onColourChange, onC
           Preview
         </span>
 
-        {/* Colours toggle (premium templates only) */}
+        {/* Colours toggle (templates with colour support) */}
         <div className="w-[120px] flex justify-end">
           {supportsColours && (
             <button
@@ -234,7 +234,7 @@ export function MobilePreviewModal({ data, onTemplateChange, onColourChange, onC
         })}
       </div>
 
-      {/* ── Colour picker (premium only) ─────────────────────────────────── */}
+      {/* ── Colour picker (templates with colour support) ────────────────── */}
       {supportsColours && colourPickerOpen && (
         <div className="shrink-0 overflow-y-auto border-b-half border-border bg-background" style={{ maxHeight: 320 }}>
           <TemplateColourPicker

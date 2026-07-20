@@ -96,17 +96,6 @@ export function TemplatesPanel({ selectedId, onSelect }: Props) {
                 justifyContent: 'space-between',
               }}>
                 <span>{t.name}</span>
-                {t.premium && (
-                  <span style={{
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    color: '#c9a227',
-                    background: '#fdf3cc',
-                    padding: '1px 4px',
-                    borderRadius: '3px',
-                    letterSpacing: '0.04em',
-                  }}>PRO</span>
-                )}
               </div>
               {/* Selected check badge */}
               {isSelected && (
@@ -175,7 +164,7 @@ export function TemplatesPanel({ selectedId, onSelect }: Props) {
         <div>
           <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a' }}>{selected.name}</div>
           <div style={{ fontSize: '11px', color: '#888', marginTop: '1px' }}>
-            {selected.premium ? 'Premium template' : 'Free template'} · {selected.description}
+            {selected.description}
           </div>
         </div>
       </div>

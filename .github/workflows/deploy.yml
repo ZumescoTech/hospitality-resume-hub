@@ -23,6 +23,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_CLARITY_PROJECT_ID: ${{ secrets.VITE_CLARITY_PROJECT_ID }}
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy
@@ -32,7 +33,7 @@ jobs:
 
       - name: Set Worker secrets
         run: |
-          echo "${{ secrets.ANTHROPIC_API_KEY }}" | npx wrangler secret put ANTHROPIC_API_KEY --name hospitality-resume-hub
+          echo "${{ secrets.GROQ_API_KEY }}" | npx wrangler secret put GROQ_API_KEY --name hospitality-resume-hub
           echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name hospitality-resume-hub
           echo "${{ secrets.GOOGLE_SHEETS_LEAD_WEBHOOK_URL }}" | npx wrangler secret put GOOGLE_SHEETS_LEAD_WEBHOOK_URL --name hospitality-resume-hub
         env:

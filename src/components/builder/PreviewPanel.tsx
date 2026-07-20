@@ -285,9 +285,8 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
         </div>
 
         {/* ── Swatch gallery ──────────────────────────────────── */}
-        {/* Free templates */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {TEMPLATES.filter((t) => !t.premium).map((t) => (
+          {TEMPLATES.map((t) => (
             <button
               key={t.id}
               id={`swatch-${t.id}`}
@@ -307,37 +306,6 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
             </button>
           ))}
         </div>
-        {/* Premium templates */}
-        {TEMPLATES.some((t) => t.premium) && (
-          <div className="mt-2">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Premium</p>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {TEMPLATES.filter((t) => t.premium).map((t) => (
-                <button
-                  key={t.id}
-                  id={`swatch-${t.id}`}
-                  onClick={() => onTemplateChange(t.id)}
-                  className={cn(
-                    "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-2 text-left transition-all",
-                    t.id === data.templateId
-                      ? "border border-primary bg-primary/5"
-                      : "border-half border-border hover:border-primary/40",
-                  )}
-                >
-                  <div className="relative flex h-12 w-20 overflow-hidden rounded-sm">
-                    <div className="flex-1" style={{ background: t.swatch[0] }} />
-                    <div className="w-1/3" style={{ background: t.swatch[1] }} />
-                    <span className="absolute right-0 top-0 rounded-bl bg-amber-100 px-1 py-0.5 text-[8px] font-bold uppercase leading-none tracking-wide text-amber-800">
-                      PRO
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-foreground">{t.name}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* ── Formatting controls ─────────────────────────────── */}
         <Collapsible open={formattingOpen} onOpenChange={setFormattingOpen}>
           <CollapsibleTrigger asChild>
@@ -371,7 +339,7 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
           </CollapsibleContent>
         </Collapsible>
 
-        {/* ── Colour customisation (premium templates only) ────── */}
+        {/* ── Colour customisation (templates with colour support) ────── */}
         {supportsColours && (
           <Collapsible open={colourPickerOpen} onOpenChange={setColourPickerOpen}>
             <CollapsibleTrigger asChild>

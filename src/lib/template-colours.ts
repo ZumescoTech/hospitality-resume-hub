@@ -14,33 +14,33 @@ export interface TemplateColours {
 // Changing these will change what "Reset defaults" restores to.
 export const TEMPLATE_COLOUR_DEFAULTS: Record<string, TemplateColours> = {
   'noir-premium': {
-    primary:    '#7c3aed',   // C.heading — section heading colour
-    accent:     '#a78bfa',   // C.title — job title colour
-    text:       '#e2e8f0',   // C.body — body text
-    background: '#0f172a',   // C.bg — page background
+    primary:    '#0d6b5e',   // C.heading — section heading colour
+    accent:     '#0d6b5e',   // C.title — job title colour
+    text:       '#1a1a1a',   // C.body — body text
+    background: '#ffffff',   // C.bg — page background
   },
   'executive': {
-    primary:    '#7c3aed',   // C.accent — left border stripe + title colour
-    accent:     '#7c3aed',   // C.title — same slot, separate customisable
-    text:       '#334155',   // C.body — body text
+    primary:    '#0d6b5e',   // C.accent — left border stripe + title colour
+    accent:     '#0d6b5e',   // C.title — same slot, separate customisable
+    text:       '#1a1a1a',   // C.body — body text
     background: '#ffffff',   // C.bg — page background
   },
   'harbour': {
-    primary:    '#7c3aed',   // C.sidebarBg + C.mainTitle — sidebar background
-    accent:     '#ddd6fe',   // C.divider — main heading underline
-    text:       '#334155',   // C.mainBody — main column body text
+    primary:    '#0d6b5e',   // C.sideHeading + C.mainTitle + C.divider
+    accent:     '#0d6b5e',   // C.divider — main heading underline
+    text:       '#1a1a1a',   // C.mainBody — main column body text
     background: '#ffffff',   // C.mainBg — main column background
   },
   'admiral': {
-    primary:    '#7c3aed',   // C.rule1 + C.title — thick rule + title colour
-    accent:     '#7c3aed',   // C.title — job title
-    text:       '#334155',   // C.body — body text
+    primary:    '#0d6b5e',   // C.rule1 + C.title + C.heading — thick rule + heading colour
+    accent:     '#0d6b5e',   // C.title — job title
+    text:       '#1a1a1a',   // C.body — body text
     background: '#ffffff',   // C.bg — page background
   },
   'steward': {
-    primary:    '#7c3aed',   // C.headerBg — header band background
-    accent:     '#7c3aed',   // C.heading — section heading colour in body
-    text:       '#334155',   // C.body — body text
+    primary:    '#0d6b5e',   // C.headerBorder + C.headerTitle + C.heading
+    accent:     '#0d6b5e',   // C.heading — section heading colour in body
+    text:       '#1a1a1a',   // C.body — body text
     background: '#ffffff',   // C.bg — body section background
   },
 }

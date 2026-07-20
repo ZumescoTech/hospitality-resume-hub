@@ -63,6 +63,101 @@ export function runDeterministicChecks(cvText: string): DeterministicSignals {
   };
 }
 
+// ─── Parse quality gate ───────────────────────────────────────────────────────
+// Returns null if text quality is acceptable for scoring, or a failure descriptor
+// if the extracted text is too garbled/empty to produce a trustworthy score.
+
+export type ParseQualityFailure =
+  | { kind: 'parse_failed'; reason: string; suggestion: string }
+  | { kind: 'insufficient_content'; reason: string; suggestion: string };
+
+/**
+ * Ratio of non-ASCII/control characters to total length — high values indicate
+ * garbled text from a bad PDF export (font encoding issues, etc.).
+ */
+function garbledCharRatio(text: string): number {
+  if (text.length === 0) return 0;
+  // Count characters that are non-printable ASCII or replacement chars
+  const garbled = text.replace(/[\x20-\x7E\n\r\t\u00A0-\u024F]/g, '');
+  return garbled.length / text.length;
+}
+
+export function parseQualityGate(
+  cvText: string,
+  signals: DeterministicSignals,
+): ParseQualityFailure | null {
+  // Gate 1: Garbled text — high ratio of non-printable characters indicates
+  // font encoding issues or image-only PDF that OCR partially decoded.
+  // Check this BEFORE word count, since garbled text is often also short.
+  const ratio = garbledCharRatio(cvText);
+  if (ratio > 0.15) {
+    return {
+      kind: 'parse_failed',
+      reason: 'Your CV file appears to contain garbled or unreadable text, likely due to font encoding in the PDF.',
+      suggestion: 'Try re-exporting your CV from Word as a .docx, or paste the text directly.',
+    };
+  }
+
+  // Gate 2: Long garbled runs (the existing GARBLED_RE) combined with lack of
+  // structure — a single garbled run is suspect but tolerable if the rest of
+  // the CV has recognizable structure
+  if (signals.suspectGarbledText && signals.headingsFound.length === 0 && signals.wordCount < 100) {
+    return {
+      kind: 'parse_failed',
+      reason: "We couldn't reliably read text from this file — it may be a scanned image or use non-standard fonts.",
+      suggestion: 'Try uploading a .docx version, or paste your CV text directly.',
+    };
+  }
+
+  // Gate 3: Insufficient content (passed the 50-char extraction threshold but
+  // still too short to meaningfully score)
+  if (signals.wordCount < 30) {
+    return {
+      kind: 'insufficient_content',
+      reason: 'Your CV file contained very little readable text.',
+      suggestion: 'Try re-uploading as a .docx file, or paste your CV text directly into the text box.',
+    };
+  }
+
+  return null; // quality acceptable
+}
+
+// ─── Job description validation ──────────────────────────────────────────────
+
+/** Max chars processed from a job description — prevents slow keyword extraction on full-page scrapes. */
+const JD_MAX_CHARS = 5000;
+
+/**
+ * Sanitise and validate a job description before feeding it to keyword extraction.
+ * Returns null if the JD is empty, too short to be useful, or appears to be garbage
+ * (HTML, code, random characters). Otherwise returns a trimmed/capped version.
+ */
+export function sanitizeJobDescription(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+
+  let text = raw.trim();
+
+  // Strip HTML tags (user may have pasted from a web page with markup)
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // Collapse whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+
+  // Too short to extract meaningful keywords
+  if (text.length < 30) return null;
+
+  // Detect obvious garbage: high ratio of special characters / code patterns
+  const codePatterns = /[{}<>].*[{}<>]|function\s*\(|const\s+\w+|import\s+\{|<\/?\w+>/;
+  if (codePatterns.test(text.slice(0, 500))) return null;
+
+  // Cap length to prevent slow extraction
+  if (text.length > JD_MAX_CHARS) {
+    text = text.slice(0, JD_MAX_CHARS);
+  }
+
+  return text;
+}
+
 // ─── Job description keyword extractor ────────────────────────────────────────
 
 const JD_STOPWORDS = new Set([
@@ -110,18 +205,29 @@ function extractJobDescriptionKeywords(text: string): string[] {
 
 // ─── Keyword alignment ────────────────────────────────────────────────────────
 
+/**
+ * Returns true if `term` appears in `text` with word boundaries on both sides.
+ * Multi-word terms (containing spaces) are matched with a boundary only on the
+ * outer edges of the phrase. Single-word terms use \b to prevent "micros"
+ * matching inside "microscope".
+ */
+function termInText(text: string, term: string): boolean {
+  // Escape regex special chars in the term
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\w])${escaped}(?![\\w])`, 'i').test(text);
+}
+
 export function scoreKeywordAlignment(
   cvText: string,
   roleKeywords: string[],
   jobDescription?: string,
 ): { matchedKeywords: string[]; missingKeywords: string[]; matchRatio: number } {
-  const lower = cvText.toLowerCase();
   const matched: string[] = [];
   const missing: string[] = [];
 
   for (const kw of roleKeywords) {
     const kwLower = kw.toLowerCase();
-    if (lower.includes(kwLower)) {
+    if (termInText(cvText, kwLower)) {
       // Direct match
       matched.push(kw);
     } else {
@@ -129,7 +235,7 @@ export function scoreKeywordAlignment(
       // Always use the original role keyword (not the synonym) in the returned list,
       // so the UI shows terms in the role's expected language.
       const synonyms = SYNONYM_MAP.get(kwLower) ?? [];
-      const hasSynonymMatch = synonyms.some((s) => lower.includes(s));
+      const hasSynonymMatch = synonyms.some((s) => termInText(cvText, s));
       (hasSynonymMatch ? matched : missing).push(kw);
     }
   }
@@ -139,12 +245,13 @@ export function scoreKeywordAlignment(
 
   // JD bonus pool: JD-extracted terms found in the CV are added to matchedKeywords
   // (boosting what the LLM sees). Unmatched JD terms are silently dropped — no penalty.
-  if (jobDescription?.trim()) {
+  const cleanJd = sanitizeJobDescription(jobDescription);
+  if (cleanJd) {
     const roleSet = new Set(roleKeywords.map((k) => k.toLowerCase()));
     const alreadyMatched = new Set(matched.map((k) => k.toLowerCase()));
-    for (const jdKw of extractJobDescriptionKeywords(jobDescription)) {
+    for (const jdKw of extractJobDescriptionKeywords(cleanJd)) {
       if (roleSet.has(jdKw) || alreadyMatched.has(jdKw)) continue;
-      if (lower.includes(jdKw)) {
+      if (termInText(cvText, jdKw)) {
         matched.push(jdKw);
         alreadyMatched.add(jdKw);
       }

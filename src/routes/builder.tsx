@@ -33,9 +33,32 @@ import { extractTextFromFile } from "@/lib/extractCvText";
 import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
 import { consumeCvImport } from "@/lib/cv-import-handoff";
 import { mapParsedCvToBuilderForm } from "@/lib/map-parsed-cv-to-builder";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import { pdf } from "@react-pdf/renderer";
 import { ResumePDF } from "@/lib/pdf/ResumePDF";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/clarity";
+
+export function BuilderSkeleton() {
+  return (
+    <div data-testid="builder-skeleton" style={{ minHeight: '100vh', background: 'var(--surface-warm, #f7f7f5)' }}>
+      {/* Header placeholder */}
+      <div style={{ height: 56, background: 'var(--color-primary, #0d9488)' }} />
+      {/* Step pill bar placeholder */}
+      <div style={{ height: 48, background: '#fff', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px' }}>
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} style={{ height: 28, width: 72, borderRadius: 14, background: '#e5e7eb', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        ))}
+      </div>
+      {/* Form skeleton */}
+      <div style={{ maxWidth: 680, margin: '24px auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[120, 80, 80, 80].map((h, i) => (
+          <div key={i} style={{ height: h, borderRadius: 12, background: '#e5e7eb', animation: 'pulse 1.5s ease-in-out infinite' }} />
+        ))}
+      </div>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
+    </div>
+  )
+}
 
 export const Route = createFileRoute("/builder")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -44,16 +67,16 @@ export const Route = createFileRoute("/builder")({
   }),
   head: () => ({
     meta: [
-      { title: "Plate & Pen — Resume Builder for Hospitality Pros" },
+      { title: "GetHired — Resume Builder for Hospitality Pros" },
       {
         name: "description",
         content:
-          "A modern resume builder for waiters, sommeliers, bartenders and chefs. Live preview, 10+ editorial templates, hospitality-specific sections.",
+          "A modern resume builder for waiters, sommeliers, bartenders and chefs. Live preview, 7 editorial templates, hospitality-specific sections.",
       },
-      { property: "og:title", content: "Plate & Pen — Resume Builder for Hospitality" },
+      { property: "og:title", content: "GetHired — Resume Builder for Hospitality" },
       {
         property: "og:description",
-        content: "Build a beautiful, hospitality-focused CV with live preview and 10+ templates.",
+        content: "Build a beautiful, hospitality-focused CV with live preview and 7 templates.",
       },
     ],
   }),
@@ -70,7 +93,7 @@ const BUILDER_SECTIONS = [
 ];
 
 function BuilderPage() {
-  const { data, setData, hydrated, syncing, resumeId, setTemplateColours, resetTemplateColours } = useResumeStore();
+  const { data, setData, hydrated, syncing, resumeId, setTemplateColours, resetTemplateColours, loadSample } = useResumeStore();
 
   // ── Tab state ──────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"edit" | "templates" | "preview">("edit");
@@ -90,6 +113,7 @@ function BuilderPage() {
   const [pasteText, setPasteText] = useState("");
   const [parsingPaste, setParsingPaste] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>('personal');
+  const [downloading, setDownloading] = useState(false);
 
   const toggleSection = (id: string) => {
     setOpenSection(prev => {
@@ -134,6 +158,11 @@ function BuilderPage() {
     };
   }, []);
 
+  // ── Funnel: builder entered ────────────────────────────────────────────────
+  useEffect(() => {
+    trackEvent('builder_entered');
+  }, []);
+
   // ── CV import from handoff (ATS checker → builder) ─────────────────────────
   useEffect(() => {
     if (!hydrated || search.from !== "import") return;
@@ -169,13 +198,16 @@ function BuilderPage() {
   async function doFileImport(file: File) {
     setImporting(true);
     setImportedFile(null);
+    trackEvent('cv_upload_started');
     try {
       const cvText = await extractTextFromFile(file);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const parsed = await parseCvForBuilder({ data: { cvText } } as any);
       setData({ ...parsed, templateId: data.templateId });
       setImportedFile(file.name);
+      trackEvent('cv_upload_succeeded');
     } catch (err) {
+      trackEvent('cv_upload_failed');
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("scanned image") || msg.includes("encrypted or corrupted")) {
         setShowPasteFallback(true);
@@ -222,16 +254,33 @@ function BuilderPage() {
   const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
   const sectionProps = { data, onChange: onPatch };
 
-  // ── PDF download via hidden link ───────────────────────────────────────────
-  const pdfLinkId = "pdf-download-hidden-link";
-  function handleDownload() {
-    const link = document.querySelector(`#${pdfLinkId} a`) as HTMLAnchorElement | null;
-    link?.click();
+  // ── PDF download ────────────────────────────────────────────────────────────
+  async function handleDownload() {
+    if (downloading) return;
+    setDownloading(true);
+    trackEvent('export_triggered');
+    try {
+      const fileName = `${(data.personal.fullName || "resume").replace(/\s+/g, "_")}_CV.pdf`;
+      const blob = await pdf(<ResumePDF data={data} formatting={data.formatting} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      trackEvent('export_succeeded');
+    } catch (err) {
+      trackEvent('export_failed');
+      const msg = err instanceof Error ? err.message : 'Could not generate PDF. Please try again.';
+      toast.error(`Download failed: ${msg}`);
+    } finally {
+      setDownloading(false);
+    }
   }
 
-  if (!hydrated) return null;
-
-  const fileName = `${(data.personal.fullName || "resume").replace(/\s+/g, "_")}_CV.pdf`;
+  if (!hydrated) return <BuilderSkeleton />;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-warm, #f7f7f5)' }}>
@@ -240,18 +289,31 @@ function BuilderPage() {
       <AppHeader />
 
       {/* ── Step pill bar (edit tab only) ────────────────────────────────────── */}
-      <StepProgress sections={BUILDER_SECTIONS} activeTab={activeTab} />
+      <StepProgress
+        sections={BUILDER_SECTIONS}
+        activeTab={activeTab}
+        onSectionOpen={(id) => setOpenSection(id)}
+      />
 
-      {/* ── Hidden PDF download link ──────────────────────────────────────────── */}
-      <div id={pdfLinkId} style={{ display: 'none' }}>
-        <PDFDownloadLink
-          document={<ResumePDF data={data} formatting={data.formatting} />}
-          fileName={fileName}
-          style={{ textDecoration: 'none' }}
+      {/* ── PDF loading overlay ───────────────────────────────────────────────── */}
+      {downloading && (
+        <div
+          data-testid="pdf-loading"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
-          {() => null}
-        </PDFDownloadLink>
-      </div>
+          <div style={{
+            background: '#fff', borderRadius: 12, padding: '24px 32px',
+            display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 500,
+          }}>
+            <Loader2 style={{ width: 20, height: 20, animation: 'spin 1s linear infinite' }} />
+            Generating PDF…
+          </div>
+        </div>
+      )}
 
       {/* ── Builder body ──────────────────────────────────────────────────────── */}
       <div
@@ -296,6 +358,32 @@ function BuilderPage() {
                   <><Upload style={{ width: 12, height: 12 }} />Import CV</>
                 )}
               </button>
+
+              {/* Load example CV button — only shows when the form is empty */}
+              {!data.personal.fullName && (
+                <button
+                  type="button"
+                  onClick={loadSample}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: '#666',
+                    background: 'transparent',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    padding: '0 10px',
+                    height: '32px',
+                    minHeight: '32px',
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent',
+                  } as React.CSSProperties}
+                >
+                  Load example CV
+                </button>
+              )}
             </div>
             <input ref={importFileRef} type="file" accept=".txt,.text,.docx,.pdf" className="hidden" onChange={handleImportCv} />
 

@@ -1,4 +1,6 @@
 import { ResumeData } from "@/types/resume";
+import { VintageTemplate } from "./premium/VintageTemplate";
+import { WinelandsTemplate } from "./premium/WinelandsTemplate";
 import { PremiumNoirTemplate } from "./premium/PremiumNoirTemplate";
 import { ExecutiveTemplate } from "./premium/ExecutiveTemplate";
 import { HarbourTemplate } from "./premium/HarbourTemplate";
@@ -17,11 +19,14 @@ export interface TemplateMeta {
 }
 
 export const TEMPLATES: TemplateMeta[] = [
-  { id: "noir-premium", name: "Noir", description: "Dark luxury · cruise lines", swatch: ["#0f172a", "#7c3aed"], purpose: "Luxury cruise lines", premium: true, Component: PremiumNoirTemplate },
-  { id: "executive", name: "Executive", description: "Crisp single-column · management", swatch: ["#1e293b", "#7c3aed"], purpose: "Ship's management", premium: true, Component: ExecutiveTemplate },
-  { id: "harbour", name: "Harbour", description: "Two-column · hotel & resort", swatch: ["#7c3aed", "#f8fafc"], purpose: "Hotel & resort", premium: true, Component: HarbourTemplate },
-  { id: "admiral", name: "Admiral", description: "Centred header · senior officers", swatch: ["#f8fafc", "#7c3aed"], purpose: "Senior officers", premium: true, Component: AdmiralTemplate },
-  { id: "steward", name: "Steward", description: "Purple band header · service crew", swatch: ["#7c3aed", "#ffffff"], purpose: "Cabin & service crew", premium: true, Component: StewardTemplate },
+  // Vintage is the default template (first element). Classic elegant layout.
+  { id: "vintage", name: "Vintage", description: "Classic elegant · all roles", swatch: ["#ffffff", "#0d6b5e"], purpose: "All hospitality roles", Component: VintageTemplate },
+  { id: "winelands", name: "Winelands", description: "Warm serif · sommeliers & wine", swatch: ["#f5f0e8", "#0d6b5e"], purpose: "Sommelier & wine roles", Component: WinelandsTemplate },
+  { id: "noir-premium", name: "Noir", description: "Clean minimal · cruise lines", swatch: ["#ffffff", "#0d6b5e"], purpose: "Luxury cruise lines", Component: PremiumNoirTemplate },
+  { id: "executive", name: "Executive", description: "Crisp single-column · management", swatch: ["#ffffff", "#0d6b5e"], purpose: "Ship's management", Component: ExecutiveTemplate },
+  { id: "harbour", name: "Harbour", description: "Two-column · hotel & resort", swatch: ["#0d6b5e", "#ffffff"], purpose: "Hotel & resort", Component: HarbourTemplate },
+  { id: "admiral", name: "Admiral", description: "Centred header · senior officers", swatch: ["#ffffff", "#0d6b5e"], purpose: "Senior officers", Component: AdmiralTemplate },
+  { id: "steward", name: "Steward", description: "Accent band header · service crew", swatch: ["#0d6b5e", "#ffffff"], purpose: "Cabin & service crew", Component: StewardTemplate },
 ];
 
 export const getTemplate = (id: string) =>
