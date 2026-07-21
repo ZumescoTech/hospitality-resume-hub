@@ -32,4 +32,53 @@ Could be:
 
 ---
 
-*Logged: 2026-07-05. Both items deferred past B-0/R-1 close-out.*
+## (c) Desktop preview pane does not stick on scroll
+
+`.preview-panel-outer` is `position: sticky` at >=1024px, but it never sticks —
+it scrolls away with the page. Measured at 1280x900: pane top resolves to
+**-608 after scrolling 700px**, i.e. it moves 1:1 with the document.
+
+**Root cause:** `html, body { overflow-x: hidden }` (`src/styles.css:146`).
+When one overflow axis is `hidden` and the other is `visible`, the visible axis
+computes to `auto`, which makes `body` a scroll container — and a scroll
+container becomes the sticky scrollport for every descendant. The pane's `top`
+is therefore measured against `body` rather than the viewport, so sticky never
+engages relative to the screen.
+
+Confirmed by direct measurement on the pane at 1280px:
+
+| position | resulting top |
+|---|---|
+| `static` | 92 |
+| `sticky`, `top: 92px` | 184 |
+| `sticky`, `top: 0` | 92 |
+
+The offset being *added* to the flow position is the signature of a scrollport
+that is not the viewport.
+
+**Not a regression.** The rule predates the CV builder rebuild and the pane
+never stuck on `main`. It surfaced during Step 8 only because that step was the
+first to anchor anything (the Customize trigger, the contained drawer sheet) to
+the pane's bottom edge.
+
+**Two possible fixes, neither in scope for the builder rebuild:**
+
+1. **Sitewide `overflow-x: clip`** on `html, body`. `clip` suppresses the same
+   horizontal overflow without establishing a scrollport, so sticky resolves
+   against the viewport again. This is the same fix already applied locally to
+   `.builder-layout` in commit `3c5ddd9`. Risk: `hidden` on `html, body` is
+   usually load-bearing against some specific element overflowing — removing it
+   sitewide can reintroduce a horizontal scrollbar on any page. **Must be
+   verified across every route, not just `/builder`**, at 375/850/1280.
+2. **Restructure the sticky context for the builder route only** — give the
+   builder its own scroll container so the pane's scrollport is well-defined,
+   and leave the global rule alone. Smaller blast radius, more layout work.
+
+**Action:** separate task. Option 1 is cheaper but needs a full-route sweep for
+horizontal overflow before it can be trusted; option 2 is contained but touches
+builder layout again. Decide which before starting.
+
+---
+
+*Logged: 2026-07-05 (items a, b), 2026-07-21 (item c). All deferred — (a) and
+(b) past B-0/R-1 close-out, (c) out of scope for the CV builder rebuild.*

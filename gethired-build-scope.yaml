@@ -356,4 +356,4 @@ parking_lot:
   - Recruiter dashboard / cover letters / interview prep (V2)
   - Pre-existing e2e failure: smoke/cv-journey look for getByRole('button', /download/i) but the desktop PDFDownloadButton renders an <a> (PDFDownloadLink) — 14 chromium specs fail on main, unrelated to the builder rebuild
   - Pre-existing sub-44px tap targets at 375px: mode-switcher tabs 36px (styles.css .mobile-mode-switcher__tab) and StepProgress pills 30px (StepProgress.tsx) — predate Step 8, no new controls affected
-  - Desktop preview pane never actually sticks on scroll: `html, body { overflow-x: hidden }` (styles.css:146) makes body a scroll container, so position:sticky resolves against it — sitewide rule, fixing it risks horizontal scrollbars on every page
+  - Desktop preview pane never actually sticks on scroll: `html, body { overflow-x: hidden }` (styles.css:146) makes body a scroll container, so position:sticky resolves against it — see NOTES.md item (c) for root cause, measurements and the two candidate fixes
