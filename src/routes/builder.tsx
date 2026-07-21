@@ -596,13 +596,11 @@ function BuilderPage() {
             Customize
           </button>
 
+          {/* Style callbacks now belong to the drawer below — the preview
+              toolbar is view + export only (Step 8). */}
           <PreviewPanel
             data={data}
             onLightboxOpenChange={setLightboxOpen}
-            onTemplateChange={(id) => onPatch({ templateId: id })}
-            onFormattingChange={(formatting) => onPatch({ formatting })}
-            onColourChange={(slot, value) => setTemplateColours(data.templateId, { [slot]: value })}
-            onColourReset={() => resetTemplateColours(data.templateId)}
           />
 
           {/* ── Style drawer (Step 7, scoped to this pane at >=1024px) ──────── */}

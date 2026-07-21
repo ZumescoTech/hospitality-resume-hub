@@ -3,19 +3,11 @@ import { ResumeData } from "@/types/resume";
 import { FormattingSettings } from "@/types/formatting";
 import { defaultFormatting } from "@/types/formatting";
 import { TEMPLATES, getTemplate } from "@/components/templates/registry";
-import { FormattingPanel } from "@/components/builder/FormattingPanel";
 const PDFDownloadButton = lazy(() =>
   import("@/lib/pdf/PDFDownloadButton").then((m) => ({ default: m.PDFDownloadButton }))
 );
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -23,25 +15,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   Expand,
   Maximize2,
   Minimize2,
   Printer,
-  SlidersHorizontal,
-  Palette,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { TemplateColourPicker } from "@/components/builder/TemplateColourPicker";
 import { PreviewZoomLightbox } from "@/components/builder/PreviewZoomLightbox";
 import {
-  TemplateColours,
   getTemplateColours,
   templateSupportsColours,
 } from "@/lib/template-colours";
@@ -59,10 +41,6 @@ type ZoomMode = "fit" | number;
 
 interface Props {
   data: ResumeData;
-  onTemplateChange: (id: string) => void;
-  onFormattingChange: (formatting: FormattingSettings) => void;
-  onColourChange: (slot: keyof TemplateColours, value: string) => void;
-  onColourReset: () => void;
   /** Notifies the builder while the zoom lightbox owns the screen (Step 6). */
   onLightboxOpenChange?: (open: boolean) => void;
 }
@@ -71,10 +49,13 @@ interface Props {
  * PreviewPanel
  *
  * Renders the right-hand live preview pane. Contains:
- *  - Template selector dropdown + swatch gallery
- *  - Collapsible FormattingPanel for typography/layout controls
  *  - Zoom controls (auto-fit "Fit" mode + manual %) + print + PDF download
  *  - Live A4-proportioned resume preview with pagination for long CVs
+ *
+ * Template, colour and formatting controls used to live in this toolbar too.
+ * Step 8 retired them: the Customize drawer (StyleDrawer) carries all three
+ * and is reachable at every width, so keeping a second copy here meant two
+ * routes to the same settings on desktop and two places to keep in sync.
  *
  * Zoom modes:
  *  "fit"   — auto-scale so the full page fits the container (no scrollbar)
@@ -85,7 +66,7 @@ interface Props {
  *   the clip div shifts content via negative marginTop so no internal scroll
  *   is ever needed.
  */
-export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onColourChange, onColourReset, onLightboxOpenChange }: Props) {
+export function PreviewPanel({ data, onLightboxOpenChange }: Props) {
   // Step 4: the document renders at its true print width (A4, 794px) by
   // default — never auto-shrunk to the viewport. Narrower viewports scroll
   // horizontally to reveal it. "Fit" remains an opt-in zoom toggle.
@@ -100,8 +81,6 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
     },
     [onLightboxOpenChange],
   );
-  const [formattingOpen, setFormattingOpen] = useState(false);
-  const [colourPickerOpen, setColourPickerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [templateHeight, setTemplateHeight] = useState(PAGE_H);
@@ -197,37 +176,25 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
   return (
     <div className="flex h-full flex-col">
 
-      {/* ── Toolbar (desktop only — mobile uses TemplatesPanel tab) ─── */}
-      <div className="no-print hidden lg:block border-b-half border-border bg-card p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      {/* ── Toolbar (desktop only) ───────────────────────────────────
+          Step 8: template, colour and formatting controls were retired from
+          here in favour of the Customize drawer, which is now reachable at
+          every width and offers the same three categories. What remains is
+          what the drawer does *not* carry — viewing and export. The download
+          button in particular is the only export affordance at >=1024px,
+          where the pinned BottomCta is display:none. */}
+      <div className="no-print hidden lg:block border-b-half border-border bg-card px-4 py-2.5">
+        <div className="flex items-center justify-between gap-3">
 
-          {/* Active template label */}
+          {/* Active template label — read-only now; changing it is the
+              drawer's job. */}
           <div className="min-w-0 flex-1">
-            <p className="font-display text-sm font-semibold">Template</p>
             <p className="truncate text-xs text-muted-foreground">
-              {activeTpl.name} — {activeTpl.description}
+              <span className="font-medium text-foreground">{activeTpl.name}</span>
+              {" — "}
+              {activeTpl.description}
             </p>
           </div>
-
-          {/* Dropdown selector */}
-          <Select value={data.templateId} onValueChange={onTemplateChange}>
-            <SelectTrigger className="h-9 w-full min-w-[160px] max-w-[210px] shrink-0" id="template-select">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TEMPLATES.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  <span className="flex items-center gap-2">
-                    <span className="flex h-3 w-5 overflow-hidden rounded-sm">
-                      <span className="flex-1" style={{ background: t.swatch[0] }} />
-                      <span className="w-1/3" style={{ background: t.swatch[1] }} />
-                    </span>
-                    {t.name}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           {/* Zoom controls + export actions */}
           <div className="flex shrink-0 items-center gap-1">
@@ -301,98 +268,6 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
           </div>
         </div>
 
-        {/* ── Swatch gallery ──────────────────────────────────── */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {TEMPLATES.map((t) => (
-            <button
-              key={t.id}
-              id={`swatch-${t.id}`}
-              onClick={() => onTemplateChange(t.id)}
-              className={cn(
-                "group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-2 text-left transition-all",
-                t.id === data.templateId
-                  ? "border border-primary bg-primary/5"
-                  : "border-half border-border hover:border-primary/40",
-              )}
-            >
-              <div className="flex h-12 w-20 overflow-hidden rounded-sm">
-                <div className="flex-1" style={{ background: t.swatch[0] }} />
-                <div className="w-1/3" style={{ background: t.swatch[1] }} />
-              </div>
-              <p className="text-xs font-medium text-foreground">{t.name}</p>
-            </button>
-          ))}
-        </div>
-        {/* ── Formatting controls ─────────────────────────────── */}
-        <Collapsible open={formattingOpen} onOpenChange={setFormattingOpen}>
-          <CollapsibleTrigger asChild>
-            <button
-              className={cn(
-                "mt-3 flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
-                formattingOpen
-                  ? "border border-primary/40 bg-primary/5 text-foreground"
-                  : "border-half border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-              )}
-            >
-              <span className="flex items-center gap-2">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                <span className="font-medium">Format</span>
-                <span className="text-xs opacity-60">
-                  {fmt.fontFamily} · {fmt.bodyFontSize}pt · {fmt.marginInches}" margins
-                </span>
-              </span>
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 transition-transform",
-                  formattingOpen && "rotate-180",
-                )}
-              />
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-2 rounded-lg border border-border bg-background">
-              <FormattingPanel settings={fmt} onChange={onFormattingChange} />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* ── Colour customisation (templates with colour support) ────── */}
-        {supportsColours && (
-          <Collapsible open={colourPickerOpen} onOpenChange={setColourPickerOpen}>
-            <CollapsibleTrigger asChild>
-              <button
-                className={cn(
-                  "mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
-                  colourPickerOpen
-                    ? "border border-primary/40 bg-primary/5 text-foreground"
-                    : "border-half border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <Palette className="h-3.5 w-3.5" />
-                  <span className="font-medium">Colours</span>
-                  <span className="text-xs opacity-60">customise palette</span>
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 transition-transform",
-                    colourPickerOpen && "rotate-180",
-                  )}
-                />
-              </button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="mt-2 rounded-lg border border-border bg-background">
-                <TemplateColourPicker
-                  templateId={data.templateId}
-                  colours={colours}
-                  onChange={onColourChange}
-                  onReset={onColourReset}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
       </div>
 
       {/* ── Live preview ─────────────────────────────────────── */}
