@@ -68,8 +68,8 @@ vi.mock('@/components/builder/BottomCta', () => ({
     <button data-testid="download-btn" onClick={onPress}>Download</button>
   ),
 }))
-vi.mock('@/components/builder/TemplatesPanel', () => ({ TemplatesPanel: () => null }))
 vi.mock('@/components/builder/PreviewPanel', () => ({ PreviewPanel: () => null }))
+vi.mock('@/components/builder/StyleDrawer', () => ({ StyleDrawer: () => null }))
 vi.mock('@/components/builder/MobilePreviewModal', () => ({ MobilePreviewModal: () => null }))
 vi.mock('@/components/builder/sections/PersonalSection', () => ({ PersonalSection: () => null }))
 vi.mock('@/components/builder/sections/ExperienceSection', () => ({ ExperienceSection: () => null }))

@@ -1,6 +1,8 @@
+export type BuilderTab = 'edit' | 'preview'
+
 interface Props {
-  activeTab: 'edit' | 'templates' | 'preview'
-  onTabChange: (tab: 'edit' | 'templates' | 'preview') => void
+  activeTab: BuilderTab
+  onTabChange: (tab: BuilderTab) => void
 }
 
 const TABS = [
@@ -9,8 +11,7 @@ const TABS = [
 ]
 
 export function MobileModeSwitcher({ activeTab, onTabChange }: Props) {
-  // Normalise: if "templates" is active, highlight "edit" in the switcher
-  const resolved = activeTab === 'templates' ? 'edit' : activeTab
+  const resolved = activeTab
 
   return (
     <>

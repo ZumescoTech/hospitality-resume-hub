@@ -6,8 +6,8 @@ import { ResumeData, STORAGE_KEY, sampleResume } from "@/types/resume";
 import { Section } from "@/components/builder/Section";
 import { StepProgress } from "@/components/builder/StepProgress";
 import { BottomCta } from "@/components/builder/BottomCta";
-import { TemplatesPanel } from "@/components/builder/TemplatesPanel";
 import { PreviewPanel } from "@/components/builder/PreviewPanel";
+import { StyleDrawer } from "@/components/builder/StyleDrawer";
 import { PersonalSection } from "@/components/builder/sections/PersonalSection";
 import { ExperienceSection } from "@/components/builder/sections/ExperienceSection";
 import { EducationSection } from "@/components/builder/sections/EducationSection";
@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Check, Loader2, Upload, X, ClipboardPaste } from "lucide-react";
+import { Check, Loader2, Upload, X, ClipboardPaste, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { MobilePreviewModal } from "@/components/builder/MobilePreviewModal";
 import { extractTextFromFile } from "@/lib/extractCvText";
@@ -130,7 +130,12 @@ function BuilderPage() {
   const { data, setData, hydrated, syncing, resumeId, setTemplateColours, resetTemplateColours, loadSample } = useResumeStore();
 
   // ── Tab state ──────────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<"edit" | "templates" | "preview">("edit");
+  // Two top-level modes only. Template/style choice is a drawer over Preview
+  // (Step 7), not a third mode.
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+
+  // ── Style drawer (Step 7) ──────────────────────────────────────────────────
+  const [styleDrawerOpen, setStyleDrawerOpen] = useState(false);
 
   // ── Mobile preview modal ───────────────────────────────────────────────────
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -366,7 +371,10 @@ function BuilderPage() {
       <AppHeader />
 
       {/* ── Mobile mode switcher (< 1024px) ──────────────────────────────────── */}
-      <MobileModeSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
+      <MobileModeSwitcher
+        activeTab={activeTab}
+        onTabChange={(tab) => { setStyleDrawerOpen(false); setActiveTab(tab); }}
+      />
 
       {/* ── Step pill bar (edit tab only) ────────────────────────────────────── */}
       <StepProgress
@@ -546,14 +554,6 @@ function BuilderPage() {
           </div>
         </div>
 
-        {/* ── TEMPLATES panel (mobile only) ─────────────────────────────────── */}
-        <div className={cn(activeTab === "templates" ? "block lg:hidden" : "hidden")}>
-          <TemplatesPanel
-            selectedId={data.templateId}
-            onSelect={(id) => onPatch({ templateId: id })}
-          />
-        </div>
-
         {/* ── PREVIEW panel ─────────────────────────────────────────────────── */}
         <div
           className={cn(
@@ -561,16 +561,20 @@ function BuilderPage() {
             activeTab === "preview" ? "block" : "hidden lg:block",
           )}
         >
-          {/* Template picker shortcut — the mode switcher only carries the
-              top-level modes, so the Preview tab keeps its own way in. */}
+          {/* Style drawer trigger. Lives only in Preview's base view — the
+              lightbox renders over it, so it is unreachable while zoomed. */}
           <button
             type="button"
-            data-testid="open-templates-btn"
-            onClick={() => setActiveTab("templates")}
-            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-3 text-xs font-medium text-foreground shadow-sm lg:hidden"
-            style={{ height: 36, minHeight: 36 }}
+            id="open-style-drawer-btn"
+            data-testid="open-style-drawer-btn"
+            aria-haspopup="dialog"
+            aria-expanded={styleDrawerOpen}
+            onClick={() => setStyleDrawerOpen(true)}
+            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 text-xs font-medium text-foreground shadow-sm lg:hidden"
+            style={{ height: 44, minHeight: 44 }}
           >
-            Templates
+            <SlidersHorizontal style={{ width: 14, height: 14 }} />
+            Customize
           </button>
 
           <PreviewPanel
@@ -592,6 +596,19 @@ function BuilderPage() {
         onPress={handleDownload}
         busy={downloading}
         hidden={lightboxOpen}
+      />
+
+      {/* ── Style drawer (Step 7) ─────────────────────────────────────────────── */}
+      {/* Bound to Preview's base view: leaving Preview or opening the lightbox
+          unmounts it, so it can never share the screen with either. */}
+      <StyleDrawer
+        isOpen={styleDrawerOpen && activeTab === "preview" && !lightboxOpen}
+        onClose={() => setStyleDrawerOpen(false)}
+        data={data}
+        onTemplateChange={(id) => onPatch({ templateId: id })}
+        onFormattingChange={(formatting) => onPatch({ formatting })}
+        onColourChange={(slot, value) => setTemplateColours(data.templateId, { [slot]: value })}
+        onColourReset={() => resetTemplateColours(data.templateId)}
       />
 
       {/* ── Mobile preview modal ──────────────────────────────────────────────── */}
