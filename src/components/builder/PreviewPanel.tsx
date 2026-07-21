@@ -82,7 +82,10 @@ interface Props {
  *   is ever needed.
  */
 export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onColourChange, onColourReset }: Props) {
-  const [zoomMode, setZoomMode] = useState<ZoomMode>("fit");
+  // Step 4: the document renders at its true print width (A4, 794px) by
+  // default — never auto-shrunk to the viewport. Narrower viewports scroll
+  // horizontally to reveal it. "Fit" remains an opt-in zoom toggle.
+  const [zoomMode, setZoomMode] = useState<ZoomMode>(1);
   const [formattingOpen, setFormattingOpen] = useState(false);
   const [colourPickerOpen, setColourPickerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -393,9 +396,14 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
       >
         <div
           className={cn(
-            "flex min-h-full flex-col items-center p-4",
+            "flex min-h-full flex-col p-4",
             isAutoFit ? "justify-center" : "justify-start",
           )}
+          // `safe center`: centre the page when it fits, but fall back to
+          // left-align (start) when it is wider than the container so the
+          // overflow stays reachable — plain `center` clips the left edge and
+          // makes it un-scrollable.
+          style={{ alignItems: "safe center" }}
         >
           {/*
             Page clip box:
@@ -407,6 +415,7 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
           */}
           <div
             className="print-area bg-white shadow-elegant"
+            data-testid="cv-document"
             style={{
               width: PAGE_W,
               height: PAGE_H,
