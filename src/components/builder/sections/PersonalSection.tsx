@@ -37,7 +37,7 @@ export function PersonalSection({ data, onChange, showErrors }: Props) {
         position={data.personal.photoPosition ?? "top-right"}
         onPositionChange={(photoPosition) => set({ photoPosition })}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 min-[480px]:grid-cols-2" data-field-grid>
         <div>
           <TextField
             label="Full name"
@@ -54,6 +54,7 @@ export function PersonalSection({ data, onChange, showErrors }: Props) {
         <TextField
           label="Job title"
           required
+          data-testid="input-jobtitle"
           value={data.personal.title}
           onChange={(e) => set({ title: e.target.value })}
           placeholder="Head Sommelier"
@@ -82,7 +83,7 @@ export function PersonalSection({ data, onChange, showErrors }: Props) {
           value={data.personal.location}
           onChange={(e) => set({ location: e.target.value })}
           placeholder="London, UK"
-          className="sm:col-span-2"
+          className="min-[480px]:col-span-2"
         />
       </div>
 

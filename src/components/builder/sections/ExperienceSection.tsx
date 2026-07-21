@@ -80,7 +80,7 @@ export function ExperienceSection({ data, onChange, showErrors }: Props) {
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 min-[480px]:grid-cols-2" data-field-grid>
               <TextField
                 label="Role"
                 required
@@ -101,7 +101,7 @@ export function ExperienceSection({ data, onChange, showErrors }: Props) {
                 onChange={(e) => update(i, { location: e.target.value })}
                 placeholder="London"
               />
-              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3" data-field-grid>
                 <TextField
                   label="Start"
                   type="month"
@@ -116,7 +116,7 @@ export function ExperienceSection({ data, onChange, showErrors }: Props) {
                   onChange={(e) => update(i, { endDate: e.target.value })}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground min-[480px]:col-span-2">
                 <Checkbox
                   checked={!!exp.current}
                   onCheckedChange={(v) => update(i, { current: !!v, endDate: v ? "" : exp.endDate })}

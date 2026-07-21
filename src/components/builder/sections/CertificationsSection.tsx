@@ -117,7 +117,7 @@ export function CertificationsSection({
           const { month, year: exYear } = parseExpiry(c.expiry);
           return (
             <div key={c.id} className="rounded-lg border border-border bg-background p-3 space-y-3">
-              <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
+              <div className="grid gap-3 min-[480px]:grid-cols-[1fr_1fr]" data-field-grid>
                 {/* Certificate name with STCW datalist */}
                 <Field label="Certificate name">
                   <input

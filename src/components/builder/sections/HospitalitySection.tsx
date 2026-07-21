@@ -28,7 +28,7 @@ export function HospitalitySection({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 min-[480px]:grid-cols-2" data-field-grid>
         <Field label="Wine knowledge">
           <Select value={h.wineKnowledge} onValueChange={(v) => set({ wineKnowledge: v as Hospitality["wineKnowledge"] })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -55,7 +55,7 @@ export function HospitalitySection({
         <TagInput values={h.posSystems} onChange={(posSystems) => set({ posSystems })} placeholder="e.g. Toast" suggestions={POS} />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 min-[480px]:grid-cols-2" data-field-grid>
         <TextField
           label="Food safety"
           value={h.foodSafety ?? ""}

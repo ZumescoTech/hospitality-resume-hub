@@ -18,9 +18,9 @@ export function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-        {required && <span className="ml-1 text-destructive">*</span>}
+      <Label className="flex max-w-full items-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="truncate">{label}</span>
+        {required && <span className="ml-1 shrink-0 text-destructive">*</span>}
       </Label>
       {children}
       {error ? (
@@ -66,7 +66,11 @@ export function TextField({
         <Input
           {...props}
           aria-invalid={!!error}
-          className={cn(error && "border-destructive focus-visible:ring-destructive")}
+          className={cn(
+            // Only horizontal padding flexes with width; height (h-9) stays fixed.
+            "px-2.5 min-[480px]:px-3",
+            error && "border-destructive focus-visible:ring-destructive",
+          )}
           onBlur={(e) => {
             setTouched(true);
             onBlur?.(e);

@@ -37,7 +37,7 @@ export function EducationSection({
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 min-[480px]:grid-cols-2" data-field-grid>
             <TextField
               label="School"
               value={ed.school}
@@ -56,7 +56,7 @@ export function EducationSection({
               onChange={(e) => update(i, { field: e.target.value })}
               placeholder="Wines"
             />
-            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3" data-field-grid>
               <TextField
                 label="Start year"
                 value={ed.startDate}
