@@ -354,3 +354,4 @@ parking_lot:
   - Embeddings-based matching (keyword module kept isolated for swap)
   - Analytics dashboard (raw events logged from iteration 4 onward)
   - Recruiter dashboard / cover letters / interview prep (V2)
+  - Pre-existing e2e failure: smoke/cv-journey look for getByRole('button', /download/i) but the desktop PDFDownloadButton renders an <a> (PDFDownloadLink) — 14 chromium specs fail on main, unrelated to the builder rebuild

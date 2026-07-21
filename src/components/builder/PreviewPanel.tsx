@@ -28,6 +28,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Expand,
   Maximize2,
   Minimize2,
   Printer,
@@ -38,6 +39,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { TemplateColourPicker } from "@/components/builder/TemplateColourPicker";
+import { PreviewZoomLightbox } from "@/components/builder/PreviewZoomLightbox";
 import {
   TemplateColours,
   getTemplateColours,
@@ -86,6 +88,9 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
   // default — never auto-shrunk to the viewport. Narrower viewports scroll
   // horizontally to reveal it. "Fit" remains an opt-in zoom toggle.
   const [zoomMode, setZoomMode] = useState<ZoomMode>(1);
+  // Step 5: full-screen zoom lightbox. Kept local so opening/closing it cannot
+  // touch builder state — the Preview tab is byte-identical after a close.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [formattingOpen, setFormattingOpen] = useState(false);
   const [colourPickerOpen, setColourPickerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -387,10 +392,14 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
         overflow: hidden in Fit mode (no scrollbar ever);
                   auto   in manual mode when zoomed past fit scale.
       */}
+      {/* The relative wrapper holds the floating expand button: it must NOT
+          live inside the scroller (it would scroll away with the document) and
+          must not reserve layout space in the flex column. */}
+      <div className="relative min-h-0 flex-1">
       <div
         ref={viewportRef}
         className={cn(
-          "flex-1 bg-muted/40",
+          "h-full bg-muted/40",
           allowScroll ? "overflow-auto" : "overflow-hidden",
         )}
       >
@@ -448,6 +457,32 @@ export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onCol
           </div>
         </div>
       </div>
+
+        {/* ── Floating expand button — centred over the document ──────── */}
+        <button
+          type="button"
+          id="preview-expand-btn"
+          data-testid="preview-expand-btn"
+          aria-label="Open full-screen preview"
+          onClick={() => setLightboxOpen(true)}
+          className="no-print absolute left-1/2 top-1/2 z-10 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-elegant transition-transform active:scale-95"
+          style={{
+            background: "rgba(24, 24, 27, 0.82)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            backdropFilter: "blur(2px)",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <Expand className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* ── Full-screen zoom lightbox ─────────────────────────── */}
+      <PreviewZoomLightbox
+        data={data}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
 
       {/* ── Pagination controls ───────────────────────────────── */}
       {totalPages > 1 && (
