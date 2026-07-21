@@ -38,6 +38,7 @@ import { ResumePDF } from "@/lib/pdf/ResumePDF";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/clarity";
 import { MobileModeSwitcher } from "@/components/builder/MobileModeSwitcher";
+import { useIsDesktop } from "@/hooks/use-is-desktop";
 
 export function BuilderSkeleton() {
   return (
@@ -132,7 +133,14 @@ function BuilderPage() {
   // ── Tab state ──────────────────────────────────────────────────────────────
   // Two top-level modes only. Template/style choice is a drawer over Preview
   // (Step 7), not a third mode.
+  //
+  // activeTab is *mobile* state: below 1024px it picks which single pane is on
+  // screen. At >=1024px both panes are always up, so nothing may read it —
+  // the mode switcher is not even reachable there, which means a stale value
+  // could never be corrected by the user. Step 8 routes every layout decision
+  // through isDesktop first and only falls back to activeTab below the split.
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const isDesktop = useIsDesktop();
 
   // ── Style drawer (Step 7) ──────────────────────────────────────────────────
   const [styleDrawerOpen, setStyleDrawerOpen] = useState(false);
@@ -377,9 +385,14 @@ function BuilderPage() {
       />
 
       {/* ── Step pill bar (edit tab only) ────────────────────────────────────── */}
+      {/* Below the split the nav belongs to the Edit pane and steps aside in
+          Preview. At >=1024px the Edit pane is always on screen, so the nav is
+          always relevant — and reading activeTab there let a tab chosen at
+          mobile width hide it permanently, since the switcher that would set
+          it back is display:none at desktop. */}
       <StepProgress
         sections={BUILDER_SECTIONS}
-        activeTab={activeTab}
+        activeTab={isDesktop ? "edit" : activeTab}
         onSectionOpen={(id) => setOpenSections(prev => (prev.has(id) ? prev : new Set(prev).add(id)))}
       />
 
@@ -410,8 +423,11 @@ function BuilderPage() {
       >
 
         {/* ── EDIT panel ────────────────────────────────────────────────────── */}
+        {/* Shown because the viewport is wide, or because Edit is the chosen
+            mobile tab — never because a CSS breakpoint class out-specifies a
+            `hidden` that tab state put there. */}
         <div
-          className={cn(activeTab === "edit" ? "block" : "hidden lg:block")}
+          className={cn(isDesktop || activeTab === "edit" ? "block" : "hidden")}
           style={{ overflowY: 'auto' }}
         >
           {/* Import CV banner + controls */}
@@ -558,7 +574,7 @@ function BuilderPage() {
         <div
           className={cn(
             "preview-panel-outer",
-            activeTab === "preview" ? "block" : "hidden lg:block",
+            isDesktop || activeTab === "preview" ? "block" : "hidden",
           )}
         >
           {/* Style drawer trigger. Lives only in Preview's base view — the

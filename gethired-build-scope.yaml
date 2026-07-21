@@ -355,3 +355,4 @@ parking_lot:
   - Analytics dashboard (raw events logged from iteration 4 onward)
   - Recruiter dashboard / cover letters / interview prep (V2)
   - Pre-existing e2e failure: smoke/cv-journey look for getByRole('button', /download/i) but the desktop PDFDownloadButton renders an <a> (PDFDownloadLink) — 14 chromium specs fail on main, unrelated to the builder rebuild
+  - Pre-existing sub-44px tap targets at 375px: mode-switcher tabs 36px (styles.css .mobile-mode-switcher__tab) and StepProgress pills 30px (StepProgress.tsx) — predate Step 8, no new controls affected
