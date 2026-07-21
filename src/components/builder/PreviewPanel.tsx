@@ -63,6 +63,8 @@ interface Props {
   onFormattingChange: (formatting: FormattingSettings) => void;
   onColourChange: (slot: keyof TemplateColours, value: string) => void;
   onColourReset: () => void;
+  /** Notifies the builder while the zoom lightbox owns the screen (Step 6). */
+  onLightboxOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -83,14 +85,21 @@ interface Props {
  *   the clip div shifts content via negative marginTop so no internal scroll
  *   is ever needed.
  */
-export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onColourChange, onColourReset }: Props) {
+export function PreviewPanel({ data, onTemplateChange, onFormattingChange, onColourChange, onColourReset, onLightboxOpenChange }: Props) {
   // Step 4: the document renders at its true print width (A4, 794px) by
   // default — never auto-shrunk to the viewport. Narrower viewports scroll
   // horizontally to reveal it. "Fit" remains an opt-in zoom toggle.
   const [zoomMode, setZoomMode] = useState<ZoomMode>(1);
   // Step 5: full-screen zoom lightbox. Kept local so opening/closing it cannot
   // touch builder state — the Preview tab is byte-identical after a close.
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpenState] = useState(false);
+  const setLightboxOpen = useCallback(
+    (open: boolean) => {
+      setLightboxOpenState(open);
+      onLightboxOpenChange?.(open);
+    },
+    [onLightboxOpenChange],
+  );
   const [formattingOpen, setFormattingOpen] = useState(false);
   const [colourPickerOpen, setColourPickerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);

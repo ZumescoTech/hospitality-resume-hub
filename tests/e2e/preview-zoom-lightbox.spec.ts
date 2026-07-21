@@ -51,10 +51,10 @@ async function setZoom(page: Page, target: string) {
   await expect(level).toHaveText(target);
 }
 
-/** Switch to the Preview tab (mobile bottom nav) — no-op on desktop. */
+/** Switch to the Preview tab (top mode switcher) — no-op on desktop. */
 async function gotoPreviewTab(page: Page, mobile: boolean) {
   if (!mobile) return;
-  await page.getByRole("button", { name: "Preview", exact: true }).first().click();
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
   await page.waitForTimeout(300);
 }
 
@@ -261,11 +261,11 @@ for (const vp of WIDTHS.filter((v) => v.mobile)) {
       await page.waitForTimeout(200);
       expect((await switcher.boundingBox())!.y).toBeCloseTo(topBefore, 0);
 
-      // Bottom nav visible at this scroll position
-      const nav = page.locator(".builder-bottom-nav");
-      await expect(nav).toBeVisible();
-      const navBox = (await nav.boundingBox())!;
-      expect(navBox.y + navBox.height).toBeLessThanOrEqual(vp.height + 1);
+      // Pinned CTA visible at this scroll position
+      const cta = page.getByTestId("bottom-cta-bar");
+      await expect(cta).toBeVisible();
+      const ctaBox = (await cta.boundingBox())!;
+      expect(ctaBox.y + ctaBox.height).toBeLessThanOrEqual(vp.height + 1);
 
       // Edit → Preview → open lightbox → close → Edit: value survives
       await gotoPreviewTab(page, true);
@@ -273,7 +273,7 @@ for (const vp of WIDTHS.filter((v) => v.mobile)) {
       await expect(page.getByTestId("preview-lightbox")).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(page.getByTestId("preview-lightbox")).toHaveCount(0);
-      await page.getByRole("button", { name: "Edit", exact: true }).first().click();
+      await page.getByRole("tab", { name: "Edit", exact: true }).click();
       await expect(page.getByTestId("input-fullname")).toHaveValue("Zola Ndlovu");
 
       expect(errors, `console errors: ${errors.join(" | ")}`).toEqual([]);

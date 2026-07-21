@@ -37,10 +37,18 @@ export function StepProgress({ sections, activeTab, onSectionOpen, topOffset = 9
     return () => observers.forEach(o => o.disconnect())
   }, [sections, activeTab, topOffset])
 
-  // Scroll the active pill into view in the nav bar
+  // Centre the active pill in the nav bar.
+  // Scrolls the rail directly rather than via scrollIntoView: that walks every
+  // scrollable ancestor, so scrolling down the form dragged the whole page back
+  // up as the observer changed the active section.
   useEffect(() => {
-    const btn = navRef.current?.querySelector(`[data-section="${activeSectionId}"]`) as HTMLElement | null
-    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    const nav = navRef.current
+    const btn = nav?.querySelector(`[data-section="${activeSectionId}"]`) as HTMLElement | null
+    if (!nav || !btn) return
+    const left = Math.max(0, btn.offsetLeft - (nav.clientWidth - btn.offsetWidth) / 2)
+    // jsdom has no Element.scrollTo — fall back to the plain property there.
+    if (typeof nav.scrollTo === 'function') nav.scrollTo({ left, behavior: 'smooth' })
+    else nav.scrollLeft = left
   }, [activeSectionId])
 
   if (activeTab !== 'edit') return null

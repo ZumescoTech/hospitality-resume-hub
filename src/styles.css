@@ -211,14 +211,16 @@
   --border-strong:  #cccccc;
   --surface-warm:   #f7f7f5;
   --danger:         #c0392b;
-  --nav-h:          64px;
+  /* Height of the pinned primary CTA (Step 6). Content clearance is derived
+     from this everywhere, so changing it here moves every affected panel. */
+  --cta-h:          64px;
   --header-h:       52px;
   --progress-h:     40px;
 }
 
-/* Bottom nav clearance on mobile */
+/* Pinned CTA clearance on mobile */
 body {
-  padding-bottom: var(--nav-h);
+  padding-bottom: var(--cta-h);
 }
 
 /* 16px on all inputs prevents iOS auto-zoom */
@@ -302,15 +304,54 @@ button, [role="button"] {
   }
 }
 
-/* ── Mobile bottom navigation (< 1024px) ───────────────────────────────────── */
-/* Grid on mobile; hidden on desktop. Defined in CSS (not an inline style) so the
-   desktop hide actually wins — an inline `display` would override `lg:hidden`. */
-.builder-bottom-nav {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+/* ── Pinned primary CTA (< 1024px) ─────────────────────────────────────────── */
+/* Fixed to the bottom at every scroll position. Hidden on desktop, where the
+   preview toolbar already carries the export action (Step 8 revisits this). */
+.builder-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: block;
+  height: calc(var(--cta-h) + env(safe-area-inset-bottom, 0px));
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: #ffffff;
+  border-top: 1px solid var(--border-brand);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
 }
+
+.builder-cta__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms;
+}
+
+.builder-cta__button:active {
+  background: var(--brand-dark);
+}
+
+.builder-cta__button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
 @media (min-width: 1024px) {
-  .builder-bottom-nav {
+  .builder-cta {
     display: none;
   }
 }
@@ -333,9 +374,12 @@ button, [role="button"] {
 }
 
 /* ── Preview panel outer container ──────────────────────────────────────────── */
-/* Mobile: fill viewport minus header and bottom nav */
+/* Mobile: fill viewport minus header and the pinned CTA.
+   `relative` makes this the containing block for the overlaid controls
+   (expand button, template shortcut) — on desktop `sticky` does the same. */
 .preview-panel-outer {
-  height: calc(100dvh - var(--header-h) - var(--nav-h));
+  position: relative;
+  height: calc(100dvh - var(--header-h) - var(--cta-h));
   background: #e2e0db;
 }
 

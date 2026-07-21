@@ -5,7 +5,7 @@ import { useResumeStore } from "@/lib/resume-store";
 import { ResumeData, STORAGE_KEY, sampleResume } from "@/types/resume";
 import { Section } from "@/components/builder/Section";
 import { StepProgress } from "@/components/builder/StepProgress";
-import { BottomNav } from "@/components/builder/BottomNav";
+import { BottomCta } from "@/components/builder/BottomCta";
 import { TemplatesPanel } from "@/components/builder/TemplatesPanel";
 import { PreviewPanel } from "@/components/builder/PreviewPanel";
 import { PersonalSection } from "@/components/builder/sections/PersonalSection";
@@ -134,6 +134,10 @@ function BuilderPage() {
 
   // ── Mobile preview modal ───────────────────────────────────────────────────
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // ── Preview zoom lightbox (Step 5) ─────────────────────────────────────────
+  // Owned by PreviewPanel; mirrored here only so the pinned CTA can step aside.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // ── CV import ─────────────────────────────────────────────────────────────
   const [importing, setImporting] = useState(false);
@@ -514,8 +518,13 @@ function BuilderPage() {
             )}
           </div>
 
-          {/* Section accordions */}
-          <div style={{ paddingBottom: '16px' }}>
+          {/* Section accordions.
+              Bottom padding equals the pinned CTA's height so the last section
+              is never hidden behind it at the end of the scroll. */}
+          <div
+            data-testid="builder-sections"
+            style={{ paddingBottom: 'calc(var(--cta-h) + env(safe-area-inset-bottom, 0px))' }}
+          >
             <Section id="personal" title="Personal details" isOpen={openSections.has('personal')} onToggle={() => toggleSection('personal')}>
               <PersonalSection {...sectionProps} showErrors={false} />
             </Section>
@@ -552,8 +561,21 @@ function BuilderPage() {
             activeTab === "preview" ? "block" : "hidden lg:block",
           )}
         >
+          {/* Template picker shortcut — the mode switcher only carries the
+              top-level modes, so the Preview tab keeps its own way in. */}
+          <button
+            type="button"
+            data-testid="open-templates-btn"
+            onClick={() => setActiveTab("templates")}
+            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-3 text-xs font-medium text-foreground shadow-sm lg:hidden"
+            style={{ height: 36, minHeight: 36 }}
+          >
+            Templates
+          </button>
+
           <PreviewPanel
             data={data}
+            onLightboxOpenChange={setLightboxOpen}
             onTemplateChange={(id) => onPatch({ templateId: id })}
             onFormattingChange={(formatting) => onPatch({ formatting })}
             onColourChange={(slot, value) => setTemplateColours(data.templateId, { [slot]: value })}
@@ -562,11 +584,14 @@ function BuilderPage() {
         </div>
       </div>
 
-      {/* ── Bottom navigation (mobile only) ──────────────────────────────────── */}
-      <BottomNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onDownload={handleDownload}
+      {/* ── Pinned primary CTA (mobile only) ─────────────────────────────────── */}
+      {/* Hidden while the preview lightbox owns the screen — it has its own
+          bottom controls, and two stacked bars would fight for the thumb. */}
+      <BottomCta
+        mode={activeTab}
+        onPress={handleDownload}
+        busy={downloading}
+        hidden={lightboxOpen}
       />
 
       {/* ── Mobile preview modal ──────────────────────────────────────────────── */}

@@ -63,9 +63,9 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 vi.mock('@/components/ui/AppHeader', () => ({ AppHeader: () => <div>Header</div> }))
 vi.mock('@/components/builder/StepProgress', () => ({ StepProgress: () => null }))
-vi.mock('@/components/builder/BottomNav', () => ({
-  BottomNav: ({ onDownload }: { onDownload: () => void }) => (
-    <button data-testid="download-btn" onClick={onDownload}>Download</button>
+vi.mock('@/components/builder/BottomCta', () => ({
+  BottomCta: ({ onPress }: { onPress: () => void }) => (
+    <button data-testid="download-btn" onClick={onPress}>Download</button>
   ),
 }))
 vi.mock('@/components/builder/TemplatesPanel', () => ({ TemplatesPanel: () => null }))
