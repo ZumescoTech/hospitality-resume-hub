@@ -398,6 +398,28 @@ button, [role="button"] {
   to   { opacity: 1; }
 }
 
+/* ── Contained mode (>=1024px, Step 8) ──────────────────────────────────────── */
+/* The drawer stays in the tree rather than portalling, so `absolute` resolves
+   against .preview-panel-outer — already a positioned element (sticky). The
+   sheet therefore spans the preview pane's width, not 100vw, and the editor
+   pane beside it is never dimmed or blocked.
+
+   Percentages, not dvh: the containing block is the pane, so 72% keeps the
+   same "document still visible above the sheet" proportion the mobile sheet
+   gets from 72dvh. z-index is unchanged — the pane creates no stacking
+   context of its own, so the two layers keep their existing order. */
+.style-drawer--contained .style-drawer__backdrop {
+  position: absolute;
+}
+
+.style-drawer--contained .style-drawer__sheet {
+  position: absolute;
+  height: 72%;
+  max-height: 72%;
+  /* Safe-area padding is a notch concern; there is no notch inside a pane. */
+  padding-bottom: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .style-drawer__sheet,
   .style-drawer__backdrop { animation: none; }
@@ -569,7 +591,14 @@ button, [role="button"] {
 /* ── Builder layout ─────────────────────────────────────────────────────────── */
 .builder-layout {
   grid-template-columns: 1fr;
-  overflow-x: hidden;
+  /* `clip`, not `hidden`. With `overflow-x: hidden` the visible axis computes
+     to `auto`, which makes this grid a scroll container — and a scroll
+     container becomes the sticky scrollport for its descendants. The preview
+     pane's `top` was then measured from the grid's own top edge (already 92px
+     down the page) instead of the viewport, pushing it 92px past the fold and
+     stopping it from ever sticking on scroll. `clip` suppresses the same
+     horizontal overflow without establishing a scrollport. */
+  overflow-x: clip;
 }
 
 .builder-layout > * {
@@ -593,12 +622,19 @@ button, [role="button"] {
   background: #e2e0db;
 }
 
-/* Desktop: sticky, full height minus header only (bottom nav is hidden) */
+/* Desktop: sticky below the header *and* the section pill bar. The pinned CTA
+   is hidden here, so those two are the only chrome to subtract.
+
+   Both values must account for --progress-h: the pill bar is a sticky
+   full-width row above the grid, so the pane's flow position already starts
+   below it. Subtracting only --header-h ran the pane 40px past the bottom of
+   the viewport — invisible until Step 8 anchored the drawer sheet and the
+   Customize trigger to the pane's bottom edge, which then sat below the fold. */
 @media (min-width: 1024px) {
   .preview-panel-outer {
     position: sticky;
-    top: var(--header-h);
-    height: calc(100dvh - var(--header-h));
+    top: calc(var(--header-h) + var(--progress-h));
+    height: calc(100dvh - var(--header-h) - var(--progress-h));
     background: #e2e0db;
   }
 }

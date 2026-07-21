@@ -6,9 +6,11 @@
 // while looking at the document, not instead of looking at it.
 //
 // Deliberate choices, mirroring PreviewZoomLightbox (Step 5):
-//  - Portals onto document.body so it escapes the builder grid's stacking and
-//    overflow contexts. Its z-index therefore sits cleanly above the pinned
-//    CTA (Step 6, z-index 100) without the CTA having to move.
+//  - Below 1024px it portals onto document.body so it escapes the builder
+//    grid's stacking and overflow contexts. Its z-index therefore sits cleanly
+//    above the pinned CTA (Step 6, z-index 100) without the CTA having to move.
+//    At >=1024px (`contained`, Step 8) it stays in the tree instead and scopes
+//    itself to the preview pane — see the `contained` prop.
 //  - Owns nothing but which sub-tab is showing. Every selection is pushed
 //    straight into builder state, so it survives Edit ⇄ Preview round trips
 //    exactly like a form field does.
@@ -45,6 +47,16 @@ interface Props {
   onFormattingChange: (formatting: FormattingSettings) => void;
   onColourChange: (slot: keyof TemplateColours, value: string) => void;
   onColourReset: () => void;
+  /**
+   * Scope the sheet to its parent element instead of the viewport (Step 8).
+   *
+   * At >=1024px the editor pane is on screen next to the preview, so a
+   * full-viewport sheet would dim and block a pane that has nothing to do with
+   * styling. Contained mode drops the portal and positions against the nearest
+   * positioned ancestor — `.preview-panel-outer`, which is already `sticky` —
+   * so the backdrop covers exactly the preview pane's box and no more.
+   */
+  contained?: boolean;
 }
 
 export function StyleDrawer({
@@ -55,6 +67,7 @@ export function StyleDrawer({
   onFormattingChange,
   onColourChange,
   onColourReset,
+  contained = false,
 }: Props) {
   const [activeTab, setActiveTab] = useState<StyleDrawerTab>("template");
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -114,8 +127,12 @@ export function StyleDrawer({
 
   if (!isOpen) return null;
 
-  return createPortal(
-    <div className="no-print" data-testid="style-drawer-root">
+  const tree = (
+    <div
+      className={"no-print" + (contained ? " style-drawer--contained" : "")}
+      data-testid="style-drawer-root"
+      data-contained={contained ? "true" : "false"}
+    >
       {/* Dimmed backdrop — tapping anywhere on it closes. */}
       <div
         className="style-drawer__backdrop"
@@ -128,7 +145,11 @@ export function StyleDrawer({
         className="style-drawer__sheet"
         data-testid="style-drawer"
         role="dialog"
-        aria-modal="true"
+        /* Only a true modal when it owns the viewport. Contained, it dims the
+           preview pane while the editor pane beside it stays fully usable —
+           claiming aria-modal there would tell a screen reader the rest of the
+           page is inert when it is not. */
+        aria-modal={contained ? undefined : "true"}
         aria-label="Customize your CV"
       >
         <div className="style-drawer__grabber" aria-hidden="true" />
@@ -231,7 +252,11 @@ export function StyleDrawer({
           )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+
+  // Contained mode must stay in the tree to inherit the preview pane as its
+  // containing block; portalling would reparent it to <body> and put it back
+  // on the viewport.
+  return contained ? tree : createPortal(tree, document.body);
 }

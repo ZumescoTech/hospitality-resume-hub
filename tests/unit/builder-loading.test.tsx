@@ -7,12 +7,18 @@ import React from 'react'
 // Before the fix, BuilderSkeleton doesn't exist → second test is RED.
 // We also render the skeleton directly to assert it has a visible element.
 
+// Unlike the other builder tests, this file imports the route with nothing
+// mocked, so the import pulls in @react-pdf/renderer and pdfjs for real —
+// ~5-6s cold. That overruns vitest's 5s default whenever the suite is under
+// parallel load, which reads as a failure of a test that is really just slow.
+const IMPORT_TIMEOUT = 20_000
+
 describe('P0-2 — BuilderSkeleton exists and is visible', () => {
   it('BuilderSkeleton is a named export from the builder route', async () => {
     const mod = await import('@/routes/builder')
     // RED before fix: BuilderSkeleton is not exported → undefined
     expect((mod as Record<string, unknown>).BuilderSkeleton).toBeDefined()
-  })
+  }, IMPORT_TIMEOUT)
 
   it('BuilderSkeleton renders a visible loading indicator with data-testid', async () => {
     const mod = await import('@/routes/builder')
@@ -21,5 +27,5 @@ describe('P0-2 — BuilderSkeleton exists and is visible', () => {
 
     render(<BuilderSkeleton />)
     expect(screen.getByTestId('builder-skeleton')).toBeDefined()
-  })
+  }, IMPORT_TIMEOUT)
 })

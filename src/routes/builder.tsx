@@ -578,7 +578,10 @@ function BuilderPage() {
           )}
         >
           {/* Style drawer trigger. Lives only in Preview's base view — the
-              lightbox renders over it, so it is unreachable while zoomed. */}
+              lightbox renders over it, so it is unreachable while zoomed.
+              Top-right below the split; bottom-right at >=1024px, where the
+              preview toolbar already occupies the top of the pane and the
+              sheet rises from the bottom edge the button sits on. */}
           <button
             type="button"
             id="open-style-drawer-btn"
@@ -586,7 +589,7 @@ function BuilderPage() {
             aria-haspopup="dialog"
             aria-expanded={styleDrawerOpen}
             onClick={() => setStyleDrawerOpen(true)}
-            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 text-xs font-medium text-foreground shadow-sm lg:hidden"
+            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 text-xs font-medium text-foreground shadow-sm lg:right-4 lg:top-auto lg:bottom-4 lg:shadow-md"
             style={{ height: 44, minHeight: 44 }}
           >
             <SlidersHorizontal style={{ width: 14, height: 14 }} />
@@ -596,6 +599,21 @@ function BuilderPage() {
           <PreviewPanel
             data={data}
             onLightboxOpenChange={setLightboxOpen}
+            onTemplateChange={(id) => onPatch({ templateId: id })}
+            onFormattingChange={(formatting) => onPatch({ formatting })}
+            onColourChange={(slot, value) => setTemplateColours(data.templateId, { [slot]: value })}
+            onColourReset={() => resetTemplateColours(data.templateId)}
+          />
+
+          {/* ── Style drawer (Step 7, scoped to this pane at >=1024px) ──────── */}
+          {/* Rendered inside the preview pane so contained mode can position
+              against it. Below 1024px it portals to <body> from here and is
+              unaffected by where it sits in the tree. */}
+          <StyleDrawer
+            isOpen={styleDrawerOpen && (isDesktop || activeTab === "preview") && !lightboxOpen}
+            contained={isDesktop}
+            onClose={() => setStyleDrawerOpen(false)}
+            data={data}
             onTemplateChange={(id) => onPatch({ templateId: id })}
             onFormattingChange={(formatting) => onPatch({ formatting })}
             onColourChange={(slot, value) => setTemplateColours(data.templateId, { [slot]: value })}
@@ -612,19 +630,6 @@ function BuilderPage() {
         onPress={handleDownload}
         busy={downloading}
         hidden={lightboxOpen}
-      />
-
-      {/* ── Style drawer (Step 7) ─────────────────────────────────────────────── */}
-      {/* Bound to Preview's base view: leaving Preview or opening the lightbox
-          unmounts it, so it can never share the screen with either. */}
-      <StyleDrawer
-        isOpen={styleDrawerOpen && activeTab === "preview" && !lightboxOpen}
-        onClose={() => setStyleDrawerOpen(false)}
-        data={data}
-        onTemplateChange={(id) => onPatch({ templateId: id })}
-        onFormattingChange={(formatting) => onPatch({ formatting })}
-        onColourChange={(slot, value) => setTemplateColours(data.templateId, { [slot]: value })}
-        onColourReset={() => resetTemplateColours(data.templateId)}
       />
 
       {/* ── Mobile preview modal ──────────────────────────────────────────────── */}

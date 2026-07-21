@@ -201,4 +201,31 @@ describe('Step 8 — desktop panes are viewport-driven, not activeTab-driven', (
     await renderBuilder()
     expect(screen.getByTestId('bottom-cta').getAttribute('data-mode')).toBe('edit')
   })
+
+  it('unmounts the mode switcher at >=1024px, keeps it below', async () => {
+    width = 1280
+    const { unmount } = await renderBuilder()
+    // Not merely display:none — gone, so the dead tabs leave the a11y tree.
+    expect(screen.queryByRole('tab', { name: 'Edit' })).toBeNull()
+    expect(screen.queryByRole('tab', { name: 'Preview' })).toBeNull()
+    expect(document.querySelector('.mobile-mode-switcher')).toBeNull()
+    unmount()
+
+    width = 375
+    await renderBuilder()
+    expect(screen.getByRole('tab', { name: 'Edit' })).toBeDefined()
+    expect(document.querySelector('.mobile-mode-switcher')).not.toBeNull()
+  })
+
+  it('remounts the switcher on a resize back below the split', async () => {
+    width = 1280
+    await renderBuilder()
+    expect(document.querySelector('.mobile-mode-switcher')).toBeNull()
+
+    resizeTo(800)
+    expect(document.querySelector('.mobile-mode-switcher')).not.toBeNull()
+
+    resizeTo(1280)
+    expect(document.querySelector('.mobile-mode-switcher')).toBeNull()
+  })
 })

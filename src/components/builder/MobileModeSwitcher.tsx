@@ -1,3 +1,5 @@
+import { useIsDesktop } from '@/hooks/use-is-desktop'
+
 export type BuilderTab = 'edit' | 'preview'
 
 interface Props {
@@ -11,7 +13,17 @@ const TABS = [
 ]
 
 export function MobileModeSwitcher({ activeTab, onTabChange }: Props) {
+  const isDesktop = useIsDesktop()
   const resolved = activeTab
+
+  // At >=1024px both panes are on screen at once, so there is nothing to switch
+  // between. Unmounting rather than leaving it display:none keeps two dead
+  // role="tab" controls out of the accessibility tree and out of tab order.
+  //
+  // The `lg:hidden` classes below stay as the pre-hydration guard: SSR has no
+  // viewport and renders the mobile layout, so the switcher is in the initial
+  // HTML at every width and CSS has to hide it until this runs.
+  if (isDesktop) return null
 
   return (
     <>

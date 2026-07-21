@@ -130,3 +130,53 @@ describe('StyleDrawer — Step 7 bottom sheet', () => {
     expect(screen.getByTestId('style-drawer-panel-colour')).toBeTruthy()
   })
 })
+
+// Step 8 — at >=1024px the drawer belongs to the preview pane, not the viewport.
+describe('StyleDrawer — contained mode (Step 8)', () => {
+  it('portals to <body> and claims aria-modal when uncontained', () => {
+    const { container } = renderDrawer()
+    const root = screen.getByTestId('style-drawer-root')
+
+    // Portalled: it is not inside the render container.
+    expect(container.contains(root)).toBe(false)
+    expect(document.body.contains(root)).toBe(true)
+    expect(root.getAttribute('data-contained')).toBe('false')
+    expect(root.className).not.toContain('style-drawer--contained')
+    expect(screen.getByTestId('style-drawer').getAttribute('aria-modal')).toBe('true')
+  })
+
+  it('stays in the tree and drops aria-modal when contained', () => {
+    const { container } = renderDrawer({ contained: true })
+    const root = screen.getByTestId('style-drawer-root')
+
+    // In-tree: only then does `absolute` resolve against the preview pane.
+    expect(container.contains(root)).toBe(true)
+    expect(root.getAttribute('data-contained')).toBe('true')
+    expect(root.className).toContain('style-drawer--contained')
+
+    // The editor pane beside it stays usable, so it is not a modal dialog.
+    expect(screen.getByTestId('style-drawer').getAttribute('aria-modal')).toBeNull()
+  })
+
+  it('keeps its full behaviour contract in contained mode', () => {
+    const { onClose, onTemplateChange } = renderDrawer({
+      contained: true,
+      data: makeData({ templateId: 'executive' }),
+    })
+
+    // Sub-tabs still switch in place.
+    fireEvent.click(screen.getByTestId('style-drawer-tab-colour'))
+    expect(screen.getByTestId('style-drawer-panel-colour')).toBeTruthy()
+    expect(screen.getByTestId('style-drawer')).toBeTruthy()
+
+    // Selection still pushes to the parent without closing.
+    fireEvent.click(screen.getByTestId('style-drawer-tab-template'))
+    fireEvent.click(screen.getByTestId(`drawer-template-${TEMPLATES[0].id}`))
+    expect(onTemplateChange).toHaveBeenCalledWith(TEMPLATES[0].id)
+    expect(onClose).not.toHaveBeenCalled()
+
+    // Backdrop still closes.
+    fireEvent.click(screen.getByTestId('style-drawer-backdrop'))
+    expect(onClose).toHaveBeenCalled()
+  })
+})
