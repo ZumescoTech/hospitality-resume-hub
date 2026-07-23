@@ -95,11 +95,14 @@ export function StepProgress({ sections, activeTab, onSectionOpen, topOffset = 9
             <button
               data-section={section.id}
               onClick={() => scrollToSection(section.id)}
+              className="step-progress__pill"
               style={{
                 fontSize: '12px',
                 fontWeight: isActive ? 600 : 500,
                 whiteSpace: 'nowrap',
                 padding: '0 10px',
+                // Visual height stays 30px; a mobile-only ::after (styles.css)
+                // expands the touch target to 44px without growing the pill.
                 height: '30px',
                 minHeight: '30px',
                 borderRadius: '6px',

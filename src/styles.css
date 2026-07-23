@@ -278,6 +278,7 @@ button, [role="button"] {
 
 .mobile-mode-switcher__tab {
   flex: 1;
+  position: relative;
   min-height: 36px;
   border: none;
   border-radius: 6px;
@@ -287,6 +288,22 @@ button, [role="button"] {
   transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   background: transparent;
   color: var(--text-secondary, #555);
+}
+
+/* Touch target (WCAG 2.5.5): the visible pill is 36px, but the finger target
+   is 44px. Expanded with an invisible pseudo-element rather than a taller pill
+   so the segmented control keeps its density — no bar growth, no reflow. The
+   4px it reaches above/below the pill lands in the track/switcher padding,
+   which is not a scroll container, so nothing clips it. Absent at >=1024px:
+   the switcher is unmounted there (Step 8). */
+.mobile-mode-switcher__tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 46px;
 }
 
 .mobile-mode-switcher__tab--active {
@@ -301,6 +318,40 @@ button, [role="button"] {
   }
   .mobile-mode-switcher-spacer {
     display: none;
+  }
+}
+
+/* ── StepProgress pill touch targets (< 1024px) ────────────────────────────── */
+/* The pills are 30px in a 40px bar. Their nav is a horizontal scroll container
+   (overflow-x: auto forces overflow-y to auto), which clips any hit area that
+   spills past the bar — so an invisible pseudo-element alone cannot reach 44px
+   while the bar stays 40px.
+   Fix, mobile/tablet only: nudge the bar to 44px (via --progress-h, which the
+   nav's own height reads) and centre a 44px pseudo-element inside it. The pill
+   stays visually 30px; the finger target is 44px and fully contained, so it is
+   never clipped. --progress-h feeds the desktop pane-height math (Step 8) only
+   inside @media (min-width: 1024px), so overriding it below that width touches
+   nothing on desktop. */
+@media (max-width: 1023px) {
+  :root {
+    /* 45, not 44: the nav has a 1px bottom border and border-box sizing, so its
+       overflow clip (the padding box) is bar-height minus that border. 45 gives
+       a 44px padding box — the region the pseudo hit area is clipped to. */
+    --progress-h: 45px;
+  }
+  .step-progress__pill {
+    position: relative;
+  }
+  .step-progress__pill::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    /* Overfill (48 > 44 clip) so the hit area fills the padding box edge to
+       edge; the nav clips the overhang, leaving a clean 44px tap band. */
+    height: 48px;
   }
 }
 
