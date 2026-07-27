@@ -10,31 +10,79 @@ interface Props {
   activeTab: string
   /** Called when a pill is clicked — parent should open the matching accordion */
   onSectionOpen?: (id: string) => void
-  /** Header height + progress bar height in px — used as rootMargin top offset */
+  /**
+   * rootMargin top offset in px. When omitted it is measured from the sticky
+   * chrome (header height + this bar's own height) so it tracks --progress-h
+   * across the 1024px breakpoint; pass a number only to override.
+   */
   topOffset?: number
 }
 
-export function StepProgress({ sections, activeTab, onSectionOpen, topOffset = 92 }: Props) {
+// Fallback when the bar height cannot be measured (SSR / jsdom): header 52 +
+// desktop bar 40. The browser path measures the real value instead.
+const FALLBACK_OFFSET = 92
+
+export function StepProgress({ sections, activeTab, onSectionOpen, topOffset }: Props) {
   const [activeSectionId, setActiveSectionId] = useState<string>(sections[0]?.id ?? '')
   const navRef = useRef<HTMLElement>(null)
 
   // IntersectionObserver: highlight pill as user scrolls through sections
   useEffect(() => {
     if (activeTab !== 'edit') return
-    const observers: IntersectionObserver[] = []
-    sections.forEach(s => {
-      const el = document.getElementById(`section-${s.id}`)
-      if (!el) return
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) setActiveSectionId(s.id)
-        },
-        { rootMargin: `-${topOffset}px 0px -50% 0px`, threshold: 0 },
-      )
-      obs.observe(el)
-      observers.push(obs)
-    })
-    return () => observers.forEach(o => o.disconnect())
+
+    let observers: IntersectionObserver[] = []
+
+    // The offset is everything pinned above the scrolling sections: the header
+    // plus this pill bar. Measured live rather than hardcoded, because the bar
+    // is 40px at >=1024px and 45px below it (--progress-h) — a fixed 92 was 5px
+    // short on mobile, marking a section active slightly before it cleared the
+    // bar. Re-run on resize so crossing the breakpoint re-measures.
+    const setup = () => {
+      observers.forEach(o => o.disconnect())
+      observers = []
+
+      let offset = topOffset
+      if (offset == null) {
+        const barH = navRef.current?.offsetHeight ?? 0
+        if (barH > 0) {
+          const headerH = parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue('--header-h'),
+            10,
+          )
+          offset = (Number.isNaN(headerH) ? 52 : headerH) + barH
+        } else {
+          offset = FALLBACK_OFFSET
+        }
+      }
+
+      sections.forEach(s => {
+        const el = document.getElementById(`section-${s.id}`)
+        if (!el) return
+        const obs = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) setActiveSectionId(s.id)
+          },
+          { rootMargin: `-${offset}px 0px -50% 0px`, threshold: 0 },
+        )
+        obs.observe(el)
+        observers.push(obs)
+      })
+    }
+
+    setup()
+
+    let raf = 0
+    const onResize = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(setup)
+    }
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+      cancelAnimationFrame(raf)
+      observers.forEach(o => o.disconnect())
+    }
   }, [sections, activeTab, topOffset])
 
   // Centre the active pill in the nav bar.
