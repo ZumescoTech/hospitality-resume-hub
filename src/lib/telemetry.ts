@@ -100,6 +100,16 @@ export function recordCheckOutcome(kind: CheckOutcomeKind, score?: number): void
   }
 }
 
+/**
+ * Record a local pre-check outcome (call once per pre-checked request).
+ * Tracks how often hard gates fire and how often they short-circuit the AI call.
+ */
+export function recordPrecheckOutcome(hardGateCount: number, aiSkipped: boolean): void {
+  void incrementCounter('precheck_total');
+  if (hardGateCount > 0) void incrementCounter('precheck_hard_gate');
+  if (aiSkipped) void incrementCounter('precheck_ai_skipped');
+}
+
 /** Record a Judge API attempt outcome (call from the router per attempt). */
 export function recordApiAttempt(provider: string, outcome: ApiOutcome, ms: number): void {
   void incrementCounter(`api_${outcome}`);

@@ -13,11 +13,18 @@ import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
 import { runMergedCall } from '@/lib/ai/merged-call';
 import { buildDeterministicFeedback, computeConfidence, buildNeutralLlmResponse } from '@/lib/cvFeedback';
-import { recordCheckOutcome, recordLatencyMs } from '@/lib/telemetry';
+import { recordCheckOutcome, recordLatencyMs, recordPrecheckOutcome } from '@/lib/telemetry';
+import { resolvePrecheck, withPrecheck } from '@/lib/precheck/wiring';
+import type { PrecheckResult } from '@/lib/precheck/types';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
 
 const rolesData = cruiseRolesRaw as CruiseRolesData;
+
+/** Feature flag — default OFF, switchable via env without redeploy (per CLAUDE.md). */
+function precheckEnabled(): boolean {
+  return process.env.PRECHECK_ENABLED === 'true';
+}
 
 const CvCheckSchema = z.object({
   cvText: z.string().min(50, 'CV text must be at least 50 characters'),
@@ -52,12 +59,18 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   // 0. Sanitize optional job description (strip HTML, reject garbage, cap length)
   const cleanJd = sanitizeJobDescription(parsed.jobDescription) ?? undefined;
 
-  // 1. KV cache check (before any AI work)
+  // 0b. Local deterministic pre-check (pure, ~µs). Computed fresh per request and
+  //     attached below — never read from or written to the KV cache, so a
+  //     term-bank update takes effect immediately with no SCORING_VERSION bump.
+  const precheck: PrecheckResult | null = resolvePrecheck(parsed.cvText, parsed.roleSlug, precheckEnabled());
+
+  // 1. KV cache check (before any AI work). On a hit we still attach a fresh
+  //    pre-check (the cache is role-agnostic, so the pre-check must not be cached).
   const cacheKey = await buildCacheKey(parsed.cvText, cleanJd);
   const cached = await getCachedResult(cacheKey);
   if (cached) {
     console.log(`[cv-check] cache hit: ${cacheKey}`);
-    return { kind: 'scored', result: cached };
+    return { kind: 'scored', result: withPrecheck(cached, precheck, false) };
   }
   console.log(`[cv-check] cache miss: ${cacheKey}`);
 
@@ -80,6 +93,26 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     cleanJd,
   );
 
+  // 3b. Deterministic feedback + confidence (always computed, zero tokens)
+  const deterministicFeedback = buildDeterministicFeedback(missingKeywords, signals, role.role);
+
+  // 3c. Hard-gate short-circuit: if the pre-check found missing hard requirements
+  //     (e.g. STCW/ENG1), skip the paid AI call and return a deterministic result
+  //     that leads with "fix these blockers first". Not cached (role-agnostic key).
+  if (precheck && precheck.hardGateFailures.length > 0) {
+    recordPrecheckOutcome(precheck.hardGateFailures.length, true);
+    const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
+    const gatedResult: CvScoreResult = {
+      ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords),
+      deterministicFeedback,
+      confidence: computeConfidence(signals, matchRatio),
+    };
+    recordCheckOutcome('scored', gatedResult.overallScore);
+    recordLatencyMs(Date.now() - startMs);
+    console.log(`[cv-check] pre-check hard gate → AI skipped (${precheck.hardGateFailures.length})`);
+    return { kind: 'scored', result: withPrecheck(gatedResult, precheck, true) };
+  }
+
   // 4. Build prompt
   const { system, user } = buildCvCheckPrompt({
     cvText: parsed.cvText,
@@ -99,9 +132,6 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   });
 
   const mergedCallEnabled = process.env.MERGED_CALL === 'true';
-
-  // 5b. Deterministic feedback + confidence (always computed, zero tokens)
-  const deterministicFeedback = buildDeterministicFeedback(missingKeywords, signals, role.role);
 
   let llmParsed;
   try {
@@ -125,8 +155,9 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
         isDegraded: true,
       };
       recordCheckOutcome('scored', degradedResult.overallScore);
+      if (precheck) recordPrecheckOutcome(precheck.hardGateFailures.length, false);
       recordLatencyMs(Date.now() - startMs);
-      return { kind: 'scored', result: degradedResult };
+      return { kind: 'scored', result: withPrecheck(degradedResult, precheck, false) };
     }
     throw err;
   }
@@ -138,14 +169,16 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     confidence: computeConfidence(signals, matchRatio),
   };
 
-  // 7. Store in KV cache (fire-and-forget — non-fatal on failure)
+  // 7. Store in KV cache WITHOUT the pre-check (cache key is role-agnostic; the
+  //    pre-check is re-attached fresh on every read). Fire-and-forget.
   void setCachedResult(cacheKey, result);
 
   // 8. Telemetry (fire-and-forget)
   recordCheckOutcome('scored', result.overallScore);
+  if (precheck) recordPrecheckOutcome(precheck.hardGateFailures.length, false);
   recordLatencyMs(Date.now() - startMs);
 
-  return { kind: 'scored', result };
+  return { kind: 'scored', result: withPrecheck(result, precheck, false) };
 });
 
 // ─── Save WhatsApp lead to webhook ────────────────────────────────────────────

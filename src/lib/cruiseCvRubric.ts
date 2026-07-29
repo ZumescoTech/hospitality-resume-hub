@@ -62,6 +62,27 @@ export interface CvScoreResult {
   confidence?: import('./cvFeedback').ConfidenceResult;
   /** True when AI providers were unavailable and scores are deterministic approximations. */
   isDegraded?: boolean;
+  /**
+   * Local deterministic pre-check output (role-specific keyword coverage + hard
+   * requirement gates). Computed fresh per request outside the KV cache and
+   * NEVER persisted into it. Supplementary only — it never changes
+   * `overallScore`, which remains the deterministic engine's headline number.
+   */
+  precheck?: PrecheckSummary;
+}
+
+/** Pre-check summary surfaced to the UI alongside (not instead of) the AI analysis. */
+export interface PrecheckSummary {
+  /** ATS keyword-coverage sub-score 0..100 (role-specific term bank). */
+  score: number;
+  /** Hard requirements (certs / experience) the CV appears to miss. */
+  hardGateFailures: string[];
+  /** Bank terms found in the CV (core first). */
+  matchedTerms: string[];
+  /** Core terms missing — the highest-value fixes. */
+  missingCoreTerms: string[];
+  /** True when hard-gate failures caused the (paid) AI call to be skipped. */
+  aiSkipped: boolean;
 }
 
 // ─── Check outcome (discriminated union) ──────────────────────────────────

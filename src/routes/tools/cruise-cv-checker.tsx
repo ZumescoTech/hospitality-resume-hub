@@ -670,6 +670,84 @@ function CruiseCvCheckerPage() {
             {/* Full breakdown — always visible once WhatsApp step is done */}
             {whatsappCaptured && (
               <div className="space-y-4">
+                {/* Local ATS pre-check (deterministic, role-specific) */}
+                {result!.precheck && (
+                  <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                        ATS Pre-Check
+                      </h3>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Keyword match:{' '}
+                        <span className="text-foreground font-semibold">{result!.precheck.score}%</span>
+                      </span>
+                    </div>
+
+                    {result!.precheck.aiSkipped && (
+                      <div className="flex items-start gap-2 rounded-lg bg-accent/10 border border-accent/20 p-2.5">
+                        <AlertTriangle className="h-4 w-4 text-accent mt-0.5 shrink-0" />
+                        <p className="text-xs text-accent">
+                          We paused the detailed AI analysis because your CV is missing hard
+                          requirements for this role. Fix the blockers below, then re-check for a full review.
+                        </p>
+                      </div>
+                    )}
+
+                    {result!.precheck.hardGateFailures.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-destructive mb-1.5">
+                          Hard requirements missing
+                        </p>
+                        <ul className="space-y-1.5">
+                          {result!.precheck.hardGateFailures.map((f, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                              <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {result!.precheck.missingCoreTerms.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-destructive mb-1.5">
+                          Core terms to add
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {result!.precheck.missingCoreTerms.map((t) => (
+                            <span
+                              key={t}
+                              className="rounded-md bg-destructive/8 border border-destructive/20 px-2 py-0.5 text-xs text-destructive"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {result!.precheck.matchedTerms.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-primary mb-1.5">
+                          Strong terms found
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {result!.precheck.matchedTerms.slice(0, 15).map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center gap-1 rounded-md bg-primary/8 border border-primary/20 px-2 py-0.5 text-xs text-primary"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Category breakdown */}
                 <div className="space-y-2.5">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">

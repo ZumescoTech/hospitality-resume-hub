@@ -1,0 +1,1763 @@
+{
+  "version": "1.1.0",
+  "thresholds": {
+    "core": 0.7,
+    "common": 0.3
+  },
+  "offTargetWeight": 0.4,
+  "sourceFiles": {
+    "cabin-steward": "cabinsteward.json",
+    "staff-youth": "staffyouth.json"
+  },
+  "roles": {
+    "cabin-steward": {
+      "label": "Cabin / Stateroom Steward",
+      "postingCount": 6,
+      "weightedTotal": 4.2,
+      "offTargetPostings": [
+        {
+          "employer": "Belmond (Britannic Explorer, a Belmond Train — NOTE: luxury train, not a cruise ship, but same title variant and directly overlapping cabin-cleaning duties)",
+          "weight": 0.4
+        },
+        {
+          "employer": "Esalen Institute (NOTE: land-based wellness retreat, not a cruise line — included only because the exact title variant 'Housekeeping Steward' was requested)",
+          "weight": 0.4
+        },
+        {
+          "employer": "LandSea (NOTE: ski resort in Squamish, BC — not a cruise line; tangential match on job title only, included for completeness/transparency)",
+          "weight": 0.4
+        }
+      ],
+      "tiers": {
+        "core": [
+          {
+            "term": "housekeeping",
+            "coverage": 0.905,
+            "docFreq": 5,
+            "source": "both"
+          },
+          {
+            "term": "guest requests",
+            "coverage": 0.571,
+            "docFreq": 3,
+            "source": "both"
+          },
+          {
+            "term": "staterooms",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "attention to detail",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "physical stamina",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "stcw",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "turndown service",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "bed making",
+            "coverage": 0.095,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "guest amenities",
+            "coverage": 0.095,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "5-star standards",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "cabin cleaning",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "linen change",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "guests",
+            "coverage": 0.905,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "areas",
+            "coverage": 1,
+            "docFreq": 6,
+            "source": "corpus"
+          },
+          {
+            "term": "cleaning",
+            "coverage": 1,
+            "docFreq": 6,
+            "source": "corpus"
+          },
+          {
+            "term": "equipment",
+            "coverage": 0.905,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "maintenance",
+            "coverage": 0.905,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "supplies",
+            "coverage": 0.905,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "requests",
+            "coverage": 0.81,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "service",
+            "coverage": 0.81,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "standards",
+            "coverage": 0.81,
+            "docFreq": 4,
+            "source": "corpus"
+          }
+        ],
+        "common": [
+          {
+            "term": "cabin steward",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "presentation standards",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "bathroom cleaning",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "cabin allotment",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "cruise ship housekeeping",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "daily service",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "minibar restocking",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "room attendant",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "stateroom steward",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "viking",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "linen",
+            "coverage": 0.667,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "inventory",
+            "coverage": 0.571,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "safety",
+            "coverage": 0.571,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "cleanliness",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "embarkation",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "service standards",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "amenities",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "bathroom",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "cabin",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "cleaning equipment",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "hospitality",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "laundry",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "onboard",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "stock linen",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "toiletries",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "upholstered",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "vacuum",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "rooms",
+            "coverage": 0.667,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "assigned",
+            "coverage": 0.571,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "environment",
+            "coverage": 0.571,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "training",
+            "coverage": 0.571,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "appropriate",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "cruise",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "extend",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "line",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "policies",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "procedures",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "ship",
+            "coverage": 0.476,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "beds",
+            "coverage": 0.429,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "duties",
+            "coverage": 0.429,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "furniture",
+            "coverage": 0.429,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "public",
+            "coverage": 0.429,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "report",
+            "coverage": 0.429,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "stock",
+            "coverage": 0.429,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "bend",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "change",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "customer",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "detail",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "facilities",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "floors",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "follow",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "greeting",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "helping",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "hygiene",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "items",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "knowledge",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "language",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "lift",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "luxury",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "make",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "manager",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "meet",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "operation",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "organized",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "perform",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "periods",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "physical",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "process",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "programs",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "school",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "steward",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "sweep",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "towels",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "trash",
+            "coverage": 0.333,
+            "docFreq": 2,
+            "source": "corpus"
+          }
+        ],
+        "differentiator": [
+          {
+            "term": "acknowledge guests",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "address guest",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "address guest requests",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "afternoon tea",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "amenities and supplies",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "appropriate equipment",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "areas around",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "areas including public",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "around the ship",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "assigned rooms",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "assigned staterooms",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "balconies",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "bend and stand",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cabin steward promotes",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "carefully cleaning",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "change linens",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "clean and service",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "clean safe",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cleaning and servicing",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cleaning up spills",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cleaning upholstered",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cleaning upholstered furniture",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cleanliness and presentation",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cleanliness of staterooms",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cocktail parties",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "collecting and disposing",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "comfort and cleanliness",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "common areas",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "common areas around",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "complete knowledge",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "correct distribution",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "correct handling",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "correct maintenance",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cruise line specific",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cruise lines service",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "cruise ship",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "damage in staterooms",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "detail and cleanliness",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "detergents and equipment",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "discretion and respect",
+            "coverage": 0.238,
+            "docFreq": 1,
+            "source": "corpus"
+          }
+        ]
+      },
+      "certs": [
+        {
+          "name": "ENG1",
+          "tier": "hard",
+          "aliases": [
+            "eng1",
+            "eng 1",
+            "seafarer medical",
+            "ships medical"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.238
+        },
+        {
+          "name": "STCW",
+          "tier": "hard",
+          "aliases": [
+            "stcw",
+            "basic safety training"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.238
+        },
+        {
+          "name": "WHMIS",
+          "tier": "hard",
+          "aliases": [
+            "whmis",
+            "workplace hazardous materials"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 0,
+          "coverage": 0.095
+        }
+      ],
+      "experience": {
+        "statedMinimumsMonths": [
+          12,
+          24
+        ],
+        "representativeMinMonths": 18,
+        "rawValues": [
+          "Minimum 12 years of housekeeping experience in a hotel, resort, or hospitality setting.",
+          "1-2 years' relevant experience in a similar role, preferably within the luxury hospitality industry.",
+          "2 years to less than 3 years"
+        ],
+        "suspectedOutliers": [
+          "Minimum 12 years of housekeeping experience in a hotel, resort, or hospitality setting."
+        ]
+      }
+    },
+    "staff-youth": {
+      "label": "Staff / Youth",
+      "postingCount": 9,
+      "weightedTotal": 8.4,
+      "offTargetPostings": [
+        {
+          "employer": "The World, Residences at Sea (NOTE: this is a private residential mega-yacht for permanent residents/owners, not a traditional commercial passenger cruise line — included as a related, closely-matching non-cruise-line listing per land/near-sea comparator rule)",
+          "weight": 0.4
+        }
+      ],
+      "tiers": {
+        "core": [
+          {
+            "term": "children",
+            "coverage": 1,
+            "docFreq": 9,
+            "source": "both"
+          },
+          {
+            "term": "safety",
+            "coverage": 0.643,
+            "docFreq": 6,
+            "source": "both"
+          },
+          {
+            "term": "first aid",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "both"
+          },
+          {
+            "term": "youth program",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "both"
+          },
+          {
+            "term": "cpr",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "both"
+          },
+          {
+            "term": "childcare",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "both"
+          },
+          {
+            "term": "teens",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "both"
+          },
+          {
+            "term": "age appropriate activities",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "arts and crafts",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "child safeguarding",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "game",
+            "coverage": 0.595,
+            "docFreq": 5,
+            "source": "both"
+          },
+          {
+            "term": "supervision",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "activities",
+            "coverage": 1,
+            "docFreq": 9,
+            "source": "corpus"
+          },
+          {
+            "term": "youth",
+            "coverage": 0.881,
+            "docFreq": 8,
+            "source": "corpus"
+          },
+          {
+            "term": "ages",
+            "coverage": 0.952,
+            "docFreq": 8,
+            "source": "corpus"
+          },
+          {
+            "term": "program",
+            "coverage": 0.762,
+            "docFreq": 7,
+            "source": "corpus"
+          }
+        ],
+        "common": [
+          {
+            "term": "recreation",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "both"
+          },
+          {
+            "term": "camp",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "both"
+          },
+          {
+            "term": "age groups",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "special needs",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "themed activities",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "youth counselors",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "bls",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "child development",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "incident reports",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "kids club",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "multilingual",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "safeguarding policies",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "sign in sheets",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "early childhood education",
+            "coverage": 0.048,
+            "docFreq": 1,
+            "source": "both"
+          },
+          {
+            "term": "public speaking",
+            "coverage": 0,
+            "docFreq": 0,
+            "source": "curated"
+          },
+          {
+            "term": "entertainment",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "both"
+          },
+          {
+            "term": "registration",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "both"
+          },
+          {
+            "term": "crafts",
+            "coverage": 0.595,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "guests",
+            "coverage": 0.595,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "inventory",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "children ages",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "cpr and first",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "first",
+            "coverage": 0.643,
+            "docFreq": 6,
+            "source": "corpus"
+          },
+          {
+            "term": "host",
+            "coverage": 0.643,
+            "docFreq": 6,
+            "source": "corpus"
+          },
+          {
+            "term": "team",
+            "coverage": 0.643,
+            "docFreq": 6,
+            "source": "corpus"
+          },
+          {
+            "term": "parents",
+            "coverage": 0.595,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "themed",
+            "coverage": 0.595,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "aid",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "certification",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "education",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "english",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "environment",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "groups",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "setting",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "ship",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "sports",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "supervise",
+            "coverage": 0.524,
+            "docFreq": 5,
+            "source": "corpus"
+          },
+          {
+            "term": "child",
+            "coverage": 0.476,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "entertaining",
+            "coverage": 0.476,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "school",
+            "coverage": 0.476,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "staff",
+            "coverage": 0.476,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "written",
+            "coverage": 0.476,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "cruise",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "equipment",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "field",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "guidelines",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "lead",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "line",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "parties",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "policies",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "standards",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "supplies",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "training",
+            "coverage": 0.405,
+            "docFreq": 4,
+            "source": "corpus"
+          },
+          {
+            "term": "appropriate",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "arts",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "communicate",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "deliver",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "engage",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "engaging",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "facilities",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "kids",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "nights",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "reporting",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "safe",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "young",
+            "coverage": 0.357,
+            "docFreq": 3,
+            "source": "corpus"
+          }
+        ],
+        "differentiator": [
+          {
+            "term": "cruise ship",
+            "coverage": 0.286,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "onboard",
+            "coverage": 0.286,
+            "docFreq": 3,
+            "source": "corpus"
+          },
+          {
+            "term": "age appropriate",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "aid training",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "appropriate activities",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "children and teens",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "counselor",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "education recreation",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "entertain children",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "equipment supplies",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "first aid training",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "program activity",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "safeguarding",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "young guests",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "youth activities",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "youth facilities",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "youth staff",
+            "coverage": 0.238,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "activities for children",
+            "coverage": 0.167,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "karaoke",
+            "coverage": 0.167,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "sports activities",
+            "coverage": 0.167,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "trivia",
+            "coverage": 0.167,
+            "docFreq": 2,
+            "source": "corpus"
+          },
+          {
+            "term": "accurate youth",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "accurate youth program",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities and execute",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities as scheduled",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities crew",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities crew assigned",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities for kids",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities including themed",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities independently",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities like",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities like karaoke",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities manager",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities manager plan",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities or parties",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities programs",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities programs ages",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities that align",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities theme",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          },
+          {
+            "term": "activities theme nights",
+            "coverage": 0.119,
+            "docFreq": 1,
+            "source": "corpus"
+          }
+        ]
+      },
+      "certs": [
+        {
+          "name": "BLS",
+          "tier": "hard",
+          "aliases": [
+            "bls",
+            "basic life support",
+            "medical first aid"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.119
+        },
+        {
+          "name": "Child Safeguarding",
+          "tier": "hard",
+          "aliases": [
+            "child safeguarding",
+            "safeguarding"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.119
+        },
+        {
+          "name": "Childcare Supervision Certification",
+          "tier": "hard",
+          "aliases": [
+            "certification to supervise",
+            "childcare certification"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.119
+        },
+        {
+          "name": "Level 3 Childcare / Teaching Qualification",
+          "tier": "hard",
+          "aliases": [
+            "level 3",
+            "childcare diploma",
+            "pgce",
+            "teaching degree",
+            "nvq"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.119
+        },
+        {
+          "name": "CPR / First Aid",
+          "tier": "soft",
+          "aliases": [
+            "cpr",
+            "first aid"
+          ],
+          "docFreq": 4,
+          "cruiseDocFreq": 3,
+          "coverage": 0.405
+        },
+        {
+          "name": "Criminal Background Check",
+          "tier": "soft",
+          "aliases": [
+            "background check",
+            "criminal record"
+          ],
+          "docFreq": 2,
+          "cruiseDocFreq": 2,
+          "coverage": 0.238
+        },
+        {
+          "name": "Pre-employment Medical",
+          "tier": "soft",
+          "aliases": [
+            "medical"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.119
+        },
+        {
+          "name": "Seaman's Visa (C1/D)",
+          "tier": "soft",
+          "aliases": [
+            "c1/d",
+            "seaman",
+            "visa"
+          ],
+          "docFreq": 1,
+          "cruiseDocFreq": 1,
+          "coverage": 0.119
+        }
+      ],
+      "experience": {
+        "statedMinimumsMonths": [
+          12,
+          12,
+          24,
+          24,
+          36,
+          36
+        ],
+        "representativeMinMonths": 24,
+        "rawValues": [
+          "3–5 years of experience working with children or teens - ages 6 months to 11 years",
+          "A minimum of two (2) years of previous work experience in a youth-related field is required",
+          "Three years of experience working with children ages 2 - 17",
+          "Two years of experience working with large groups of children required",
+          "Minimum 12 months' experience working with children in a high-volume, fast-paced environment... OR 3+ seasons (3 months each) of day camp experience, OR 2+ seasons (3 months each) of overnight camp experience.",
+          "Minimum of 12 months currently working within a child care/educational establishment",
+          "Minimum of 2-year experience with youth and/or in a sports and recreation setting or position."
+        ],
+        "suspectedOutliers": []
+      }
+    }
+  }
+}
