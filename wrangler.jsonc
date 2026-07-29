@@ -6,7 +6,9 @@
 		"nodejs_compat"
 	],
 	"main": "@tanstack/react-start/server-entry",
-	"vars": {},
+	"vars": {
+		"PRECHECK_ENABLED": "true"
+	},
 	"kv_namespaces": [
 		{
 			"binding": "CV_RESULT_CACHE",
