@@ -9,11 +9,10 @@ import type { PrecheckResult, RoleType } from './types';
 /**
  * Maps an app role slug (cruise-roles.json) onto a pre-check term-bank role.
  * Roles with no entry skip the pre-check entirely — no behaviour change.
- * NOTE: staff-youth has no role slug in cruise-roles.json yet (see parking_lot);
- * add one here once it exists to make that bank reachable from the funnel.
  */
 export const PRECHECK_ROLE_BY_SLUG: Record<string, RoleType> = {
   'cabin-steward-stewardess': 'cabin-steward',
+  'youth-staff': 'staff-youth',
 };
 
 /** Run the pre-check for a slug, or return null when disabled/unmapped. */

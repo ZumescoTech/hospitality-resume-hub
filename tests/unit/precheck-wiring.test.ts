@@ -21,9 +21,18 @@ const fakeResult = (): CvScoreResult => ({
 });
 
 describe('precheck wiring', () => {
-  it('maps the cabin slug and leaves unknown slugs unmapped', () => {
+  it('maps the cabin + youth slugs and leaves unknown slugs unmapped', () => {
     expect(PRECHECK_ROLE_BY_SLUG['cabin-steward-stewardess']).toBe('cabin-steward');
+    expect(PRECHECK_ROLE_BY_SLUG['youth-staff']).toBe('staff-youth');
     expect(PRECHECK_ROLE_BY_SLUG['sommelier-wine-waiter']).toBeUndefined();
+  });
+
+  it('resolves the youth-staff slug against the staff-youth bank', () => {
+    const cv =
+      'Youth counselor. Ran age-appropriate activities, arts and crafts and games for children and teens. Child safeguarding trained. First aid and CPR. 2019 - 2024.';
+    const r = resolvePrecheck(cv, 'youth-staff', true);
+    expect(r).not.toBeNull();
+    expect(r!.matchedTerms).toEqual(expect.arrayContaining(['children', 'arts and crafts']));
   });
 
   it('resolvePrecheck respects the enabled flag and the slug map', () => {
