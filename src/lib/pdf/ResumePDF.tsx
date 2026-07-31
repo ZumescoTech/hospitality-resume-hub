@@ -602,11 +602,15 @@ function SidebarLayout({
         )}
       </View>
 
-      {/* Main column */}
+      {/* Main column.
+          Section gaps are tightened here (8 vs the single-column layout's 14)
+          so a full 5-job CV flows into two pages instead of stranding a small
+          trailing section (Bug B). These margins are local to the sidebar
+          layout and do not touch the shared s.section spacing. */}
       <View style={{ flex: 1, padding: `${margin}pt ${margin * 0.85}pt` }}>
         {/* Summary */}
         {summary && (
-          <View style={{ marginBottom: 14 }}>
+          <View style={{ marginBottom: 8 }}>
             <SectionHead label="Professional Summary" />
             <Text style={s.summaryText}>{summary}</Text>
           </View>
@@ -614,10 +618,12 @@ function SidebarLayout({
 
         {/* Experience */}
         {hasExperience(experience) && (
-          <View style={{ marginBottom: 14 }}>
+          <View style={{ marginBottom: 8 }}>
             <SectionHead label="Experience" />
             {experience.map((e) => (
-              <View key={e.id} style={s.expEntry}>
+              // wrap={false} keeps the whole entry together across page breaks
+              // (Bug A) — same fix as the single-column layout's experience block.
+              <View key={e.id} style={s.expEntry} wrap={false}>
                 <View style={s.expTopRow}>
                   <Text style={s.expRole}>{e.role}</Text>
                   <Text style={s.expDates}>
@@ -646,7 +652,7 @@ function SidebarLayout({
                     {e.field ? `, ${e.field}` : ""}
                   </Text>
                   <Text style={s.eduDates}>
-                    {[e.startDate, e.endDate].filter(Boolean).join(" – ")}
+                    {dateRange(e.startDate, e.endDate)}
                   </Text>
                 </View>
                 <Text style={s.eduSchool}>{e.school}</Text>
@@ -658,7 +664,7 @@ function SidebarLayout({
 
         {/* Certifications — omitted by the original sidebar layout (Bug 2) */}
         {hasCertifications(certifications) && (
-          <View style={{ marginTop: 14 }}>
+          <View style={{ marginTop: 8 }}>
             <SectionHead label="Certifications" />
             {certifications.map((c) => (
               <View key={c.id} style={s.certEntry}>
@@ -671,9 +677,11 @@ function SidebarLayout({
           </View>
         )}
 
-        {/* Hospitality Profile — omitted by the original sidebar layout (Bug 2) */}
+        {/* Hospitality Profile — omitted by the original sidebar layout (Bug 2).
+            wrap={false} keeps the heading with its rows so the section is never
+            split heading-on-one-page / content-on-the-next (Bug B). */}
         {showHospitality && (
-          <View style={{ marginTop: 14 }}>
+          <View style={{ marginTop: 8 }} wrap={false}>
             <SectionHead label="Hospitality Profile" />
             {hospitality.serviceStyles.length > 0 && (
               <View style={s.hospRow}>
@@ -830,7 +838,11 @@ export function ResumePDF({
         subject="Hospitality CV"
         creator="GetHired"
       >
-        <Page size="A4" style={{ ...s.page, paddingHorizontal: 0, paddingTop: 0 }}>
+        {/* paddingBottom: 0 too — the sidebar/main columns supply their own
+            padding. Leaving s.page's paddingBottom here double-counts with the
+            main column's bottom padding and overflows a blank trailing page
+            when content fills the last page (Bug B). */}
+        <Page size="A4" style={{ ...s.page, paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 }}>
           <SidebarLayout data={data} config={config} s={s} fmt={fmt} />
         </Page>
       </Document>
@@ -906,7 +918,10 @@ export function ResumePDF({
             <View style={s.section}>
               <SectionHead label="Experience" />
               {experience.map((e) => (
-                <View key={e.id} style={s.expEntry}>
+                // wrap={false} keeps role + dates + venue + bullets together as
+                // one atomic unit; without it react-pdf splits an entry across a
+                // page break (Bug A). Entries are always shorter than a page.
+                <View key={e.id} style={s.expEntry} wrap={false}>
                   <View style={s.expTopRow}>
                     <Text style={s.expRole}>{e.role}</Text>
                     <Text style={s.expDates}>
@@ -939,7 +954,7 @@ export function ResumePDF({
                       {e.field ? `, ${e.field}` : ""}
                     </Text>
                     <Text style={s.eduDates}>
-                      {[e.startDate, e.endDate].filter(Boolean).join(" – ")}
+                      {dateRange(e.startDate, e.endDate)}
                     </Text>
                   </View>
                   <Text style={s.eduSchool}>{e.school}</Text>

@@ -1,0 +1,173 @@
+{
+  "_fixtureNotes": "Anonymized real CV content (name/email/phone replaced) for pagination/regression testing. See chat notes: (1) 5 work entries, not 4 — Pigalle is real, not invented; (2) hospitalityProfile below is SYNTHESIZED — not present in the source document, added back to match the original Bug-B repro (the stranded 'Wine knowledge — Intermediate' section); confirm this field name/shape against the actual ResumeData type before relying on it; (3) no O-Level entry in this source — education here is BSc only, plus two certifications. Map all field names below to GetHired's real schema as needed — these are descriptive placeholders, not confirmed schema keys.",
+
+  "profile": {
+    "name": "Candidate Name",
+    "title": "Hospitality Operations Professional | Restaurant & FOH Leadership | Wine & Guest Experience",
+    "location": "Stellenbosch, Western Cape, SA",
+    "email": "candidate@example.com",
+    "phone": "+27 00 000 0000"
+  },
+
+  "summary": "Hospitality operations professional with 6+ years of experience across premium Cape Winelands tasting rooms, fine dining and luxury cruise hospitality. Experienced in FOH leadership, guest experience, service coordination, team support, beverage operations, stock control and maintaining service standards in fast-paced environments. Strong wine knowledge with a proven ability to educate guests, build relationships and drive beverage sales. Comfortable working across busy restaurant and tasting-room operations while supporting teams and maintaining a consistent, professional guest experience.",
+
+  "coreCompetencies": [
+    "Restaurant & FOH Operations",
+    "Service Coordination",
+    "Guest Experience",
+    "Team Support & Training",
+    "Service Standards",
+    "Guest Problem Resolution",
+    "Wine & Beverage Management",
+    "Inventory & Stock Control",
+    "Upselling & Revenue Generation",
+    "Food & Wine Pairing",
+    "Events & Private Experiences",
+    "Operational Readiness"
+  ],
+
+  "workExperience": [
+    {
+      "title": "Floor Assistant Manager (Acting)",
+      "company": "Pigalle Restaurant, Green Point",
+      "startDate": "Mar 2026",
+      "endDate": "Present",
+      "bullets": [
+        "Support the day-to-day operation of a 250-seat fine-dining restaurant, helping maintain service standards and efficient FOH operations.",
+        "Assist with coordinating floor service, supporting team members and maintaining smooth service flow during busy periods.",
+        "Respond to guest needs and service issues professionally and proactively.",
+        "Drive beverage revenue through personalised wine recommendations and premium upselling.",
+        "Support the wider beverage operation during peak periods, including bar service and cocktail preparation.",
+        "Work closely with FOH and beverage teams to maintain a consistent guest experience at one of Cape Town's largest and most awarded dining venues."
+      ]
+    },
+    {
+      "title": "Sommelier",
+      "company": "Cunard Cruise Line — Queen Victoria",
+      "startDate": "Jul 2025",
+      "endDate": "Feb 2026",
+      "bullets": [
+        "Delivered premium food and beverage service across luxury dining venues while maintaining high guest-experience standards.",
+        "Worked across breakfast, lunch and dinner service, adapting to changing guest volumes and operational demands.",
+        "Drove beverage revenue through consultative upselling of wines, spirits, cocktails, digestifs and drinks packages.",
+        "Supported wine education, tastings and food-pairing experiences, including the onboard Wine Academy programme.",
+        "Maintained beverage inventory accuracy, stock rotation and replenishment; worked collaboratively across FOH and beverage teams during peak service."
+      ]
+    },
+    {
+      "title": "Assistant Tasting Room Manager",
+      "company": "Bartinney Private Cellar",
+      "startDate": "Aug 2024",
+      "endDate": "Jun 2025",
+      "bullets": [
+        "Supported the day-to-day operation of a busy premium Winelands tasting room during peak season.",
+        "Managed high guest volumes associated with Wine Tram operations, with the property regularly cycling close to 100 guests per hour during peak periods.",
+        "Coordinated guest flow, arrivals and tasting-room service while maintaining a welcoming and professional experience.",
+        "Hosted wine tastings, cellar tours, private experiences and group events, coordinating logistics and service execution.",
+        "Supported and coached junior team members on wine knowledge, service standards and upselling.",
+        "Maintained operational readiness across stock levels, glassware, tasting-room presentation and cellar requirements.",
+        "Used guest preferences and product knowledge to drive bottle sales and wine club sign-ups."
+      ]
+    },
+    {
+      "title": "Sommelier",
+      "company": "MERTIA",
+      "startDate": "Dec 2023",
+      "endDate": "Jul 2024",
+      "bullets": [
+        "Implemented beverage inventory controls and strengthened stock-management procedures across service periods.",
+        "Supported staff wine education to improve product knowledge, recommendation confidence and service consistency.",
+        "Contributed to wine-list development and food-and-wine pairing strategy.",
+        "Maintained consistent service standards across tasting and dining experiences, ensuring compliance with alcohol-service and responsible-service requirements."
+      ]
+    },
+    {
+      "title": "Tasting Room Assistant",
+      "company": "Muratie Wine Estate",
+      "startDate": "Dec 2019",
+      "endDate": "Jul 2023",
+      "bullets": [
+        "Delivered warm, knowledgeable wine service in a high-traffic estate tasting room over a 3.5-year tenure.",
+        "Increased wine club sign-ups by 25% through preference-led recommendations and genuine guest engagement.",
+        "Used upselling and cross-selling strategies to increase transaction value across the wine portfolio.",
+        "Built strong guest relationships that supported repeat visitation and increased confidence in purchase decisions."
+      ]
+    }
+  ],
+
+  "leadershipAndOperations": [
+    {
+      "label": "FOH Operations",
+      "description": "Experience supporting high-volume restaurant and tasting-room service operations."
+    },
+    {
+      "label": "Team Support & Training",
+      "description": "Experience coaching junior hospitality staff in wine knowledge, service standards and upselling."
+    },
+    {
+      "label": "Beverage Operations",
+      "description": "Experience across wine service, beverage sales, stock control, replenishment and operational readiness."
+    },
+    {
+      "label": "Guest Experience",
+      "description": "Experienced in handling diverse guest expectations and creating personalised food, wine and hospitality experiences."
+    }
+  ],
+
+  "education": [
+    {
+      "degree": "BSc Business and IT",
+      "institution": "IU Applied Science",
+      "date": "Dec 2024",
+      "location": "Online"
+    }
+  ],
+
+  "certifications": [
+    {
+      "name": "WSET Level 2 Award in Wines",
+      "date": "Oct 2021"
+    },
+    {
+      "name": "Cape Wine Academy Certificate in Wine",
+      "date": "Oct 2021",
+      "location": "Stellenbosch"
+    }
+  ],
+
+  "skills": [
+    {
+      "category": "Restaurant Operations",
+      "items": ["FOH service", "service coordination", "guest experience", "operational readiness"]
+    },
+    {
+      "category": "People & Training",
+      "items": ["Team support", "staff coaching", "wine education", "service standards"]
+    },
+    {
+      "category": "Wine & Beverage",
+      "items": ["Wine knowledge", "beverage service", "food pairing", "wine education", "upselling"]
+    },
+    {
+      "category": "Stock & Controls",
+      "items": ["Inventory", "replenishment", "stock rotation", "beverage controls"]
+    },
+    {
+      "category": "Commercial",
+      "items": ["Upselling", "cross-selling", "wine club conversion", "guest recommendations"]
+    },
+    {
+      "category": "Communication",
+      "items": ["Guest engagement", "storytelling", "product education", "professional communication"]
+    }
+  ],
+
+  "languages": [
+    { "language": "English", "level": "Fluent" }
+  ],
+
+  "hospitalityProfile": {
+    "_synthesized": true,
+    "wineKnowledge": "Intermediate"
+  }
+}
