@@ -220,8 +220,11 @@ const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
   },
   harbour: {
     primary: "#0d6b5e",
-    accent: "#eaf8f5",
-    nameColour: "#ffffff",
+    // Sidebar/band names are hard-coded white in the JSX, so `nameColour` and
+    // `accent` only colour BODY labels on the white main column — they must be
+    // legible there, not on-band colours. (Bug 1)
+    accent: "#0d6b5e",
+    nameColour: "#1a1a1a",
     pageBg: "#ffffff",
     sectionStyle: "uppercase-spaced",
     layout: "sidebar",
@@ -237,8 +240,11 @@ const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
   },
   steward: {
     primary: "#0d6b5e",
-    accent: "#eaf8f5",
-    nameColour: "#ffffff",
+    // Header-band name is hard-coded white in the JSX, so `nameColour` and
+    // `accent` only colour BODY labels below the band, on a white page — they
+    // must be legible there, not on-band colours. (Bug 1)
+    accent: "#0d6b5e",
+    nameColour: "#1a1a1a",
     pageBg: "#ffffff",
     sectionStyle: "uppercase-spaced",
     layout: "header-band",
@@ -246,7 +252,7 @@ const PDF_TEMPLATE_CONFIGS: Record<string, PDFTemplateConfig> = {
   },
 };
 
-function getConfig(templateId?: string): PDFTemplateConfig {
+export function getConfig(templateId?: string): PDFTemplateConfig {
   if (templateId && Object.prototype.hasOwnProperty.call(PDF_TEMPLATE_CONFIGS, templateId)) {
     return PDF_TEMPLATE_CONFIGS[templateId];
   }
@@ -255,7 +261,7 @@ function getConfig(templateId?: string): PDFTemplateConfig {
 
 // ─── Dynamic StyleSheet ────────────────────────────────────────────────────────
 
-function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
+export function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
   const font = PDF_FONT_MAP[fmt.fontFamily] ?? "Rubik";
   const fontBold = PDF_FONT_BOLD_MAP[fmt.fontFamily] ?? "Rubik";
   const body = fmt.bodyFontSize;
@@ -288,7 +294,18 @@ function buildStyles(fmt: FormattingSettings, config: PDFTemplateConfig) {
     header: { flexDirection: "row", alignItems: "flex-start", marginBottom: 18 },
     photo: { width: 60, height: 60, borderRadius: 30, marginRight: 14 },
     headerInfo: { flex: 1 },
-    name: { fontSize: heading + 8, fontFamily: fontBold, color: headingText, letterSpacing: -0.2 },
+    // The name is a display size (heading + 8 ≈ 22pt). With no lineHeight of its
+    // own it inherits the page's body lineHeight, which react-pdf collapses at
+    // this size — the line advance shrinks and the job-title subtitle rides up
+    // into the name (Bug 3). An explicit display lineHeight restores a proper
+    // line box so the subtitle clears the name.
+    name: {
+      fontSize: heading + 8,
+      fontFamily: fontBold,
+      color: headingText,
+      letterSpacing: -0.2,
+      lineHeight: 1.2,
+    },
     jobTitle: { fontSize: medium, color: config.primary, marginTop: 3, letterSpacing: 0.8, textTransform: "uppercase" },
     contactRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
     contactItem: { fontSize: small, color: mutedText, marginRight: 10, marginBottom: 2 },
@@ -491,7 +508,8 @@ function SidebarLayout({
   s: StylesType;
   fmt: FormattingSettings;
 }) {
-  const { personal, summary, experience, education, skills, hospitality } = data;
+  const { personal, summary, experience, education, skills, certifications, hospitality } = data;
+  const showHospitality = hasHospitalityProfile(hospitality);
   const margin = fmt.marginInches * 72;
   const sidebarBg = config.bandBg ?? config.primary;
   const sidebarText = "rgba(255,255,255,0.88)";
@@ -635,6 +653,64 @@ function SidebarLayout({
                 {e.description && <Text style={s.eduDesc}>{e.description}</Text>}
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Certifications — omitted by the original sidebar layout (Bug 2) */}
+        {hasCertifications(certifications) && (
+          <View style={{ marginTop: 14 }}>
+            <SectionHead label="Certifications" />
+            {certifications.map((c) => (
+              <View key={c.id} style={s.certEntry}>
+                <Text style={s.certName}>{c.name}</Text>
+                <Text style={s.certMeta}>
+                  {c.issuer} · {c.year}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Hospitality Profile — omitted by the original sidebar layout (Bug 2) */}
+        {showHospitality && (
+          <View style={{ marginTop: 14 }}>
+            <SectionHead label="Hospitality Profile" />
+            {hospitality.serviceStyles.length > 0 && (
+              <View style={s.hospRow}>
+                <Text style={s.hospLabel}>Service styles</Text>
+                <Text style={s.hospValue}>{hospitality.serviceStyles.join(", ")}</Text>
+              </View>
+            )}
+            {hospitality.posSystems.length > 0 && (
+              <View style={s.hospRow}>
+                <Text style={s.hospLabel}>POS systems</Text>
+                <Text style={s.hospValue}>{hospitality.posSystems.join(", ")}</Text>
+              </View>
+            )}
+            {hospitality.wineKnowledge !== "None" && (
+              <View style={s.hospRow}>
+                <Text style={s.hospLabel}>Wine knowledge</Text>
+                <Text style={s.hospValue}>{hospitality.wineKnowledge}</Text>
+              </View>
+            )}
+            {hospitality.spiritsKnowledge !== "None" && (
+              <View style={s.hospRow}>
+                <Text style={s.hospLabel}>Spirits / cocktails</Text>
+                <Text style={s.hospValue}>{hospitality.spiritsKnowledge}</Text>
+              </View>
+            )}
+            {hospitality.allergens && (
+              <View style={s.hospRow}>
+                <Text style={s.hospLabel}>Allergen awareness</Text>
+                <Text style={s.hospValue}>Trained</Text>
+              </View>
+            )}
+            {hospitality.foodSafety ? (
+              <View style={s.hospRow}>
+                <Text style={s.hospLabel}>Food safety</Text>
+                <Text style={s.hospValue}>{hospitality.foodSafety}</Text>
+              </View>
+            ) : null}
           </View>
         )}
       </View>
