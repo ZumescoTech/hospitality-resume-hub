@@ -11,6 +11,9 @@ export function dateRange(s: string, e: string, current?: boolean) {
   const start = formatDate(s);
   const end = current ? "Present" : formatDate(e);
   if (!start && !end) return "";
+  // Same start and end (e.g. a single-year qualification) reads as a range
+  // when written "2021 — 2021"; collapse it to one value.
+  if (start && end && start === end) return start;
   return [start, end].filter(Boolean).join(" — ");
 }
 

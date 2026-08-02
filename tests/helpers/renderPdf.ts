@@ -76,6 +76,54 @@ export async function extractPlainText(buffer: Buffer): Promise<string> {
 }
 
 /**
+ * Extract positioned text items for EVERY page. Returns one array of items per
+ * page (index 0 = page 1). Needed for pagination assertions — page counts,
+ * whether a job entry is split across a page break, near-empty trailing pages.
+ */
+export async function extractTextItemsByPage(buffer: Buffer): Promise<PdfTextItem[][]> {
+  const pdfjs = await loadPdfjs();
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(buffer),
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    useSystemFonts: true,
+    verbosity: 0,
+  }).promise;
+  const pages: PdfTextItem[][] = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const content = await page.getTextContent();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pages.push(content.items.map((i: any) => ({
+      str: i.str as string,
+      transform: i.transform as number[],
+      width: i.width as number,
+      height: i.height as number,
+    })));
+  }
+  await doc.destroy();
+  return pages;
+}
+
+/** Join one page's items into a single string. */
+export function pageText(items: PdfTextItem[]): string {
+  return items.map((i) => i.str).join(" ");
+}
+
+/**
+ * 1-based page number of the first page whose joined text contains `needle`
+ * (whitespace in both sides is collapsed so letter-spaced headings still match).
+ * Returns -1 if not found on any page.
+ */
+export function findPageContaining(pages: PdfTextItem[][], needle: string): number {
+  const compactNeedle = needle.replace(/\s+/g, "");
+  for (let i = 0; i < pages.length; i++) {
+    if (pageText(pages[i]).replace(/\s+/g, "").includes(compactNeedle)) return i + 1;
+  }
+  return -1;
+}
+
+/**
  * Find the first text item whose string contains `needle`.
  * PDF text is often split across multiple runs, so this matches a substring
  * against each run's own text.
