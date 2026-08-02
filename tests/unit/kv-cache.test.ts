@@ -85,6 +85,33 @@ describe('buildCacheKey — different JD → different key', () => {
   });
 });
 
+describe('buildCacheKey — role salt (scoring is role-conditional)', () => {
+  it('different roles produce different keys for the same CV + JD', async () => {
+    const somm = await buildCacheKey(BASE_CV, undefined, 'sommelier-wine-waiter');
+    const waiter = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress');
+    expect(somm).not.toBe(waiter);
+  });
+
+  it('a role-scoped key differs from the role-agnostic key', async () => {
+    const agnostic = await buildCacheKey(BASE_CV);
+    const scoped = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress');
+    expect(scoped).not.toBe(agnostic);
+  });
+
+  it('the role slug appears right after the version salt', async () => {
+    const key = await buildCacheKey(BASE_CV, undefined, 'sommelier-wine-waiter');
+    expect(key.startsWith(`check:${SCORING_VERSION}:sommelier-wine-waiter:`)).toBe(true);
+  });
+
+  it('role + JD still yields a stable, distinct key', async () => {
+    const a = await buildCacheKey(BASE_CV, BASE_JD, 'waiter-waitress');
+    const b = await buildCacheKey(BASE_CV, BASE_JD, 'waiter-waitress');
+    const noRole = await buildCacheKey(BASE_CV, BASE_JD);
+    expect(a).toBe(b);
+    expect(a).not.toBe(noRole);
+  });
+});
+
 describe('buildCacheKey — SCORING_VERSION salt', () => {
   it('key starts with check:{SCORING_VERSION}:', async () => {
     const key = await buildCacheKey(BASE_CV);

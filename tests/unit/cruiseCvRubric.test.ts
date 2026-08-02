@@ -179,18 +179,19 @@ describe('computeCvScore', () => {
       summaryQuality:         { score: 70, feedback: 'ok' },
     });
     const result = computeCvScore(raw, [], []);
-    // Manual weighted sum: 0.25*80 + 0.25*75 + 0.15*60 + 0.10*70 + 0.10*50 + 0.10*65 + 0.05*70
-    // = 20 + 18.75 + 9 + 7 + 5 + 6.5 + 3.5 = 69.75 → 70
-    expect(result.overallScore).toBe(70);
+    // v3 default (cert-neutral) weighted sum: 0.30*80 + 0.30*75 + 0.25*60 +
+    // 0*70 (qual) + 0*50 (cruiseReadiness) + 0.10*65 + 0.05*70
+    // = 24 + 22.5 + 15 + 0 + 0 + 6.5 + 3.5 = 71.5 → 72
+    expect(result.overallScore).toBe(72);
   });
 
-  it('T6: computeCvScore exposes all seven B-1 §2 categories with correct weights', () => {
-    const result = computeCvScore(makeValidRaw(), [], []);
-    expect(result.categories.keywordAlignment.weight).toBe(0.25);
-    expect(result.categories.experienceDepth.weight).toBe(0.25);
-    expect(result.categories.quantifiedAchievements.weight).toBe(0.15);
-    expect(result.categories.qualifications.weight).toBe(0.10);
-    expect(result.categories.cruiseReadiness.weight).toBe(0.10);
+  it('T6: default profile zero-weights the cert dimensions; all weights still sum to 1.00', () => {
+    const result = computeCvScore(makeValidRaw(), [], []); // no role → default profile
+    expect(result.categories.keywordAlignment.weight).toBe(0.30);
+    expect(result.categories.experienceDepth.weight).toBe(0.30);
+    expect(result.categories.quantifiedAchievements.weight).toBe(0.25);
+    expect(result.categories.qualifications.weight).toBe(0);      // cert dim → 0
+    expect(result.categories.cruiseReadiness.weight).toBe(0);     // cert dim → 0
     expect(result.categories.atsParseability.weight).toBe(0.10);
     expect(result.categories.summaryQuality.weight).toBe(0.05);
     // Verify the sum of all weights equals 1.00

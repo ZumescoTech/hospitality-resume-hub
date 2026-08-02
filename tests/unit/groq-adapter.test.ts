@@ -133,7 +133,7 @@ describe('GroqAdapter.extract()', () => {
 // ─── Golden-file regression ───────────────────────────────────────────────────
 
 describe('Golden-file regression — computeCvScore unaffected by adapter import', () => {
-  it('waiter-experienced golden score still 79', () => {
+  it('waiter-experienced golden score is 78 under the v3 default (cert-neutral) profile', () => {
     const llm = {
       keywordAlignment:       { score: 80, feedback: '' },
       experienceDepth:        { score: 82, feedback: '' },
@@ -144,6 +144,8 @@ describe('Golden-file regression — computeCvScore unaffected by adapter import
       summaryQuality:         { score: 75, feedback: '' },
       topFixes: [],
     } as Parameters<typeof computeCvScore>[0];
-    expect(computeCvScore(llm, [], []).overallScore).toBe(79);
+    // v2 default weights → 79; v3 zeroes the cert dimensions (qual/cruiseReadiness)
+    // and redistributes to experience/skills → 78 for a non-sommelier role.
+    expect(computeCvScore(llm, [], []).overallScore).toBe(78);
   });
 });

@@ -753,15 +753,20 @@ function CruiseCvCheckerPage() {
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1">
                     Score Breakdown
                   </h3>
-                  {(Object.keys(CATEGORY_WEIGHTS) as CategoryKey[]).map((key) => (
-                    <CategoryScoreRow
-                      key={key}
-                      categoryKey={key}
-                      score={result!.categories[key].score}
-                      weight={result!.categories[key].weight}
-                      feedback={result!.categories[key].feedback}
-                    />
-                  ))}
+                  {(Object.keys(CATEGORY_WEIGHTS) as CategoryKey[])
+                    // Hide dimensions that carry no weight for this role (e.g.
+                    // the cert-driven ones on non-sommelier roles) — showing a
+                    // "0%" row would be noise.
+                    .filter((key) => result!.categories[key].weight > 0)
+                    .map((key) => (
+                      <CategoryScoreRow
+                        key={key}
+                        categoryKey={key}
+                        score={result!.categories[key].score}
+                        weight={result!.categories[key].weight}
+                        feedback={result!.categories[key].feedback}
+                      />
+                    ))}
                 </div>
 
                 {/* Deterministic improvement tips */}

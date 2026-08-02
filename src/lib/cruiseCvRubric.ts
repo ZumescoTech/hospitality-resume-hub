@@ -8,11 +8,19 @@
 // atsParseability 10%, summaryQuality 5%.
 
 import type { DeterministicSignals } from './cvDeterministicChecks';
+import { SOMMELIER_SLUG } from './precheck/certGate';
 
 // ─── Scoring version (cache salt + golden-file contract) ─────────────────────
 // Bump whenever scoring logic, weights, or the keyword map changes.
 // KV cache keys are salted with this value; stale cache entries are ignored.
-export const SCORING_VERSION = '2';
+//
+// v3: certification scoring is now role-conditional. For every role EXCEPT
+// Sommelier / Wine Waiter, the cert-driven dimensions (cruiseReadiness,
+// qualifications) carry ZERO weight — STCW/ENG1/HACCP/WSET no longer raise or
+// lower the score. Their 20% is redistributed onto the experience/skills
+// signals. Sommelier keeps the original 7-dimension profile so WSET/CMS still
+// count (consistent with the certGate.ts hard gate).
+export const SCORING_VERSION = '3';
 
 // ─── Role types ───────────────────────────────────────────────────────────────
 
@@ -96,7 +104,34 @@ export type CvCheckOutcome =
 
 // ─── Weights & labels ─────────────────────────────────────────────────────────
 
+/**
+ * DEFAULT profile (every role except Sommelier / Wine Waiter). The two
+ * certification-driven dimensions carry ZERO weight so cert presence
+ * (STCW/ENG1/HACCP/WSET) cannot move the score; their combined 20% is
+ * redistributed onto the experience/skills signals (keyword alignment,
+ * experience depth, quantified achievements).
+ *
+ * All seven keys are retained (some at 0) so `CategoryKey` stays complete and
+ * every result still reports a full category breakdown.
+ */
 export const CATEGORY_WEIGHTS = {
+  keywordAlignment:       0.30,
+  experienceDepth:        0.30,
+  quantifiedAchievements: 0.25,
+  qualifications:         0.00,
+  cruiseReadiness:        0.00,
+  atsParseability:        0.10,
+  summaryQuality:         0.05,
+} as const;
+
+export type CategoryKey = keyof typeof CATEGORY_WEIGHTS;
+
+/**
+ * SOMMELIER profile — the original 7-dimension weighting. Retained ONLY for
+ * `sommelier-wine-waiter`, where qualifications still credits WSET / CMS and
+ * cruiseReadiness still counts (consistent with the certGate.ts hard gate).
+ */
+export const SOMMELIER_CATEGORY_WEIGHTS: Record<CategoryKey, number> = {
   keywordAlignment:       0.25,
   experienceDepth:        0.25,
   quantifiedAchievements: 0.15,
@@ -104,9 +139,16 @@ export const CATEGORY_WEIGHTS = {
   cruiseReadiness:        0.10,
   atsParseability:        0.10,
   summaryQuality:         0.05,
-} as const;
+};
 
-export type CategoryKey = keyof typeof CATEGORY_WEIGHTS;
+/**
+ * Weighting profile for a role. Sommelier / Wine Waiter keeps the cert-aware
+ * profile; every other role (including an unknown/omitted slug) uses the
+ * cert-neutral default.
+ */
+export function weightsForRole(roleSlug?: string): Record<CategoryKey, number> {
+  return roleSlug === SOMMELIER_SLUG ? SOMMELIER_CATEGORY_WEIGHTS : CATEGORY_WEIGHTS;
+}
 
 export const CATEGORY_LABELS: Record<CategoryKey, string> = {
   keywordAlignment:       'Keyword Alignment',
@@ -199,6 +241,7 @@ export function buildCvCheckPrompt({
   matchRatio,
   jobDescription,
 }: BuildPromptInput): { system: string; user: string } {
+  const isSommelier = role.slug === SOMMELIER_SLUG;
   const system = `You are an expert cruise ship hotel-department recruiter scoring a CV for the role of "${role.role}".
 
 Score the CV on 7 dimensions. For each, give a score 0–100 and 1–2 sentences of specific, actionable feedback.
@@ -225,13 +268,21 @@ experienceDepth (25%): Years, seniority, and progression in roles directly relev
 
 quantifiedAchievements (15%): Do bullet points include measurable scale or impact — covers, guests, revenue figures, team size, star rating of venue, percentage growth? Unquantified bullets ("helped with service", "assisted guests") score below 30.
 
-qualifications (10%): Relevant formal qualifications — WSET Level 2 or above, Cape Wine Academy, Court of Master Sommeliers, hospitality management diplomas, food safety certifications. WSET Level 1 or only a matric/school diploma scores below 25.
+${isSommelier
+  ? `qualifications (10%): Relevant formal qualifications — WSET Level 2 or above, Cape Wine Academy, Court of Master Sommeliers (CMS), hospitality management diplomas, food safety certifications. Either WSET or CMS is a strong positive for this role. WSET Level 1 or only a matric/school diploma scores below 25.
 
-cruiseReadiness (10%): Cruise-specific compliance documents and signals — C1/D US visa, Seafarer's Medical Certificate (ENG1), Seaman's Discharge Book, STCW Basic Safety Training. These are critical differentiators a generic ATS misses. A candidate listing all four scores 85+. A candidate listing none scores 0–15, even if otherwise qualified. A candidate listing one or two scores proportionally between.
+cruiseReadiness (10%): Cruise-specific compliance documents and signals — C1/D US visa, Seafarer's Medical Certificate (ENG1), Seaman's Discharge Book, STCW Basic Safety Training. These are critical differentiators a generic ATS misses. A candidate listing all four scores 85+. A candidate listing none scores 0–15, even if otherwise qualified. A candidate listing one or two scores proportionally between.`
+  : `qualifications (NOT SCORED for this role): Certifications are informational only here. Return 50. Do NOT reward or penalise WSET / HACCP / food-safety / diploma presence, and do NOT let it influence any other dimension.
+
+cruiseReadiness (NOT SCORED for this role): Seafarer / compliance documents (C1/D, ENG1, Seaman's Discharge Book, STCW) are informational only here. Return 50. Do NOT reward or penalise their presence or absence, and do NOT let it influence any other dimension.`}
 
 atsParseability (10%): Standard section headings present, contact info findable, no garbled text, consistent date formats, readable layout. Use the pre-computed signals.
 
 summaryQuality (5%): Does the opening summary/profile lead with specialty + years of experience, tailored to the target role? A generic "I am hardworking" statement scores below 20. A targeted sommelier summary with years and key credentials scores 80+.
+
+CERTIFICATION RULE: ${isSommelier
+  ? 'For this Sommelier / Wine Waiter role, a WSET or Court of Master Sommeliers (CMS) qualification is a genuine, role-defining positive — credit it under qualifications.'
+  : 'For this role, certifications and compliance documents (STCW, ENG1, HACCP, WSET, etc.) are informational ONLY. They must NOT raise or lower any dimension score. Score purely on experience, skills, quantified impact, keyword fit and ATS parseability.'}
 
 IMPORTANT CALIBRATION RULE: A CV can be genuinely on-topic and score in the 30–45 range overall — real F&B or waiter experience without wine specialism or cruise exposure deserves this band, not a rejection. Only a CV from a completely different field (e.g. office admin, engineering) belongs below 20. Do not collapse all imperfect hospitality CVs into the 0–20 range.
 
@@ -356,12 +407,14 @@ export function computeCvScore(
   parsed: RawLlmResponse,
   matchedKeywords: string[],
   missingKeywords: string[],
+  roleSlug?: string,
 ): CvScoreResult {
-  const keys = Object.keys(CATEGORY_WEIGHTS) as CategoryKey[];
+  const weights = weightsForRole(roleSlug);
+  const keys = Object.keys(weights) as CategoryKey[];
 
   let overallScore = 0;
   for (const key of keys) {
-    overallScore += (parsed[key]?.score ?? 50) * CATEGORY_WEIGHTS[key];
+    overallScore += (parsed[key]?.score ?? 50) * weights[key];
   }
   overallScore = Math.round(overallScore);
 
@@ -369,7 +422,7 @@ export function computeCvScore(
   for (const key of keys) {
     categories[key] = {
       score: Math.min(100, Math.max(0, Math.round(parsed[key]?.score ?? 50))),
-      weight: CATEGORY_WEIGHTS[key],
+      weight: weights[key],
       feedback: parsed[key]?.feedback ?? '',
     };
   }
