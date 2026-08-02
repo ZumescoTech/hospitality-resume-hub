@@ -61,7 +61,7 @@ Strict rules:
 - Missing fields: use "" for strings, [] for arrays, false for booleans.
 - experience startDate/endDate: "YYYY-MM" (e.g. "2021-03"). Year-only: "YYYY". Currently employed: current=true and endDate="".
 - education startDate/endDate: "YYYY" if only year is known, "YYYY-MM" otherwise.
-- Each qualification appears in EXACTLY ONE section — never both education and certifications. Named professional certifications and licences (e.g. WSET, STCW, HACCP, ENG1, Cape Wine Academy) go under "certifications". Formal academic qualifications (degrees, diplomas, matric / O-Level / Higher Certificate) go under "education". If a single credential could plausibly fit either, place it under "certifications" only.
+- Each qualification appears in EXACTLY ONE section — never both education and certifications. Named professional certifications and licences (e.g. WSET, Court of Master Sommeliers / CMS, STCW, HACCP, ENG1, Cape Wine Academy) go under "certifications". Formal academic qualifications (degrees, diplomas, matric / O-Level / Higher Certificate) go under "education". If a single credential could plausibly fit either, place it under "certifications" only.
 - skills: array of individual skill strings, 1–5 words each.
 - wineKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Sommelier" — use "None" if not mentioned.
 - spiritsKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Mixologist" — use "None" if not mentioned.

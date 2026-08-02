@@ -3,7 +3,7 @@
 //
 // Extracts high-confidence fields deterministically without an AI call:
 //   - Email, phone number, LinkedIn URL
-//   - Certification patterns (WSET, STCW, HACCP, CWA, ENG1)
+//   - Certification patterns (WSET, CMS / Court of Master Sommeliers, STCW, HACCP, CWA, ENG1)
 //   - Date ranges (experience/education section headers)
 //
 // Hybrid strategy:
@@ -39,6 +39,9 @@ const CERT_PATTERNS: Array<{ re: RegExp; canonical: string }> = [
   { re: /wset\s+(level\s+)?(\d|one|two|three|four|diploma)/i,     canonical: 'WSET' },
   { re: /wset\s+award/i,                                           canonical: 'WSET Award' },
   { re: /\bwset\b/i,                                               canonical: 'WSET' },
+  { re: /court\s+of\s+master\s+sommeliers?/i,                      canonical: 'Court of Master Sommeliers' },
+  { re: /(?:master|advanced|certified|introductory)\s+sommelier/i, canonical: 'Court of Master Sommeliers' },
+  { re: /\bcms\b/i,                                                canonical: 'Court of Master Sommeliers' },
   { re: /stcw\s+basic\s+safety/i,                                  canonical: 'STCW Basic Safety Training' },
   { re: /\bstcw\b/i,                                               canonical: 'STCW' },
   { re: /haccp\s+(level\s+)?\d/i,                                  canonical: 'HACCP' },

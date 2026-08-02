@@ -3,13 +3,17 @@
 // score a CV cheaply and explainably. Pure: no AI, no network, no I/O — safe to
 // run on every request inside a Cloudflare Worker.
 //
-// The final numeric score is keyword-coverage only. Hard requirements (certs,
-// experience) are surfaced SEPARATELY in `hardGateFailures` and are NOT baked
-// into the number — a low score and a missing STCW are different messages.
+// The final numeric score is keyword-coverage only.
+//
+// Certification gating is NOT done here. Certs (STCW, ENG1, HACCP, …) never
+// gate a term-bank role and never move the score — they are informational
+// display fields only. The single certification gate that exists is
+// role-conditional and lives in `certGate.ts` (Sommelier / Wine Waiter only,
+// satisfied by WSET or CMS). Experience shortfalls are the only hard gate
+// surfaced here, in `hardGateFailures`.
 
 import { normalizeText, stemText, tokenize, termInNormalized } from './normalize';
 import type {
-  CertRequirement,
   PrecheckResult,
   PrecheckTermBanks,
   RoleTermBank,
@@ -118,13 +122,9 @@ export function precheckCv(cvText: string, role: RoleType, now = new Date().getF
   );
 
   // ── Hard gates (surfaced separately, never subtracted from `score`) ──
+  // Certifications are NOT gated here — they are informational only (see the
+  // module header and certGate.ts). Experience shortfall is the only hard gate.
   const hardGateFailures: string[] = [];
-
-  for (const cert of bank.certs) {
-    if (cert.tier !== 'hard') continue; // soft certs are advisory, never a gate
-    if (cert.cruiseDocFreq < 1) continue; // off-target-only cert (e.g. ski-resort WHMIS)
-    if (!certPresent(cert, has)) hardGateFailures.push(certFailureMessage(cert));
-  }
 
   const expFailure = experienceGate(cvText, bank, now);
   if (expFailure) hardGateFailures.push(expFailure);
@@ -178,15 +178,6 @@ function loosePhraseMatch(cvTokens: string[], words: string[]): boolean {
 }
 
 // ─── Hard gates ───────────────────────────────────────────────────────────────
-
-function certPresent(cert: CertRequirement, has: (t: string) => boolean): boolean {
-  if (has(cert.name)) return true;
-  return cert.aliases.some((a) => has(a));
-}
-
-function certFailureMessage(cert: CertRequirement): string {
-  return `${cert.name} not found — a hard requirement in cruise postings for this role. Add it to your CV if you hold it (or note it as "in progress").`;
-}
 
 /**
  * Flag an experience shortfall only when we can estimate the CV's experience AND

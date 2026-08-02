@@ -26,7 +26,7 @@ function report(title: string, cv: string, role: RoleType) {
 }
 
 describe('precheckCv — sample CV sanity checks', () => {
-  it('strong housekeeping CV scores well but is gated on missing cruise certs', () => {
+  it('strong housekeeping CV scores well and is NOT gated on certs (certs are informational now)', () => {
     const r = report('housekeeping-supervisor (strong, cabin proxy)', loadCv('housekeeping-supervisor.txt'), 'cabin-steward');
     // Calibration snapshot (v1.1.0 bank + synonym/spelling folding): ~58.
     expect(r.score).toBeGreaterThan(45);
@@ -35,23 +35,21 @@ describe('precheckCv — sample CV sanity checks', () => {
     expect(r.matchedTerms).toEqual(
       expect.arrayContaining(['turndown service', 'housekeeping', 'linen', 'room attendant']),
     );
-    // No STCW/ENG1 anywhere → both hard gates fire
-    expect(r.hardGateFailures.join(' ')).toMatch(/STCW/);
-    expect(r.hardGateFailures.join(' ')).toMatch(/ENG1/);
-    // WHMIS (ski-resort-only cert) must NOT be gated
-    expect(r.hardGateFailures.join(' ')).not.toMatch(/WHMIS/);
+    // Certification gating was removed for every non-sommelier role: missing
+    // STCW/ENG1/HACCP must NOT gate this CV (and there is no experience shortfall).
+    expect(r.hardGateFailures.join(' ')).not.toMatch(/STCW|ENG1|HACCP|WHMIS/);
+    expect(r.hardGateFailures).toHaveLength(0);
   });
 
-  it('strong youth CV scores well and is gated only on the certs it lacks', () => {
+  it('strong youth CV scores well and is NOT gated on certs', () => {
     const r = report('youth-counselor (strong)', loadCv('youth-counselor.txt'), 'staff-youth');
     expect(r.score).toBeGreaterThanOrEqual(80); // calibration snapshot: ~91
     expect(r.matchedTerms).toEqual(
       expect.arrayContaining(['child safeguarding', 'age appropriate activities', 'arts and crafts']),
     );
-    // Has Level 3 + First Aid/CPR, so those gates should be quiet; lacks BLS & the
-    // explicit Child Safeguarding *certificate* wording is present → not gated.
-    expect(r.hardGateFailures.join(' ')).toMatch(/BLS/);
-    expect(r.hardGateFailures.join(' ')).not.toMatch(/Level 3/);
+    // No certification gate for the youth role either.
+    expect(r.hardGateFailures.join(' ')).not.toMatch(/BLS|Level 3|Safeguarding|Childcare/);
+    expect(r.hardGateFailures).toHaveLength(0);
   });
 
   it('thin/generic CV scores low and is clearly separated from a strong one', () => {
@@ -59,7 +57,8 @@ describe('precheckCv — sample CV sanity checks', () => {
     const thin = report('cabin-steward-thin (weak/generic)', loadCv('cabin-steward-thin.txt'), 'cabin-steward');
     expect(thin.score).toBeLessThan(strong.score);
     expect(thin.score).toBeLessThanOrEqual(20); // harsh where a human would flag it (~14)
-    expect(thin.hardGateFailures.join(' ')).toMatch(/STCW/);
+    // The low SCORE — not a cert gate — is what separates a weak CV now.
+    expect(thin.hardGateFailures.join(' ')).not.toMatch(/STCW|ENG1|HACCP/);
   });
 
   it('experience estimator reads explicit phrases and date spans', () => {

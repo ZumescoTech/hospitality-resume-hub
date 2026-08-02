@@ -37,7 +37,13 @@ describe('precheck wiring', () => {
 
   it('resolvePrecheck respects the enabled flag and the slug map', () => {
     expect(resolvePrecheck(CABIN_CV, 'cabin-steward-stewardess', false)).toBeNull(); // flag off
-    expect(resolvePrecheck(CABIN_CV, 'sommelier-wine-waiter', true)).toBeNull(); // unmapped role
+    // Sommelier has no term-bank, and this CV has no WSET/CMS, but the
+    // role-conditional cert gate still fires → a non-null result carrying it.
+    const somm = resolvePrecheck(CABIN_CV, 'sommelier-wine-waiter', true);
+    expect(somm).not.toBeNull();
+    expect(somm!.hardGateFailures.join(' ')).toMatch(/WSET/);
+    // An unmapped role with no active gate stays null (unchanged "skip" behaviour).
+    expect(resolvePrecheck(CABIN_CV, 'photographer', true)).toBeNull();
     const r = resolvePrecheck(CABIN_CV, 'cabin-steward-stewardess', true);
     expect(r).not.toBeNull();
     expect(typeof r!.score).toBe('number');
