@@ -64,9 +64,11 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   //     term-bank update takes effect immediately with no SCORING_VERSION bump.
   const precheck: PrecheckResult | null = resolvePrecheck(parsed.cvText, parsed.roleSlug, precheckEnabled());
 
-  // 1. KV cache check (before any AI work). On a hit we still attach a fresh
-  //    pre-check (the cache is role-agnostic, so the pre-check must not be cached).
-  const cacheKey = await buildCacheKey(parsed.cvText, cleanJd);
+  // 1. KV cache check (before any AI work). The key is salted with the role slug
+  //    because scoring is now role-conditional (cert-driven dimensions are
+  //    zero-weighted for every role except sommelier). The pre-check is still
+  //    attached fresh on every read and never cached.
+  const cacheKey = await buildCacheKey(parsed.cvText, cleanJd, parsed.roleSlug);
   const cached = await getCachedResult(cacheKey);
   if (cached) {
     console.log(`[cv-check] cache hit: ${cacheKey}`);
@@ -103,7 +105,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     recordPrecheckOutcome(precheck.hardGateFailures.length, true);
     const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
     const gatedResult: CvScoreResult = {
-      ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords),
+      ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords, parsed.roleSlug),
       deterministicFeedback,
       confidence: computeConfidence(signals, matchRatio),
     };
@@ -149,7 +151,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
       console.log('[cv-check] exhausted: returning deterministic-only result');
       const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
       const degradedResult = {
-        ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords),
+        ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords, parsed.roleSlug),
         deterministicFeedback,
         confidence: computeConfidence(signals, matchRatio, true),
         isDegraded: true,
@@ -164,12 +166,12 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
 
   // 6. Compute final score deterministically — LLM output never changes the score directly
   const result: CvScoreResult = {
-    ...computeCvScore(llmParsed, matchedKeywords, missingKeywords),
+    ...computeCvScore(llmParsed, matchedKeywords, missingKeywords, parsed.roleSlug),
     deterministicFeedback,
     confidence: computeConfidence(signals, matchRatio),
   };
 
-  // 7. Store in KV cache WITHOUT the pre-check (cache key is role-agnostic; the
+  // 7. Store in KV cache WITHOUT the pre-check (the key is role-salted, but the
   //    pre-check is re-attached fresh on every read). Fire-and-forget.
   void setCachedResult(cacheKey, result);
 

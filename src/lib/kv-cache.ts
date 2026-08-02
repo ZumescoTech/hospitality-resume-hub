@@ -1,7 +1,9 @@
 // kv-cache.ts
 // KV result cache for CV check results.
 //
-// Cache key: `check:{SCORING_VERSION}:{textHash}[:{jdHash}]`
+// Cache key: `check:{SCORING_VERSION}[:{roleSlug}]:{textHash}[:{jdHash}]`
+//   - roleSlug  = app role slug (scoring is role-conditional, so the same CV
+//                 scores differently per role — the role MUST be part of the key)
 //   - textHash  = SHA-256 of normalised CV text (trim, collapse whitespace, lowercase)
 //   - jdHash    = SHA-256 of normalised job description (when provided)
 //   - SCORING_VERSION from cruiseCvRubric salts the key so bumped versions auto-bust
@@ -52,16 +54,26 @@ export async function sha256Hex(text: string): Promise<string> {
 }
 
 /**
- * Build the KV cache key for a given CV + optional job description.
- * Key format: `check:{SCORING_VERSION}:{textHash}[:{jdHash}]`
+ * Build the KV cache key for a given CV + optional role + optional job
+ * description. Key format: `check:{SCORING_VERSION}[:{roleSlug}]:{textHash}[:{jdHash}]`.
+ *
+ * The role slug is part of the key because scoring is role-conditional — the
+ * same CV text yields different scores for, e.g., a sommelier vs a waiter — so
+ * omitting it would serve one role's result for another. When no slug is given
+ * the segment is dropped (back-compat with role-agnostic callers/tests).
  */
-export async function buildCacheKey(cvText: string, jobDescription?: string): Promise<string> {
+export async function buildCacheKey(
+  cvText: string,
+  jobDescription?: string,
+  roleSlug?: string,
+): Promise<string> {
   const textHash = await sha256Hex(normaliseForHash(cvText));
+  const prefix = roleSlug ? `check:${SCORING_VERSION}:${roleSlug}` : `check:${SCORING_VERSION}`;
   if (jobDescription?.trim()) {
     const jdHash = await sha256Hex(normaliseForHash(jobDescription));
-    return `check:${SCORING_VERSION}:${textHash}:${jdHash}`;
+    return `${prefix}:${textHash}:${jdHash}`;
   }
-  return `check:${SCORING_VERSION}:${textHash}`;
+  return `${prefix}:${textHash}`;
 }
 
 // ─── Cache operations ─────────────────────────────────────────────────────────

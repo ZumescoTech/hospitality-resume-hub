@@ -82,12 +82,13 @@ describe('B-1 T6: headline == weighted sum (deterministic)', () => {
     expect(total).toBeCloseTo(1.0, 10);
   });
 
-  it('cruiseReadiness weight is 0.10 (B-1 §2 requirement)', () => {
-    expect(CATEGORY_WEIGHTS.cruiseReadiness).toBe(0.10);
+  it('cruiseReadiness weight is 0 for the default (non-sommelier) profile — certs no longer scored', () => {
+    expect(CATEGORY_WEIGHTS.cruiseReadiness).toBe(0);
+    expect(CATEGORY_WEIGHTS.qualifications).toBe(0);
   });
 
-  it('experienceDepth weight is 0.25 (B-1 §2 requirement, up from 0.15)', () => {
-    expect(CATEGORY_WEIGHTS.experienceDepth).toBe(0.25);
+  it('experienceDepth weight is 0.30 in the default profile (cert weight redistributed here)', () => {
+    expect(CATEGORY_WEIGHTS.experienceDepth).toBe(0.30);
   });
 });
 
@@ -172,7 +173,7 @@ async function scoreOnce(cvText: string, roleSlug: string): Promise<CvScoreResul
   const json = await response.json() as { choices: Array<{ message: { content: string } }> };
   const content = json.choices[0]?.message?.content ?? '';
   const llm = parseCvCheckResponse(content);
-  return computeCvScore(llm, matchedKeywords, missingKeywords);
+  return computeCvScore(llm, matchedKeywords, missingKeywords, roleSlug);
 }
 
 function median(vals: number[]): number {
