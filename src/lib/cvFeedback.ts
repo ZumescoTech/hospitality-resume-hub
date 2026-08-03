@@ -5,6 +5,8 @@
 
 import type { DeterministicSignals } from './cvDeterministicChecks';
 import type { RawLlmResponse, CategoryKey } from './cruiseCvRubric';
+import { estimateCvExperienceYears } from './precheck/prechecker';
+import { SOMMELIER_SLUG } from './precheck/certGate';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,47 +136,128 @@ export function computeConfidence(
 
 // ─── Neutral LLM response for degraded mode ───────────────────────────────────
 
+const clamp = (n: number): number => Math.max(0, Math.min(100, Math.round(n)));
+
+/** Words that signal a generic, un-tailored summary when no specificity is present. */
+const GENERIC_SUMMARY_RE =
+  /\b(hard[\s-]?working|team\s*player|passionate|motivated|responsible|dedicated|reliable|fast\s*learner|people\s*person|go[\s-]?getter)\b/i;
+
+/** Specialty / role terms that mark a summary (or CV) as on-topic for hospitality. */
+const SPECIALTY_RE =
+  /\b(sommelier|wine|waiter|waitress|bartender|barista|chef|cook|galley|housekeep\w*|cabin|stateroom|steward\w*|butler|concierge|reception\w*|front\s*desk|f&b|food\s*and\s*beverage|hospitality|guest\s*service|fine\s*dining|silver\s*service|spa|therapist)\b/i;
+
+/** Genuine cruise/shipboard EXPERIENCE markers — deliberately excludes certs/docs. */
+const CRUISE_EXPERIENCE_RE =
+  /\b(cruise|cruise\s*line|cruise\s*ship|ship\s*board|shipboard|on[\s-]?board|onboard|vessel|at\s*sea|sea\s*going|seagoing|liner|cunard|msc|royal\s*caribbean|norwegian|celebrity|carnival|princess\s*cruises?|holland\s*america|disney\s*cruise|oceania|silversea|seabourn|viking)\b/gi;
+
+/** Non-cert academic / role qualifications (degrees, diplomas). */
+const ACADEMIC_QUAL_RE =
+  /\b(diploma|degree|bachelor|b\.?sc|b\.?a\b|masters?\s+degree|hospitality\s*management|culinary\s*(school|arts|diploma)|hotel\s*school)\b/i;
+
+/** Wine credentials that DO count for the sommelier role (role-conditional). */
+const WINE_CERT_RE = /\bwset\b|court\s+of\s+master\s+sommeliers?|\bcms\b|cape\s+wine\s+academy/i;
+
+/** Pull the summary/profile block: lines after a Summary heading, else the top lines. */
+function extractSummaryBlock(cvText: string): string {
+  const lines = cvText.split(/\r?\n/).map((l) => l.trim());
+  const idx = lines.findIndex((l) => /^(summary|profile|objective|about\s+me)\b/i.test(l));
+  if (idx >= 0) return lines.slice(idx + 1, idx + 4).join(' ');
+  return lines.filter(Boolean).slice(1, 4).join(' '); // skip name line, take next few
+}
+
+/** Count distinct (case-insensitive) matches of a global regex in text. */
+function countDistinct(text: string, re: RegExp): number {
+  const found = new Set<string>();
+  for (const m of text.matchAll(re)) found.add(m[0].toLowerCase());
+  return found.size;
+}
+
 /**
- * When both AI providers are exhausted, construct a neutral RawLlmResponse
- * using deterministic proxies so the scoring engine can still produce a
- * partial result rather than a blank page.
+ * When both AI providers are exhausted (or a hard gate skips the AI call),
+ * construct a neutral RawLlmResponse from DETERMINISTIC signals so the scoring
+ * engine still produces a real, content-driven partial result — never a blank
+ * page and never a flat 50-per-category placeholder.
  *
- * Scores derived here are clearly approximate (not LLM-calibrated).
+ * Every one of the seven dimensions is derived from the CV; none is hardcoded:
+ *   - keywordAlignment       ← role keyword match ratio
+ *   - experienceDepth        ← years of experience parsed from the CV, nudged by relevance
+ *   - quantifiedAchievements ← count of quantified bullet lines
+ *   - qualifications         ← role-relevant credentials only (role-conditional cert rule)
+ *   - cruiseReadiness        ← genuine cruise/shipboard EXPERIENCE, not certificate presence
+ *   - atsParseability        ← structural signals
+ *   - summaryQuality         ← targeted vs. generic summary
+ *
+ * Scores are approximate (not LLM-calibrated) but reflect the actual CV.
  */
 export function buildNeutralLlmResponse(
   matchRatio: number,
   signals: DeterministicSignals,
+  cvText = '',
+  roleSlug?: string,
 ): RawLlmResponse {
-  const degradedNote = 'AI unavailable — approximate score based on CV structure';
+  const note = 'AI unavailable — approximate score derived from CV content';
 
-  // keywordAlignment: directly from match ratio
-  const kwScore = Math.round(Math.min(95, matchRatio * 130)); // scale 0-1 → 0-100+, cap at 95
+  // keywordAlignment: directly from match ratio (0-1 → 0-100+, capped)
+  const kwScore = clamp(Math.min(95, matchRatio * 130));
 
-  // atsParseability: from structural signals
+  // atsParseability: structural signals
   let atsScore = 50;
   if (signals.hasContactInfo) atsScore += 15;
   if (signals.hasSummarySection) atsScore += 10;
   if (signals.headingsFound.length >= 3) atsScore += 10;
   if (!signals.suspectGarbledText) atsScore += 10;
   if (signals.wordCount > 300) atsScore += 5;
-  atsScore = Math.min(100, atsScore);
+  atsScore = clamp(atsScore);
 
-  // quantifiedAchievements: from quantified bullet count
-  const qaScore = Math.min(80, 20 + signals.quantifiedBulletCount * 8);
+  // quantifiedAchievements: from quantified bullet count (0 bullets → very low)
+  const qaScore = clamp(Math.min(85, 8 + signals.quantifiedBulletCount * 13));
 
-  const neutral = (key: string): { score: number; feedback: string } => ({
-    score: 50,
-    feedback: degradedNote,
-  });
+  // experienceDepth: years parsed from the CV, then nudged by keyword relevance
+  // so raw tenure in an unrelated field doesn't score as relevant experience.
+  const years = estimateCvExperienceYears(cvText);
+  const tenureScore = years == null
+    ? (signals.wordCount < 150 ? 20 : 35) // no parseable timeline → low/mid proxy
+    : Math.min(85, 15 + years * 12);
+  const relevanceFactor = 0.6 + 0.4 * Math.min(1, matchRatio * 2); // 0.6 … 1.0
+  const expScore = clamp(tenureScore * relevanceFactor);
+
+  // summaryQuality: targeted (years + specialty) beats generic filler.
+  const summary = extractSummaryBlock(cvText);
+  let sqScore: number;
+  if (!signals.hasSummarySection || summary.length === 0) {
+    sqScore = 15;
+  } else {
+    const mentionsYears = /\d+\s*\+?\s*years?/i.test(summary);
+    const mentionsSpecialty = SPECIALTY_RE.test(summary);
+    const isGeneric = GENERIC_SUMMARY_RE.test(summary);
+    if (mentionsYears && mentionsSpecialty) sqScore = 78;
+    else if (mentionsSpecialty || mentionsYears) sqScore = 55;
+    else if (isGeneric) sqScore = 22;
+    else sqScore = 40;
+  }
+  sqScore = clamp(sqScore);
+
+  // cruiseReadiness: genuine cruise/shipboard EXPERIENCE only (never certs).
+  const cruiseHits = countDistinct(cvText, CRUISE_EXPERIENCE_RE);
+  const crScore = clamp(cruiseHits === 0 ? 10 : Math.min(85, cruiseHits * 22));
+
+  // qualifications: role-relevant credentials only, respecting the role-conditional
+  // cert rule. For non-sommelier roles the compliance certs (STCW/ENG1/HACCP/WSET)
+  // are NOT credited here; only academic/role qualifications count. Sommelier
+  // additionally credits WSET / CMS.
+  const isSommelier = roleSlug === SOMMELIER_SLUG;
+  let qualScore = ACADEMIC_QUAL_RE.test(cvText) ? 55 : 25;
+  if (isSommelier && WINE_CERT_RE.test(cvText)) qualScore = Math.max(qualScore, 80);
+  qualScore = clamp(qualScore);
 
   return {
-    keywordAlignment:       { score: kwScore,  feedback: degradedNote },
-    experienceDepth:        { score: 50,        feedback: degradedNote },
-    quantifiedAchievements: { score: qaScore,   feedback: degradedNote },
-    qualifications:         { score: 50,        feedback: degradedNote },
-    cruiseReadiness:        { score: 50,        feedback: degradedNote },
-    atsParseability:        { score: atsScore,  feedback: degradedNote },
-    summaryQuality:         { score: 50,        feedback: degradedNote },
+    keywordAlignment:       { score: kwScore,   feedback: note },
+    experienceDepth:        { score: expScore,  feedback: note },
+    quantifiedAchievements: { score: qaScore,   feedback: note },
+    qualifications:         { score: qualScore, feedback: note },
+    cruiseReadiness:        { score: crScore,   feedback: note },
+    atsParseability:        { score: atsScore,  feedback: note },
+    summaryQuality:         { score: sqScore,   feedback: note },
     topFixes: [],
   } as RawLlmResponse;
 }
