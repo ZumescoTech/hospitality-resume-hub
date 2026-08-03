@@ -103,7 +103,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   //     that leads with "fix these blockers first". Not cached (role-agnostic key).
   if (precheck && precheck.hardGateFailures.length > 0) {
     recordPrecheckOutcome(precheck.hardGateFailures.length, true);
-    const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
+    const neutralLlm = buildNeutralLlmResponse(matchRatio, signals, parsed.cvText, parsed.roleSlug);
     const gatedResult: CvScoreResult = {
       ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords, parsed.roleSlug),
       deterministicFeedback,
@@ -149,7 +149,7 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     if (err instanceof ProviderError && err.kind === 'exhausted') {
       // Both providers unavailable — return a degraded but useful result
       console.log('[cv-check] exhausted: returning deterministic-only result');
-      const neutralLlm = buildNeutralLlmResponse(matchRatio, signals);
+      const neutralLlm = buildNeutralLlmResponse(matchRatio, signals, parsed.cvText, parsed.roleSlug);
       const degradedResult = {
         ...computeCvScore(neutralLlm, matchedKeywords, missingKeywords, parsed.roleSlug),
         deterministicFeedback,
