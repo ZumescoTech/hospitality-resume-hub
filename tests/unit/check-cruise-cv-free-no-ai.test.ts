@@ -6,12 +6,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const createRouter = vi.fn(async () => {
-  throw new Error('createRouter must not be called on the free tier');
-});
-const runMergedCall = vi.fn(async () => {
-  throw new Error('runMergedCall must not be called on the free tier');
-});
+const { createRouter, runMergedCall } = vi.hoisted(() => ({
+  createRouter: vi.fn(async () => {
+    throw new Error('createRouter must not be called on the free tier');
+  }),
+  runMergedCall: vi.fn(async () => {
+    throw new Error('runMergedCall must not be called on the free tier');
+  }),
+}));
 
 vi.mock('@/lib/ai/router', () => ({ createRouter }));
 vi.mock('@/lib/ai/merged-call', () => ({ runMergedCall }));
