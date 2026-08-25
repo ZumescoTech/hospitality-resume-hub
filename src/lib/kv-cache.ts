@@ -1,9 +1,11 @@
 // kv-cache.ts
 // KV result cache for CV check results.
 //
-// Cache key: `check:{SCORING_VERSION}[:{roleSlug}]:{textHash}[:{jdHash}]`
+// Cache key: `check:{SCORING_VERSION}[:{roleSlug}]:{tier}:{textHash}[:{jdHash}]`
 //   - roleSlug  = app role slug (scoring is role-conditional, so the same CV
 //                 scores differently per role — the role MUST be part of the key)
+//   - tier      = 'free' | 'paid' — free-tier localEngine results MUST NOT be
+//                 served to a later paid/Groq call for the same CV+role
 //   - textHash  = SHA-256 of normalised CV text (trim, collapse whitespace, lowercase)
 //   - jdHash    = SHA-256 of normalised job description (when provided)
 //   - SCORING_VERSION from cruiseCvRubric salts the key so bumped versions auto-bust
@@ -19,6 +21,7 @@ import { env as cfEnv } from 'cloudflare:workers';
 
 import { SCORING_VERSION } from '@/lib/cruiseCvRubric';
 import type { CvScoreResult } from '@/lib/cruiseCvRubric';
+import type { ScoringTier } from '@/lib/localEngine';
 
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
@@ -54,21 +57,28 @@ export async function sha256Hex(text: string): Promise<string> {
 }
 
 /**
- * Build the KV cache key for a given CV + optional role + optional job
- * description. Key format: `check:{SCORING_VERSION}[:{roleSlug}]:{textHash}[:{jdHash}]`.
+ * Build the KV cache key for a given CV + optional role + tier + optional job
+ * description.
  *
- * The role slug is part of the key because scoring is role-conditional — the
- * same CV text yields different scores for, e.g., a sommelier vs a waiter — so
- * omitting it would serve one role's result for another. When no slug is given
- * the segment is dropped (back-compat with role-agnostic callers/tests).
+ * Key format: `check:{SCORING_VERSION}[:{roleSlug}]:{tier}:{textHash}[:{jdHash}]`.
+ *
+ * `tier` defaults to `'paid'` so existing paid-path callers stay valid. Free and
+ * paid results for the same CV+role MUST NOT share a key — a localEngine score
+ * must never be served to a Groq-backed paid call.
+ *
+ * When no slug is given the role segment is dropped (back-compat with
+ * role-agnostic callers/tests).
  */
 export async function buildCacheKey(
   cvText: string,
   jobDescription?: string,
   roleSlug?: string,
+  tier: ScoringTier = 'paid',
 ): Promise<string> {
   const textHash = await sha256Hex(normaliseForHash(cvText));
-  const prefix = roleSlug ? `check:${SCORING_VERSION}:${roleSlug}` : `check:${SCORING_VERSION}`;
+  const prefix = roleSlug
+    ? `check:${SCORING_VERSION}:${roleSlug}:${tier}`
+    : `check:${SCORING_VERSION}:${tier}`;
   if (jobDescription?.trim()) {
     const jdHash = await sha256Hex(normaliseForHash(jobDescription));
     return `${prefix}:${textHash}:${jdHash}`;
@@ -76,7 +86,7 @@ export async function buildCacheKey(
   return `${prefix}:${textHash}`;
 }
 
-// ─── Cache operations ─────────────────────────────────────────────────────────
+// ─── Cache operations ───────────────────────────────────────────────────────
 
 export async function getCachedResult(key: string): Promise<CvScoreResult | null> {
   const kv = getBinding();
