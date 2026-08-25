@@ -39,7 +39,7 @@ vi.mock('@/lib/ai/workers-ai-adapter', () => ({
   },
 }));
 
-import { runCruiseCvCheck } from '@/lib/cruise-cv-check';
+import { publicCruiseCvCheckData, runCruiseCvCheck } from '@/lib/cruise-cv-check';
 
 const CV = readFileSync(resolve(__dirname, '../fixtures/cvs/waiter-experienced.txt'), 'utf8');
 
@@ -55,6 +55,16 @@ describe('free-tier checkCruiseCv — zero AI construction', () => {
       roleSlug: 'waiter-waitress',
       tier: 'free',
     });
+
+    expect(outcome.kind).toBe('scored');
+    expect(createRouter).not.toHaveBeenCalled();
+    expect(runMergedCall).not.toHaveBeenCalled();
+  });
+
+  it('publicCruiseCvCheckData drives the same no-AI path', async () => {
+    const outcome = await runCruiseCvCheck(
+      publicCruiseCvCheckData({ cvText: CV, roleSlug: 'waiter-waitress' }),
+    );
 
     expect(outcome.kind).toBe('scored');
     expect(createRouter).not.toHaveBeenCalled();

@@ -16,38 +16,11 @@ import { createRouter } from '@/lib/ai/router';
 import {
   extractFieldsDeterministically,
   overlayDeterministicExtract,
+  parseCvLocally,
 } from '@/lib/cvExtractDeterministic';
 import { uid } from '@/lib/utils';
 
 const ParseCvSchema = z.object({ cvText: z.string().min(50) });
-
-/** Minimal skeleton used when AI extraction is skipped in hybrid mode. */
-function buildSkeletonResumeData(cvText: string): ResumeData {
-  // Extract name heuristic: first non-empty line that looks like a name
-  // (2-4 words, no @, no digits, not a section heading)
-  const firstLine = cvText
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .find((l) => l.length > 0 && l.length < 60 && /^[A-Za-z\s\-']+$/.test(l) && l.split(/\s+/).length >= 2);
-
-  return {
-    personal: {
-      fullName: firstLine ?? '',
-      title: '',
-      email: '',
-      phone: '',
-      location: '',
-      links: [],
-    },
-    summary: '',
-    experience: [],
-    education: [],
-    certifications: [],
-    skills: [],
-    languages: [],
-    templateId: 'vintage',
-  } as unknown as ResumeData;
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const parseCvForBuilder = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<ResumeData> => {
@@ -60,14 +33,12 @@ export const parseCvForBuilder = createServerFn({ method: 'POST' }).handler(asyn
   if (hybridEnabled && det.skipAi) {
     // High-confidence CV: skip AI call, return regex-filled skeleton
     console.log('[parse-cv] hybrid: skipping AI extraction (high-confidence signals)');
-    const skeleton = buildSkeletonResumeData(cvText);
-    const result = overlayDeterministicExtract(skeleton, det);
-    // Assign IDs to empty arrays (IDs expected by builder)
+    const result = parseCvLocally(cvText);
     return {
       ...result,
-      experience:     result.experience.map((e) => ({ ...e, id: uid() })),
-      education:      result.education.map((e) => ({ ...e, id: uid() })),
-      certifications: result.certifications.map((c) => ({ ...c, id: uid() })),
+      experience:     result.experience.map((e) => ({ ...e, id: e.id || uid() })),
+      education:      result.education.map((e) => ({ ...e, id: e.id || uid() })),
+      certifications: result.certifications.map((c) => ({ ...c, id: c.id || uid() })),
     };
   }
 

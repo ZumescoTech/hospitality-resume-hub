@@ -48,6 +48,21 @@ const SaveLeadSchema = z.object({
 export type CvCheckInput = z.infer<typeof CvCheckSchema>;
 export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
+/** Payload the public `/tools/cruise-cv-checker` page must send. Always free. */
+export function publicCruiseCvCheckData(input: {
+  cvText: string;
+  roleSlug: string;
+  jobDescription?: string;
+}): CvCheckInput {
+  const jd = input.jobDescription?.trim();
+  return {
+    cvText: input.cvText,
+    roleSlug: input.roleSlug,
+    jobDescription: jd ? jd : undefined,
+    tier: 'free',
+  };
+}
+
 // ─── CV check ─────────────────────────────────────────────────────────
 // Paid path: AiRouter (Groq primary → Gemini fallback). ProviderError{exhausted}
 // propagates to the client so the UI can show a graceful retry message.

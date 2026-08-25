@@ -112,6 +112,38 @@ export function overlayDeterministicExtract(
   };
 }
 
+/**
+ * Zero-AI resume skeleton for the public checker handoff (and hybrid skip-AI).
+ * Name heuristic + regex contact overlay. No router, no network.
+ */
+export function parseCvLocally(cvText: string): import('@/types/resume').ResumeData {
+  const det = extractFieldsDeterministically(cvText);
+  const firstLine = cvText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.length > 0 && l.length < 60 && /^[A-Za-z\s\-']+$/.test(l) && l.split(/\s+/).length >= 2);
+
+  const skeleton = {
+    personal: {
+      fullName: firstLine ?? '',
+      title: '',
+      email: '',
+      phone: '',
+      location: '',
+      links: [],
+    },
+    summary: '',
+    experience: [],
+    education: [],
+    certifications: [],
+    skills: [],
+    languages: [],
+    templateId: 'vintage',
+  } as unknown as import('@/types/resume').ResumeData;
+
+  return overlayDeterministicExtract(skeleton, det);
+}
+
 function mergeLinks(
   existing: Array<{ label: string; url: string }>,
   linkedIn: string | null,

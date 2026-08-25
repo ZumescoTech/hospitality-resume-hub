@@ -25,7 +25,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 
-import { checkCruiseCv, getRoleOptions } from '@/lib/cruise-cv-check';
+import { checkCruiseCv, getRoleOptions, publicCruiseCvCheckData } from '@/lib/cruise-cv-check';
 import { WhatsAppCaptureForm } from '@/components/checker/WhatsAppCaptureForm';
 import { AtsScoreRing } from '@/components/checker/AtsScoreRing';
 import type { CvScoreResult, CvCheckOutcome, CategoryKey } from '@/lib/cruiseCvRubric';
@@ -34,7 +34,7 @@ import { extractTextFromFile } from '@/lib/extractCvText';
 import { ExtractionError } from '@/lib/extraction-error';
 import type { ExtractionReasonCode } from '@/lib/extraction-error';
 import { logUploadFailure } from '@/lib/upload-failure-log';
-import { parseCvForBuilder } from '@/lib/parseCvForBuilder';
+import { parseCvLocally } from '@/lib/cvExtractDeterministic';
 import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
 import type { ResumeData } from '@/types/resume';
 import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
@@ -72,7 +72,7 @@ export const Route = createFileRoute('/tools/cruise-cv-checker')({
       {
         name: 'description',
         content:
-          'Free AI-powered cruise CV checker. Get instant feedback on whether your CV meets cruise ship recruiter standards for your specific role.',
+          'Free cruise CV checker. Get instant feedback on whether your CV meets cruise ship recruiter standards for your specific role.',
       },
     ],
   }),
@@ -313,7 +313,7 @@ function CruiseCvCheckerPage() {
         throw new Error("We couldn't extract enough text from this file. Try a .docx or .txt version.");
       }
 
-      // ── Phase 3: AI analysis ──────────────────────────────────────────────
+      // ── Phase 3: local ATS score (free tier — no Groq) ────────────────────
       progress.setStage('analyzing', 70);
 
       // A0-2: wrap in a timeout so a stalled request never hangs forever
@@ -324,21 +324,17 @@ function CruiseCvCheckerPage() {
         ),
       );
 
-      const [scoreResult, parseResult] = await Promise.race([
-        Promise.allSettled([
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          checkCruiseCv({ data: { cvText: cvTextToUse.trim(), roleSlug, jobDescription: jobDescription.trim() || undefined } } as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          parseCvForBuilder({ data: { cvText: cvTextToUse.trim() } } as any),
-        ]),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const outcome = (await Promise.race([
+        checkCruiseCv({
+          data: publicCruiseCvCheckData({
+            cvText: cvTextToUse.trim(),
+            roleSlug,
+            jobDescription: jobDescription.trim() || undefined,
+          }),
+        } as any),
         timeoutPromise,
-      ]);
-
-      if (scoreResult.status === 'rejected') {
-        throw scoreResult.reason;
-      }
-
-      const outcome = scoreResult.value as CvCheckOutcome;
+      ])) as CvCheckOutcome;
 
       // Handle parse quality gate failures — distinct from a low score
       if (outcome.kind === 'parse_failed' || outcome.kind === 'insufficient_content') {
@@ -354,9 +350,7 @@ function CruiseCvCheckerPage() {
       setResult(outcome.result);
       trackEvent('cv_upload_succeeded');
       trackEvent('score_viewed');
-      if (parseResult.status === 'fulfilled') {
-        setParsedCv(parseResult.value);
-      }
+      setParsedCv(parseCvLocally(cvTextToUse.trim()));
 
       setTimeout(() => progress.reset(), 1500);
 
@@ -490,7 +484,7 @@ function CruiseCvCheckerPage() {
             <span className="text-primary">Cruise-Ready?</span>
           </h1>
           <p className="mt-4 text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
-            AI analysis against real cruise recruiter standards. Know exactly what's missing before you apply.
+            Scored against real cruise recruiter standards. Know exactly what's missing before you apply.
           </p>
         </div>
 
@@ -580,7 +574,7 @@ function CruiseCvCheckerPage() {
               Check My CV
             </Button>
 
-            {/* Progress bar — shown during extraction and AI analysis */}
+            {/* Progress bar — shown during extraction and scoring */}
             {progress.stage !== 'idle' && (
               <UploadProgressBar
                 stage={progress.stage}
