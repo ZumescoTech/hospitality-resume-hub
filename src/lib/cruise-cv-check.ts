@@ -15,6 +15,7 @@ import { runMergedCall } from '@/lib/ai/merged-call';
 import { buildDeterministicFeedback, computeConfidence, buildNeutralLlmResponse } from '@/lib/cvFeedback';
 import { recordCheckOutcome, recordLatencyMs, recordPrecheckOutcome } from '@/lib/telemetry';
 import { resolvePrecheck, withPrecheck } from '@/lib/precheck/wiring';
+import { scoreLocally, type ScoringTier } from '@/lib/localEngine';
 import type { PrecheckResult } from '@/lib/precheck/types';
 // @ts-ignore — JSON import
 import cruiseRolesRaw from '@/data/cruise-roles.json';
@@ -30,6 +31,8 @@ const CvCheckSchema = z.object({
   cvText: z.string().min(50, 'CV text must be at least 50 characters'),
   roleSlug: z.string().min(1, 'Role is required'),
   jobDescription: z.string().optional(),
+  /** Default 'paid' preserves the existing Groq path byte-for-byte. */
+  tier: z.enum(['free', 'paid']).default('paid'),
 });
 
 const SaveLeadSchema = z.object({
@@ -45,30 +48,33 @@ const SaveLeadSchema = z.object({
 export type CvCheckInput = z.infer<typeof CvCheckSchema>;
 export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
-// ─── CV check ─────────────────────────────────────────────────────────────────
-// Uses AiRouter (Groq primary → Gemini fallback).  ProviderError{exhausted}
+// ─── CV check ─────────────────────────────────────────────────────────
+// Paid path: AiRouter (Groq primary → Gemini fallback). ProviderError{exhausted}
 // propagates to the client so the UI can show a graceful retry message.
+// Free path: localEngine only — never constructs a router or calls a provider.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvCheckOutcome> => {
+/**
+ * Testable entry point used by the server function. Exported so the free-tier
+ * no-AI guard can call it without going through TanStack Start's RPC wrapper.
+ */
+export async function runCruiseCvCheck(input: CvCheckInput): Promise<CvCheckOutcome> {
   const startMs = Date.now();
-  const parsed = CvCheckSchema.parse(ctx.data as CvCheckInput);
+  const parsed = CvCheckSchema.parse(input);
   const role = rolesData.roles.find((r) => r.slug === parsed.roleSlug);
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
 
-  // 0. Sanitize optional job description (strip HTML, reject garbage, cap length)
+  const scoringTier: ScoringTier = parsed.tier ?? 'paid';
+
   const cleanJd = sanitizeJobDescription(parsed.jobDescription) ?? undefined;
 
-  // 0b. Local deterministic pre-check (pure, ~µs). Computed fresh per request and
-  //     attached below — never read from or written to the KV cache, so a
-  //     term-bank update takes effect immediately with no SCORING_VERSION bump.
+  // Hard gates (surfaced in precheck.hardGateFailures, never subtracted from
+  // the headline score):
+  //   - Sommelier / Wine Waiter only: missing BOTH WSET and CMS
+  //   - Term-bank roles (cabin-steward, youth-staff): experience shortfall
+  // STCW / ENG1 / HACCP never gate a role and never move the score.
   const precheck: PrecheckResult | null = resolvePrecheck(parsed.cvText, parsed.roleSlug, precheckEnabled());
 
-  // 1. KV cache check (before any AI work). The key is salted with the role slug
-  //    because scoring is now role-conditional (cert-driven dimensions are
-  //    zero-weighted for every role except sommelier). The pre-check is still
-  //    attached fresh on every read and never cached.
-  const cacheKey = await buildCacheKey(parsed.cvText, cleanJd, parsed.roleSlug);
+  const cacheKey = await buildCacheKey(parsed.cvText, cleanJd, parsed.roleSlug, scoringTier);
   const cached = await getCachedResult(cacheKey);
   if (cached) {
     console.log(`[cv-check] cache hit: ${cacheKey}`);
@@ -76,10 +82,8 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   }
   console.log(`[cv-check] cache miss: ${cacheKey}`);
 
-  // 2. Deterministic signals
   const signals = runDeterministicChecks(parsed.cvText);
 
-  // 2b. Parse quality gate — reject garbled/insufficient text BEFORE scoring
   const qualityFailure = parseQualityGate(parsed.cvText, signals);
   if (qualityFailure) {
     console.log(`[cv-check] quality gate: ${qualityFailure.kind}`);
@@ -88,19 +92,27 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     return qualityFailure;
   }
 
-  // 3. Keyword alignment
+  // Free tier: local engine only. No prompt, no router, no provider.
+  if (scoringTier === 'free') {
+    const localResult = scoreLocally(
+      { cvText: parsed.cvText, roleSlug: parsed.roleSlug, jobDescription: cleanJd },
+      { precheckEnabled: precheckEnabled() },
+    );
+    void setCachedResult(cacheKey, localResult);
+    recordCheckOutcome('scored', localResult.overallScore);
+    if (localResult.precheck) recordPrecheckOutcome(localResult.precheck.hardGateFailures.length, false);
+    recordLatencyMs(Date.now() - startMs);
+    return { kind: 'scored', result: localResult };
+  }
+
   const { matchedKeywords, missingKeywords, matchRatio } = scoreKeywordAlignment(
     parsed.cvText,
     role.keywords,
     cleanJd,
   );
 
-  // 3b. Deterministic feedback + confidence (always computed, zero tokens)
   const deterministicFeedback = buildDeterministicFeedback(missingKeywords, signals, role.role);
 
-  // 3c. Hard-gate short-circuit: if the pre-check found missing hard requirements
-  //     (e.g. STCW/ENG1), skip the paid AI call and return a deterministic result
-  //     that leads with "fix these blockers first". Not cached (role-agnostic key).
   if (precheck && precheck.hardGateFailures.length > 0) {
     recordPrecheckOutcome(precheck.hardGateFailures.length, true);
     const neutralLlm = buildNeutralLlmResponse(matchRatio, signals, parsed.cvText, parsed.roleSlug);
@@ -115,7 +127,6 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     return { kind: 'scored', result: withPrecheck(gatedResult, precheck, true) };
   }
 
-  // 4. Build prompt
   const { system, user } = buildCvCheckPrompt({
     cvText: parsed.cvText,
     role,
@@ -126,7 +137,6 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     jobDescription: cleanJd,
   });
 
-  // 5. Call via router (Groq → Gemini → Workers AI when WORKERS_AI_ENABLED=true)
   const router = await createRouter({
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
@@ -138,16 +148,13 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
   let llmParsed;
   try {
     if (mergedCallEnabled) {
-      // Single-prompt mode: analysis + CV extraction in one LLM call (gated)
       const merged = await runMergedCall(router, system, user, parsed.cvText);
       llmParsed = merged.analysis;
-      // merged.resumeData is available for the builder; currently unused in the check path
     } else {
       llmParsed = await router.analyze({ system, user });
     }
   } catch (err) {
     if (err instanceof ProviderError && err.kind === 'exhausted') {
-      // Both providers unavailable — return a degraded but useful result
       console.log('[cv-check] exhausted: returning deterministic-only result');
       const neutralLlm = buildNeutralLlmResponse(matchRatio, signals, parsed.cvText, parsed.roleSlug);
       const degradedResult = {
@@ -164,26 +171,26 @@ export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (c
     throw err;
   }
 
-  // 6. Compute final score deterministically — LLM output never changes the score directly
   const result: CvScoreResult = {
     ...computeCvScore(llmParsed, matchedKeywords, missingKeywords, parsed.roleSlug),
     deterministicFeedback,
     confidence: computeConfidence(signals, matchRatio),
   };
 
-  // 7. Store in KV cache WITHOUT the pre-check (the key is role-salted, but the
-  //    pre-check is re-attached fresh on every read). Fire-and-forget.
   void setCachedResult(cacheKey, result);
 
-  // 8. Telemetry (fire-and-forget)
   recordCheckOutcome('scored', result.overallScore);
   if (precheck) recordPrecheckOutcome(precheck.hardGateFailures.length, false);
   recordLatencyMs(Date.now() - startMs);
 
   return { kind: 'scored', result: withPrecheck(result, precheck, false) };
-});
+}
 
-// ─── Save WhatsApp lead to webhook ────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const checkCruiseCv = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<CvCheckOutcome> => {
+  const parsed = CvCheckSchema.parse(ctx.data as CvCheckInput);
+  return runCruiseCvCheck(parsed);
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const saveCvLead = createServerFn({ method: 'POST' }).handler(async (ctx: any) => {
