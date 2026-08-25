@@ -10,6 +10,7 @@
  *   B. Different job description => different key
  *   C. Bumped SCORING_VERSION => different key (tested by direct key inspection)
  *   D. No JD provided => shorter key (no JD segment)
+ *   E. free vs paid tier => different keys (must not collide)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -18,8 +19,6 @@ import { SCORING_VERSION } from '@/lib/cruiseCvRubric';
 
 const BASE_CV = 'Senior waiter with 5 years cruise experience. STCW certified.';
 const BASE_JD = 'Looking for experienced waiter with Micros POS skills.';
-
-// ─── normaliseForHash ─────────────────────────────────────────────────────────
 
 describe('normaliseForHash', () => {
   it('trims leading/trailing whitespace', () => {
@@ -42,8 +41,6 @@ describe('normaliseForHash', () => {
     expect(normaliseForHash('a  b\tc')).toBe(normaliseForHash('a b c'));
   });
 });
-
-// ─── buildCacheKey ────────────────────────────────────────────────────────────
 
 describe('buildCacheKey — same text / different whitespace & case → same key', () => {
   it('extra spaces produce the same key as the clean version', async () => {
@@ -112,6 +109,34 @@ describe('buildCacheKey — role salt (scoring is role-conditional)', () => {
   });
 });
 
+describe('buildCacheKey — tier salt (free vs paid must not collide)', () => {
+  it('defaults to paid', async () => {
+    const implicit = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress');
+    const explicit = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress', 'paid');
+    expect(implicit).toBe(explicit);
+    expect(implicit).toContain(':paid:');
+  });
+
+  it('free and paid produce different keys for the same CV + role', async () => {
+    const free = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress', 'free');
+    const paid = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress', 'paid');
+    expect(free).not.toBe(paid);
+    expect(free).toContain(':free:');
+    expect(paid).toContain(':paid:');
+  });
+
+  it('key shape with role is check:{ver}:{role}:{tier}:{hash}', async () => {
+    const key = await buildCacheKey(BASE_CV, undefined, 'waiter-waitress', 'free');
+    const segments = key.split(':');
+    expect(segments[0]).toBe('check');
+    expect(segments[1]).toBe(SCORING_VERSION);
+    expect(segments[2]).toBe('waiter-waitress');
+    expect(segments[3]).toBe('free');
+    expect(segments[4]).toHaveLength(64);
+    expect(segments).toHaveLength(5);
+  });
+});
+
 describe('buildCacheKey — SCORING_VERSION salt', () => {
   it('key starts with check:{SCORING_VERSION}:', async () => {
     const key = await buildCacheKey(BASE_CV);
@@ -119,9 +144,7 @@ describe('buildCacheKey — SCORING_VERSION salt', () => {
   });
 
   it('manually bumping the version produces a different key', async () => {
-    // Simulate a version bump by manipulating the key prefix inspection
     const key = await buildCacheKey(BASE_CV);
-    // The key contains the current SCORING_VERSION; a different version would differ
     const simulatedNewVersionKey = key.replace(
       `check:${SCORING_VERSION}:`,
       `check:${SCORING_VERSION}_bumped:`,
@@ -131,20 +154,22 @@ describe('buildCacheKey — SCORING_VERSION salt', () => {
 });
 
 describe('buildCacheKey — key structure', () => {
-  it('no-JD key has exactly 3 colon-separated segments', async () => {
+  it('no-role no-JD key is check:{ver}:{tier}:{hash} (4 segments)', async () => {
     const key = await buildCacheKey(BASE_CV);
     const segments = key.split(':');
-    expect(segments).toHaveLength(3); // check, version, textHash
+    expect(segments).toHaveLength(4);
     expect(segments[0]).toBe('check');
     expect(segments[1]).toBe(SCORING_VERSION);
-    expect(segments[2]).toHaveLength(64); // SHA-256 hex = 64 chars
+    expect(segments[2]).toBe('paid');
+    expect(segments[3]).toHaveLength(64);
   });
 
-  it('with-JD key has exactly 4 colon-separated segments', async () => {
+  it('no-role with-JD key is check:{ver}:{tier}:{hash}:{jdHash} (5 segments)', async () => {
     const key = await buildCacheKey(BASE_CV, BASE_JD);
     const segments = key.split(':');
-    expect(segments).toHaveLength(4); // check, version, textHash, jdHash
-    expect(segments[3]).toHaveLength(64);
+    expect(segments).toHaveLength(5);
+    expect(segments[2]).toBe('paid');
+    expect(segments[4]).toHaveLength(64);
   });
 });
 
