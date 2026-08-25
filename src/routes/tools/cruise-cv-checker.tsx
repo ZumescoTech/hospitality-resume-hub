@@ -36,6 +36,7 @@ import type { ExtractionReasonCode } from '@/lib/extraction-error';
 import { logUploadFailure } from '@/lib/upload-failure-log';
 import { parseCvLocally } from '@/lib/cvExtractDeterministic';
 import { saveCvImport, clearCvImport } from '@/lib/cv-import-handoff';
+import { buildCheckerAudit } from '@/lib/checker-audit';
 import type { ResumeData } from '@/types/resume';
 import { useCvUploadProgress } from '@/hooks/useCvUploadProgress';
 import { UploadProgressBar } from '@/components/checker/UploadProgressBar';
@@ -546,6 +547,23 @@ function CruiseCvCheckerPage() {
                 className="hidden"
                 onChange={handleFileChange}
               />
+              <div className="space-y-1.5 pt-1">
+                <Label htmlFor="cvTextPaste" className="text-sm font-medium text-foreground">
+                  Paste CV text{' '}
+                  <span className="text-muted-foreground font-normal">(if you cannot upload a file)</span>
+                </Label>
+                <Textarea
+                  id="cvTextPaste"
+                  value={cvText}
+                  onChange={(e) => {
+                    setCvText(e.target.value);
+                    if (e.target.value.trim()) setPendingFile(null);
+                  }}
+                  placeholder="Paste your CV text here…"
+                  rows={5}
+                  className="resize-none text-sm"
+                />
+              </div>
             </div>
 
             {/* Job description (optional) */}
@@ -834,8 +852,13 @@ function CruiseCvCheckerPage() {
                   className="gap-2 font-semibold shrink-0"
                   onClick={() => {
                     trackEvent('builder_entered');
-                    if (parsedCv) {
-                      saveCvImport(parsedCv, roleSlug);
+                    if (parsedCv && result) {
+                      saveCvImport({
+                        resume: parsedCv,
+                        roleSlug,
+                        audit: buildCheckerAudit(result),
+                        sourceText: cvText,
+                      });
                       void navigate({ to: '/builder', search: { from: 'import' } as never });
                     } else {
                       toast.info(

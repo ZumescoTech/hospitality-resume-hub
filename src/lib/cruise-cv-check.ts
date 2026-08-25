@@ -48,6 +48,32 @@ const SaveLeadSchema = z.object({
 export type CvCheckInput = z.infer<typeof CvCheckSchema>;
 export type SaveLeadInput = z.infer<typeof SaveLeadSchema>;
 
+/** Fields posted to the Google Sheets lead webhook. Never includes CV text. */
+export function buildLeadWebhookPayload(parsed: SaveLeadInput): {
+  whatsapp_number: string;
+  country_code: string;
+  role: string;
+  role_slug: string;
+  score: number;
+  tier: string;
+  top_fixes: string;
+  opted_in: boolean;
+  created_at: string;
+} {
+  const roleName = rolesData.roles.find((r) => r.slug === parsed.roleSlug)?.role ?? parsed.roleSlug;
+  return {
+    whatsapp_number: parsed.whatsapp_number,
+    country_code: parsed.country_code,
+    role: roleName,
+    role_slug: parsed.roleSlug,
+    score: parsed.overallScore,
+    tier: parsed.tier,
+    top_fixes: parsed.topFixes.join(' | '),
+    opted_in: parsed.opted_in,
+    created_at: new Date().toISOString(),
+  };
+}
+
 /** Payload the public `/tools/cruise-cv-checker` page must send. Always free. */
 export function publicCruiseCvCheckData(input: {
   cvText: string;
@@ -214,19 +240,7 @@ export const saveCvLead = createServerFn({ method: 'POST' }).handler(async (ctx:
   const webhookUrl = process.env.GOOGLE_SHEETS_LEAD_WEBHOOK_URL;
   if (!webhookUrl) return { ok: true };
 
-  const roleName = rolesData.roles.find((r) => r.slug === parsed.roleSlug)?.role ?? parsed.roleSlug;
-
-  const payload = JSON.stringify({
-    whatsapp_number: parsed.whatsapp_number,
-    country_code: parsed.country_code,
-    role: roleName,
-    role_slug: parsed.roleSlug,
-    score: parsed.overallScore,
-    tier: parsed.tier,
-    top_fixes: parsed.topFixes.join(' | '),
-    opted_in: parsed.opted_in,
-    created_at: new Date().toISOString(),
-  });
+  const payload = JSON.stringify(buildLeadWebhookPayload(parsed));
 
   const res = await fetch(webhookUrl, {
     method: 'POST',

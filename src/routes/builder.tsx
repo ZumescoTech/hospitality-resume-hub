@@ -30,9 +30,11 @@ import { Check, Loader2, Upload, X, ClipboardPaste, SlidersHorizontal } from "lu
 import { toast } from "sonner";
 import { MobilePreviewModal } from "@/components/builder/MobilePreviewModal";
 import { extractTextFromFile } from "@/lib/extractCvText";
-import { parseCvForBuilder } from "@/lib/parseCvForBuilder";
+import { parseCvForBuilder, enrichImportedCv } from "@/lib/parseCvForBuilder";
 import { consumeCvImport } from "@/lib/cv-import-handoff";
-import { mapParsedCvToBuilderForm } from "@/lib/map-parsed-cv-to-builder";
+import { hydrateBuilderFromHandoff } from "@/lib/map-parsed-cv-to-builder";
+import { ImprovementChecklist } from "@/components/builder/ImprovementChecklist";
+import type { BuilderSectionId } from "@/types/checker-audit";
 import { pdf } from "@react-pdf/renderer";
 import { ResumePDF } from "@/lib/pdf/ResumePDF";
 import { cn } from "@/lib/utils";
@@ -167,6 +169,7 @@ function BuilderPage() {
   // Seeded once after hydration from which sections hold content (see effect).
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>(['personal']));
   const didInitOpenRef = useRef(false);
+  const didImportRef = useRef(false);
   const [downloading, setDownloading] = useState(false);
 
   const toggleSection = (id: string) => {
@@ -249,20 +252,28 @@ function BuilderPage() {
 
   // ── CV import from handoff (ATS checker → builder) ─────────────────────────
   useEffect(() => {
-    if (!hydrated || search.from !== "import") return;
+    if (!hydrated || search.from !== "import" || didImportRef.current) return;
     void navigate({ to: "/builder", search: { from: undefined, role: undefined }, replace: true });
     const imported = consumeCvImport();
     if (!imported) return;
+    didImportRef.current = true;
     const hasExistingDraft = Boolean(data.personal.fullName);
     const applyHandoffImport = () => {
-      const next = {
-        ...mapParsedCvToBuilderForm(imported.data),
-        templateId: data.templateId,
-        ...(imported.roleSlug ? { targetRoleSlug: imported.roleSlug } : {}),
-      };
-      setData(next);
-      setImportedFile("CV check");
-      openContentSections(next);
+      void (async () => {
+        let next = hydrateBuilderFromHandoff(data, imported);
+        const source = imported.sourceText?.trim() ?? "";
+        if (source.length >= 50) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            next = await enrichImportedCv({ data: { resume: next, cvText: source } } as any);
+          } catch {
+            // Keep the local parse if enrichment fails.
+          }
+        }
+        setData(next);
+        setImportedFile("CV check");
+        openContentSections(next);
+      })();
     };
     if (hasExistingDraft) {
       setImportConfirm({ description: "This replaces your current draft with the information from your CV check.", onConfirm: applyHandoffImport });
@@ -541,6 +552,20 @@ function BuilderPage() {
               </div>
             )}
           </div>
+
+          <ImprovementChecklist
+            resume={data}
+            onOpenSection={(id: BuilderSectionId) => {
+              setOpenSections((prev) => new Set(prev).add(id));
+              setTimeout(() => {
+                document.getElementById(`section-${id}`)?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                });
+              }, 50);
+            }}
+            onAuditChange={(audit) => setData((d) => ({ ...d, checkerAudit: audit }))}
+          />
 
           {/* Section accordions.
               Bottom padding equals the pinned CTA's height so the last section

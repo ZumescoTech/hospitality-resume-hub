@@ -2,7 +2,8 @@
 // Normalises parseCvForBuilder output into the shape the builder form expects,
 // and ensures every entry has a stable id before data is loaded into form state.
 
-import type { ResumeData } from '@/types/resume';
+import type { ResumeData } from "@/types/resume";
+import type { CheckerHandoff } from "@/lib/cv-import-handoff";
 
 /**
  * Normalise a date string for <input type="month"> (expects "YYYY-MM").
@@ -10,7 +11,7 @@ import type { ResumeData } from '@/types/resume';
  * month input renders the value rather than silently showing nothing.
  */
 function normalizeMonthDate(date: string): string {
-  if (!date) return '';
+  if (!date) return "";
   return /^\d{4}$/.test(date) ? `${date}-01` : date;
 }
 
@@ -24,12 +25,12 @@ export function mapParsedCvToBuilderForm(parsed: ResumeData): ResumeData {
       // The Highlights textarea reads `description`, so join bullets here.
       // Clear `bullets` afterwards so templates always read from `description`
       // and the user's subsequent edits are never overridden by stale bullets.
-      description: e.description || (e.bullets?.join('\n') ?? ''),
+      description: e.description || (e.bullets?.join("\n") ?? ""),
       bullets: undefined,
       // <input type="month"> needs "YYYY-MM"; parser may emit "YYYY" for year-only.
       startDate: normalizeMonthDate(e.startDate),
       // Keep endDate empty when current=true; normalise otherwise.
-      endDate: e.current ? '' : normalizeMonthDate(e.endDate),
+      endDate: e.current ? "" : normalizeMonthDate(e.endDate),
     })),
     education: parsed.education.map((e) => ({
       ...e,
@@ -46,5 +47,26 @@ export function mapParsedCvToBuilderForm(parsed: ResumeData): ResumeData {
       ...parsed.personal,
       photo: undefined,
     },
+  };
+}
+
+/**
+ * Apply a consumed checker handoff onto the current builder draft.
+ * Replaces imported content (does not append), keeps template/formatting,
+ * and is a no-op when the handoff is missing.
+ */
+export function hydrateBuilderFromHandoff(
+  current: ResumeData,
+  handoff: CheckerHandoff | null,
+): ResumeData {
+  if (!handoff) return current;
+  const mapped = mapParsedCvToBuilderForm(handoff.resume);
+  return {
+    ...mapped,
+    templateId: current.templateId || mapped.templateId,
+    formatting: current.formatting,
+    templateColours: current.templateColours,
+    targetRoleSlug: handoff.roleSlug ?? mapped.targetRoleSlug,
+    checkerAudit: handoff.audit,
   };
 }

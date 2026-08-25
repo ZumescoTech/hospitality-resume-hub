@@ -88,7 +88,7 @@ vi.mock('@/components/builder/sections/SkillsSection', () => ({ SkillsSection: (
 vi.mock('@/components/builder/sections/CertificationsSection', () => ({ CertificationsSection: () => null }))
 vi.mock('@/components/builder/sections/HospitalitySection', () => ({ HospitalitySection: () => null }))
 vi.mock('@/lib/extractCvText', () => ({ extractTextFromFile: vi.fn() }))
-vi.mock('@/lib/parseCvForBuilder', () => ({ parseCvForBuilder: vi.fn() }))
+vi.mock('@/lib/parseCvForBuilder', () => ({ parseCvForBuilder: vi.fn(), enrichImportedCv: vi.fn() }))
 vi.mock('@/lib/cv-import-handoff', () => ({ consumeCvImport: vi.fn(() => null) }))
 vi.mock('@/lib/map-parsed-cv-to-builder', () => ({ mapParsedCvToBuilderForm: vi.fn() }))
 vi.mock('@/components/builder/Section', () => ({

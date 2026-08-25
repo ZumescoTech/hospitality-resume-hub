@@ -60,6 +60,11 @@ describe('public checker page wiring', () => {
   it('builds the builder handoff with parseCvLocally', () => {
     expect(checkerSrc).toContain('parseCvLocally');
   });
+
+  it('offers a paste-CV control so users are not file-only', () => {
+    expect(checkerSrc).toMatch(/Paste CV text/i);
+    expect(checkerSrc).toMatch(/id=["']cvTextPaste["']/);
+  });
 });
 
 describe('parseCvLocally — checker handoff, zero network', () => {

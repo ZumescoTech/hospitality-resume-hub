@@ -93,6 +93,11 @@ export interface ResumeData {
     text:       string
     background: string
   }>>
+  /**
+   * Optional ATS-checker advice carried into the builder. Absent on blank
+   * sessions and on resumes saved before the checker handoff existed.
+   */
+  checkerAudit?: import('./checker-audit').CheckerAudit
 }
 
 export const STORAGE_KEY = "hospitality-resume-v1";
