@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { CountryCodeSelect, DEFAULT_COUNTRY } from '@/components/ui/CountryCodeSelect';
 import type { CountryCode } from '@/components/ui/CountryCodeSelect';
 import { saveCvLead } from '@/lib/cruise-cv-check';
+import { persistActiveLeadId } from '@/lib/leads';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
@@ -14,11 +15,23 @@ interface Props {
   overallScore: number;
   tier: string;
   topFixes: string[];
+  /** Parsed from the uploaded CV — never collected on this form. */
+  candidateName?: string;
+  emailFromCv?: string;
   onSuccess: () => void;
   onSkip: () => void;
 }
 
-export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, onSuccess, onSkip }: Props) {
+export function WhatsAppCaptureForm({
+  roleSlug,
+  overallScore,
+  tier,
+  topFixes,
+  candidateName,
+  emailFromCv,
+  onSuccess,
+  onSkip,
+}: Props) {
   const [country, setCountry] = useState<CountryCode>(DEFAULT_COUNTRY);
   const [localNumber, setLocalNumber] = useState('');
   const [consented, setConsented] = useState(false);
@@ -26,7 +39,6 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
   const [succeeded, setSucceeded] = useState(false);
   const [phoneWarning, setPhoneWarning] = useState('');
 
-  // Strip formatting chars and combine into E.164
   function buildE164(dial: string, local: string): string {
     const stripped = local.replace(/[\s\-().]/g, '');
     return `${dial}${stripped}`;
@@ -69,16 +81,28 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
 
     const { e164, warning } = validateNumber(country.dial, localNumber);
     if (warning) setPhoneWarning(warning);
-    // Soft warning — do not block submit
 
     setSubmitting(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await saveCvLead({ data: { whatsapp_number: e164, country_code: country.code, roleSlug, overallScore, tier, topFixes, opted_in: true } } as any);
+      const result = (await saveCvLead({
+        data: {
+          whatsapp_number: e164,
+          country_code: country.code,
+          roleSlug,
+          overallScore,
+          tier,
+          topFixes,
+          opted_in: true,
+          full_name: candidateName?.trim() || undefined,
+          email_from_cv: emailFromCv?.trim() || undefined,
+        },
+      } as any)) as { ok?: boolean; leadId?: string };
+
+      if (result?.leadId) persistActiveLeadId(result.leadId);
       setSucceeded(true);
       setTimeout(() => onSuccess(), 2000);
     } catch {
-      // Never block user progress on lead-capture failure
       onSuccess();
     } finally {
       setSubmitting(false);
@@ -108,16 +132,15 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
       </h3>
       <p className="text-sm text-primary-foreground/70 mb-5">
         Enter your WhatsApp number — we&apos;ll send you openings that match your role.
+        {candidateName ? ` We picked up ${candidateName} from your CV.` : ''}
       </p>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {/* Country code + number — side by side, stacks below 480px */}
         <div>
           <Label className="text-xs font-medium text-primary-foreground/80 mb-1.5 block">
             WhatsApp number
           </Label>
           <div className="flex flex-col gap-2 min-[480px]:flex-row">
-            {/* Country code — fixed width on wider screens */}
             <div className="min-[480px]:w-32 shrink-0">
               <CountryCodeSelect
                 value={country}
@@ -129,7 +152,6 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
                 variant="onDark"
               />
             </div>
-            {/* Local number */}
             <div className="flex-1">
               <Input
                 type="tel"
@@ -157,7 +179,6 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
           )}
         </div>
 
-        {/* POPIA consent — real checkbox, required */}
         <div className="flex items-start gap-3">
           <input
             id="whatsapp-consent"
@@ -175,7 +196,6 @@ export function WhatsAppCaptureForm({ roleSlug, overallScore, tier, topFixes, on
           </Label>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col gap-2 pt-1 min-[400px]:flex-row">
           <Button
             type="submit"
