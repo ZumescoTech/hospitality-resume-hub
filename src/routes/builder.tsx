@@ -41,6 +41,8 @@ import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/clarity";
 import { MobileModeSwitcher } from "@/components/builder/MobileModeSwitcher";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
+import { trackLeadJourney } from "@/lib/cruise-cv-check";
+import { readActiveLeadId, type JourneyStage } from "@/lib/leads";
 
 export function BuilderSkeleton() {
   return (
@@ -171,6 +173,26 @@ function BuilderPage() {
   const didInitOpenRef = useRef(false);
   const didImportRef = useRef(false);
   const [downloading, setDownloading] = useState(false);
+  const trackedJourneyStagesRef = useRef<Set<JourneyStage>>(new Set());
+
+  const trackActiveJourney = (stage: JourneyStage, fullName?: string) => {
+    if (trackedJourneyStagesRef.current.has(stage)) return;
+    const leadId = readActiveLeadId();
+    if (!leadId) return;
+    trackedJourneyStagesRef.current.add(stage);
+    void trackLeadJourney({
+      data: {
+        leadId,
+        stage,
+        fullName: fullName?.trim() || undefined,
+      },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any).then((result: { ok?: boolean }) => {
+      if (!result?.ok) trackedJourneyStagesRef.current.delete(stage);
+    }).catch(() => {
+      trackedJourneyStagesRef.current.delete(stage);
+    });
+  };
 
   const toggleSection = (id: string) => {
     const willOpen = !openSections.has(id);
@@ -240,6 +262,13 @@ function BuilderPage() {
     trackEvent('builder_entered');
   }, []);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    trackActiveJourney('builder_opened', data.personal.fullName);
+    // The active lead and initial name are read once when the hydrated builder opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
   // ── Seed accordion open-state from content (once, after hydration) ─────────
   useEffect(() => {
     if (!hydrated || didInitOpenRef.current) return;
@@ -273,6 +302,7 @@ function BuilderPage() {
         setData(next);
         setImportedFile("CV check");
         openContentSections(next);
+        trackActiveJourney('cv_edited', next.personal.fullName);
       })();
     };
     if (hasExistingDraft) {
@@ -304,6 +334,7 @@ function BuilderPage() {
       setData(next);
       setImportedFile(file.name);
       openContentSections(next);
+      trackActiveJourney('cv_edited', next.personal.fullName);
       trackEvent('cv_upload_succeeded');
     } catch (err) {
       trackEvent('cv_upload_failed');
@@ -343,6 +374,7 @@ function BuilderPage() {
       setData(next);
       setImportedFile("pasted text");
       openContentSections(next);
+      trackActiveJourney('cv_edited', next.personal.fullName);
       setShowPasteFallback(false);
       setPasteText("");
     } catch (err) {
@@ -352,7 +384,10 @@ function BuilderPage() {
     }
   }
 
-  const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
+  const onPatch = (patch: Partial<ResumeData>) => {
+    trackActiveJourney('cv_edited', patch.personal?.fullName ?? data.personal.fullName);
+    setData((d) => ({ ...d, ...patch }));
+  };
   const sectionProps = { data, onChange: onPatch };
 
   // ── PDF download ────────────────────────────────────────────────────────────
@@ -372,6 +407,7 @@ function BuilderPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       trackEvent('export_succeeded');
+      trackActiveJourney('exported', data.personal.fullName);
     } catch (err) {
       trackEvent('export_failed');
       const msg = err instanceof Error ? err.message : 'Could not generate PDF. Please try again.';
