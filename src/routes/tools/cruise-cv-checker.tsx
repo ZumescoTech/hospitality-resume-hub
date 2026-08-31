@@ -674,6 +674,8 @@ function CruiseCvCheckerPage() {
                 overallScore={result!.overallScore}
                 tier={result!.tier}
                 topFixes={result!.topFixes}
+                candidateName={parsedCv?.personal.fullName}
+                emailFromCv={parsedCv?.personal.email}
                 onSuccess={() => setWhatsappCaptured(true)}
                 onSkip={() => setWhatsappCaptured(true)}
               />
