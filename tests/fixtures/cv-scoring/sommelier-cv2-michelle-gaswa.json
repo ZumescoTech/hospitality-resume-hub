@@ -1,0 +1,22 @@
+{
+  "id": "sommelier-cv2-michelle-gaswa",
+  "role": "sommelier-wine-waiter",
+  "expectedBand": [68, 74],
+  "expectedRankWithinRole": 4,
+  "shouldFlag": [
+    "no cruise ship experience anywhere in the CV",
+    "no seafarer documents (C1/D visa, Seaman's Book, ENG1/Seafarer's Medical)",
+    "Constantia Uitsig role uses weak language — 'Contributed to', 'Supported' — undersells impact",
+    "no quantified scale context for venues (star rating, covers, guest numbers)"
+  ],
+  "shouldNotFlag": [
+    "WSET Level 2 — present",
+    "Diploma in Hospitality Management — present",
+    "25% increase in wine club sign-ups — quantified achievement present",
+    "wine pairing capability — clearly demonstrated",
+    "upselling and cross-selling — clearly demonstrated",
+    "wine list curation experience — present"
+  ],
+  "notes": "Well-rounded sommelier with 5+ years across wine estates and fine dining. Strongest quantified bullet of this group at the land-based tier (25% club sign-ups at Hillcrest). WSET L2 plus Hospitality Management Diploma. Clean two-page format. The Constantia Uitsig section is weakened by passive language. No cruise or shipboard experience, no seafarer documents — the differentiating gap versus higher-ranked CVs. Ranks above Chilongo on quantified evidence and education breadth.",
+  "cvText": "Michelle Rumbidzai Gaswa, Sommelier\nCAPE TOWN, SOUTH AFRICA\ngaswamichelle@gmail.com\n0632267032\n\nPROFILE\nResults-driven Sommelier with over 5 years of experience in luxury hospitality and fine dining environments. Skilled in curating dynamic wine lists, delivering engaging wine tastings, and creating thoughtful food and wine pairings that enhance guest experiences and drive revenue growth. Strong background in wine education, guest relations, and premium service delivery, with a passion for sharing wine knowledge and creating memorable hospitality experiences.\n\nEMPLOYMENT HISTORY\n\nSommelier, Constantia Uitsig Wine Estate\nOct 2023 - Present\n- Contributed to the planning of wine events and tasting menus, helping create structured guest experiences that showcased the estate's wine selection.\n- Led guided tastings, vintage comparisons, and barrel tastings for guests and wine club members, translating wine knowledge into engaging, memorable experiences.\n- Supported wine farm tasting events and wine club activities, strengthening guest engagement and reinforcing the estate's brand story.\n- Provided informed wine recommendations across the farm restaurants to enhance food and wine pairings and elevate the dining experience.\n- Supported wine club sign-ups and package sales through personalised upselling and attentive guest service across multiple estate outlets.\n\nWine Waiter, Hillcrest Wine Farm\n2020 - Nov 2023\n- Drove a 25% increase in wine club sign-ups through personalized guest engagement, relationship building, and tailored wine recommendations.\n- Improved tasting room conversion and buying rates by delivering attentive service and guiding guests toward premium wine selections.\n- Delivered curated tastings and exclusive tasting events that strengthened guest loyalty and supported repeat sales.\n- Educated guests on wine appreciation, tasting techniques, grape varietals, and food and wine pairing principles in an approachable, engaging manner.\n- Collaborated with the chef to curate wine lists and seasonal tasting menus aligned with the restaurant and cellar offering.\n- Applied effective upselling and cross-selling techniques to maximize customer spend and improve sales performance.\n- Maintained in-depth knowledge of wines, vintages, producers, and industry trends to provide informed recommendations to guests.\n\nWaitress, Blockhouse Kitchen\nNov 2017 - Oct 2019\n- Delivered warm, professional front-of-house service that helped create a positive first impression and a welcoming guest experience.\n- Managed guest flow, reservations, and seating arrangements to support smooth operations during busy service periods.\n- Worked closely with service and kitchen teams to resolve guest requests efficiently and maintain high service standards.\n\nEDUCATION\nWSET Level 2 in Wines\nOct 2023\n\nDiploma in Hospitality Management\nFeb 2020 - Aug 2023\n\nSKILLS\nWine Expertise\nFood & Wine Pairing\nCustomer Service Excellence\nWine Sales & Upselling\nWine Tasting & Guided Tastings\nWine List Curation\nCommunication & Storytelling"
+}
