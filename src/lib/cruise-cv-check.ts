@@ -176,74 +176,83 @@ export async function persistCvLead(parsed: SaveLeadInput): Promise<{
   ok: boolean;
   leadId?: string;
   waMeUrl?: string;
+  error?: 'consent_required' | 'lead_storage_unavailable' | 'lead_write_failed' | 'event_write_failed';
 }> {
-  if (!parsed.opted_in) return { ok: false };
+  if (!parsed.opted_in) return { ok: false, error: 'consent_required' };
   const row = buildLeadRow({
     ...parsed,
     roleLabel: roleLabelFor(parsed.roleSlug),
   });
   const db = getLeadDb();
-  let leadId: string | undefined;
-  if (db) {
-    const { data: existing } = await db
-      .from('gethired_leads')
-      .select('id, journey_stage, full_name')
-      .eq('phone', row.phone)
-      .maybeSingle();
-    if (existing?.id) {
-      const nextStage = advanceJourneyStage(existing.journey_stage as JourneyStage, 'captured');
-      const { error } = await db
-        .from('gethired_leads')
-        .update({
-          ...row,
-          full_name: row.full_name || existing.full_name,
-          journey_stage: nextStage,
-        })
-        .eq('id', existing.id);
-      if (!error) leadId = existing.id;
-    } else {
-      const { data: inserted, error } = await db
-        .from('gethired_leads')
-        .insert(row)
-        .select('id')
-        .single();
-      if (!error) leadId = inserted?.id;
-    }
-    if (leadId) {
-      await db.from('gethired_lead_events').insert({
-        lead_id: leadId,
-        event: 'captured',
-        payload: { role_slug: row.role_slug, score: row.score, consent: row.consent },
-      });
-    }
+  if (!db) {
+    console.error('[gethired-crm] Supabase URL or service-role key is missing');
+    return { ok: false, waMeUrl: row.wa_me_url, error: 'lead_storage_unavailable' };
   }
-  if (leadId) {
-    const notified = await notifyLeadCaptured(row, leadId);
-    if (notified && db) {
-      await db.from('gethired_leads').update({ email_notified_at: new Date().toISOString() }).eq('id', leadId);
+  let leadId: string | undefined;
+
+  const { data: existing, error: lookupError } = await db
+    .from('gethired_leads')
+    .select('id, journey_stage, full_name')
+    .eq('phone', row.phone)
+    .maybeSingle();
+  if (lookupError) {
+    console.error('[gethired-crm] lead lookup failed', lookupError.message);
+    return { ok: false, waMeUrl: row.wa_me_url, error: 'lead_write_failed' };
+  }
+  if (existing?.id) {
+    const nextStage = advanceJourneyStage(existing.journey_stage as JourneyStage, 'captured');
+    const { error } = await db
+      .from('gethired_leads')
+      .update({
+        ...row,
+        full_name: row.full_name || existing.full_name,
+        journey_stage: nextStage,
+      })
+      .eq('id', existing.id);
+    if (error) {
+      console.error('[gethired-crm] lead update failed', error.message);
+      return { ok: false, waMeUrl: row.wa_me_url, error: 'lead_write_failed' };
     }
+    leadId = existing.id;
   } else {
-    const webhookUrl = process.env.GOOGLE_SHEETS_LEAD_WEBHOOK_URL || process.env.LEAD_NOTIFY_WEBHOOK_URL;
-    if (webhookUrl) {
-      try {
-        await postJson(webhookUrl, buildLeadWebhookPayload(parsed));
-      } catch {
-        /* best-effort fallback */
-      }
+    const { data: inserted, error } = await db
+      .from('gethired_leads')
+      .insert(row)
+      .select('id')
+      .single();
+    if (error || !inserted?.id) {
+      console.error('[gethired-crm] lead insert failed', error?.message || 'No lead id returned');
+      return { ok: false, waMeUrl: row.wa_me_url, error: 'lead_write_failed' };
     }
+    leadId = inserted.id;
+  }
+
+  const { error: eventError } = await db.from('gethired_lead_events').insert({
+    lead_id: leadId,
+    event: 'captured',
+    payload: { role_slug: row.role_slug, score: row.score, consent: row.consent },
+  });
+  if (eventError) {
+    console.error('[gethired-crm] captured event insert failed', eventError.message);
+    return { ok: false, leadId, waMeUrl: row.wa_me_url, error: 'event_write_failed' };
+  }
+
+  const notified = await notifyLeadCaptured(row, leadId);
+  if (notified) {
+    await db.from('gethired_leads').update({ email_notified_at: new Date().toISOString() }).eq('id', leadId);
   }
   return { ok: true, leadId, waMeUrl: row.wa_me_url };
 }
 
 export async function persistLeadJourney(input: TrackJourneyInput): Promise<{ ok: boolean }> {
   const db = getLeadDb();
-  if (!db) return { ok: true };
-  const { data: existing } = await db
+  if (!db) return { ok: false };
+  const { data: existing, error: lookupError } = await db
     .from('gethired_leads')
     .select('id, journey_stage, full_name')
     .eq('id', input.leadId)
     .maybeSingle();
-  if (!existing?.id) return { ok: false };
+  if (lookupError || !existing?.id) return { ok: false };
   const nextStage = advanceJourneyStage(existing.journey_stage as JourneyStage, input.stage);
   const now = new Date().toISOString();
   const stampCol = journeyTimestampColumn(input.stage);
@@ -254,13 +263,14 @@ export async function persistLeadJourney(input: TrackJourneyInput): Promise<{ ok
   };
   if (input.fullName?.trim()) patch.full_name = input.fullName.trim();
   if (stampCol) patch[stampCol] = now;
-  await db.from('gethired_leads').update(patch).eq('id', existing.id);
-  await db.from('gethired_lead_events').insert({
+  const { error: updateError } = await db.from('gethired_leads').update(patch).eq('id', existing.id);
+  if (updateError) return { ok: false };
+  const { error: eventError } = await db.from('gethired_lead_events').insert({
     lead_id: existing.id,
     event: input.stage,
     payload: input.fullName?.trim() ? { full_name: input.fullName.trim() } : null,
   });
-  return { ok: true };
+  return { ok: !eventError };
 }
 
 export async function runCruiseCvCheck(input: CvCheckInput): Promise<CvCheckOutcome> {
