@@ -36,12 +36,15 @@ npx wrangler rollback
 ```bash
 npx wrangler secret put GROQ_API_KEY
 npx wrangler secret put GEMINI_API_KEY
-npx wrangler secret put GOOGLE_SHEETS_LEAD_WEBHOOK_URL
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 npx wrangler secret put VITE_SUPABASE_URL
 npx wrangler secret put LEAD_NOTIFY_WEBHOOK_URL
 npx wrangler secret put LEAD_NOTIFY_EMAIL
 ```
+
+The retired Google Sheets webhook is not used by the application or deploy
+workflow. Its remote Worker secret cleanup remains an operator follow-up recorded
+in the ISSUE-017 closure journal; no remote cleanup was performed here.
 
 ## GetHired CRM (Supabase)
 

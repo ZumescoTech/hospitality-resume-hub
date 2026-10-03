@@ -4,6 +4,9 @@ Read the product spec and current PROJECT_STATUS before this index. Use the most
 
 | Date / sequence | Session | Outcome | Next task |
 |---|---|---|---|
+| 2026-10-03 / 04 | [ISSUE-017 reconciliation](2026-10-03-04-issue-017-reconciliation.md) | CLOSED state and retired webhook remediation reconciled; baseline failures retained | Separately authorized history plan; ISSUE-001 not started |
+| 2026-09-27 / 02 | [Historical ISSUE-017 closure](2026-09-27-02-issue-017-closed.md) | Owner confirmation and closure evidence preserved unchanged | Historical evidence |
+| 2026-09-27 / 01 | [Historical closure check](2026-09-27-01-issue-017-closure-check.md) | Evidence leading to subsequent closure preserved unchanged | Superseded by closure |
 | 2026-10-03 / 03 | [Staging reconciliation](2026-10-03-03-staging-reconciliation.md) | Production/staging isolation restored; both builds and staging dry-run pass | Reconcile ISSUE-017 state; no rewrite |
 | 2026-09-30 / 01 | [Historical staging deployment](2026-09-30-01-staging-deployment-investigation.md) | Prior successful staging deployment evidence recovered unchanged | Historical evidence |
 | 2026-10-03 / 02 | [Commit preserved work](2026-10-03-02-commit-preserved-work.md) | Logical local commits; validation gaps recorded; no rewrite or deployment | Resolve recorded validation gaps separately |

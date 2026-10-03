@@ -16,7 +16,7 @@
 
 ## Next five coherent tasks
 
-1. Contain historical credential exposure and document revocation/rotation evidence; then patch and verify the vulnerable serialization dependency boundary. Establish a safe baseline without changing product scope.
+1. ISSUE-017 credential containment is CLOSED on recorded owner confirmation and repository remediation. Next, patch and verify the vulnerable serialization dependency boundary. Establish a safe baseline without changing product scope.
 2. Prove data ownership and restrict privileged/public endpoints, then document privacy/retention and verify replay masking. Obtain approved synthetic test accounts rather than probing real users.
 3. Restore account/dashboard and durable report continuity using the current persistence work; define analysis ID and versioned report contract. Avoid rebuilding the CV editor.
 4. Harden F-001→F-005 in order: role registry/custom support, parser contract/fixtures, truthful evidence-based analysis/fixes and accessible report. Instrument canonical events with each transition.

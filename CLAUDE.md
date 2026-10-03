@@ -22,7 +22,7 @@ the product, even if the code is elegant.
 - **App:** React SPA, Vite build, TypeScript
 - **AI:** Groq (llama-3.3-70b-versatile) primary; Gemini 2.5 Flash fallback
   (being introduced); provider layer in `src/lib/ai/`
-- **Data:** Supabase (auth/persistence), Google Sheets webhook (lead capture)
+- **Data:** Supabase (auth/persistence), optional configured lead notification webhook
 - **CV parsing:** fully client-side — pdfjs, Mammoth (DOCX), FileReader
   (TXT), Tesseract OCR fallback. Files never leave the browser; only
   extracted text goes to the server.

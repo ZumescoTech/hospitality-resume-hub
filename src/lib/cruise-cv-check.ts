@@ -62,7 +62,7 @@ async function postJson(url: string, body: unknown): Promise<boolean> {
 
 async function notifyLeadCaptured(row: ReturnType<typeof buildLeadRow>, leadId: string): Promise<boolean> {
   const email = buildLeadNotifyEmail(row, leadId);
-  const webhookUrl = process.env.LEAD_NOTIFY_WEBHOOK_URL || process.env.GOOGLE_SHEETS_LEAD_WEBHOOK_URL;
+  const webhookUrl = process.env.LEAD_NOTIFY_WEBHOOK_URL;
   let notified = false;
   if (webhookUrl) {
     try {
@@ -223,7 +223,7 @@ export async function persistCvLead(parsed: SaveLeadInput): Promise<{
       await db.from('gethired_leads').update({ email_notified_at: new Date().toISOString() }).eq('id', leadId);
     }
   } else {
-    const webhookUrl = process.env.GOOGLE_SHEETS_LEAD_WEBHOOK_URL || process.env.LEAD_NOTIFY_WEBHOOK_URL;
+    const webhookUrl = process.env.LEAD_NOTIFY_WEBHOOK_URL;
     if (webhookUrl) {
       try {
         await postJson(webhookUrl, buildLeadWebhookPayload(parsed));

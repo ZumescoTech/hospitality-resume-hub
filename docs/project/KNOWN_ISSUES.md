@@ -4,9 +4,9 @@ Observed 2026-09-22 unless stated otherwise. OPEN means unresolved. P0 blocks re
 
 ## ISSUE-017 ? Historical committed credentials
 
-Status: **OPEN ? CURRENT SOURCE SCAN CLEAR / PROVIDER ROTATION PENDING / IGNORE GAP OPEN**.
+Status: **CLOSED ? owner-confirmed credential rotation and access review; historical Git objects retained by decision**.
 
-Severity: P0. Incident reviewed 2026-09-23. Provider actions: **BLOCKED ON OWNER**.
+Severity: P0. Closed 2026-09-27 after repository remediation and owner confirmation.
 
 ### A. Confirmed repository evidence
 
@@ -16,7 +16,7 @@ First observed by the project audit on 2026-09-22; independently reproduced on 2
 |---|---|---|---|
 | ANTHROPIC_API_KEY | 95eca08, 2026-06-12 10:13:07 +02:00; .env line 2, blob 0367b060e02f | Groq-shaped credential despite Anthropic label; owner must confirm issuing account/provider | No current source/CI consumer of this label. GROQ_API_KEY is the current Groq configuration name; equivalence of deployed values is unknown |
 | SUPABASE_SERVICE_ROLE_KEY | 3f73806, 2026-06-12 10:57:22 +02:00; .env line 5, blob 79087d856367 | JWT-shaped credential with unverified service_role payload claim; privileged Supabase access if valid | src/lib/cruise-cv-check.ts getLeadDb, used by persistCvLead and persistLeadJourney |
-| GOOGLE_SHEETS_LEAD_WEBHOOK_URL | 95eca08; .env line 1, both historical blobs | Nonempty HTTPS webhook endpoint; authentication/access policy unknown, potentially a capability URL | Lead fallback/notification in cruise-cv-check.ts; CI provisions this Worker secret |
+| GOOGLE_SHEETS_LEAD_WEBHOOK_URL | 95eca08; .env line 1, both historical blobs | Historical webhook endpoint; owner confirmed it is unused | Removed from active application, sample environment, operations instructions, and deploy workflow |
 | VITE_SUPABASE_URL | 3f73806; .env line 3 | Public service location, not itself a privileged credential | Browser Supabase client and server lead URL fallback |
 | VITE_SUPABASE_ANON_KEY | 3f73806; .env line 4 | Nonempty public-client-key setting; no JWT pattern match, validity/type unverified | Browser Supabase client; CI build input. Do not classify public client configuration as a privileged secret solely from its name |
 
@@ -28,41 +28,51 @@ Commits c9b7500 and 2cfe130 on 2026-07-06 removed/untracked .env; their trees co
 
 - Starting inventory: 390 tracked/nonignored paths, 343 existing files and 47 pre-existing tracked deletions. Raw-byte credential-pattern scan found zero matches in existing files; the Git index also had zero matches. No current file contained an exact historical assignment value for any of the five variables above.
 - Scan covered recognizable provider-key formats, JWTs, private-key headers and credential-bearing URLs. All 844 reachable blobs were inspected (including binary blobs); only the two historical .env blobs matched these patterns. This differs from the previous 786-text-blob count because binary blobs were included. Unknown formats, encoded/compressed content, ignored local files, remote-only refs, CI logs/artifacts and provider stores are not certified clean.
-- .env is not tracked. Existing rules ignore .env, .env.*, nested equivalents and .dev.vars. .env.example is deliberately included and contains placeholders. **Gap: .dev.vars.production and other .dev.vars.* variants are not ignored.** No such nonignored secret file was found. Audit-only session leaves the existing dirty .gitignore unchanged; add a narrow variant rule and verify it in the next containment change.
-- .github/workflows/deploy.yml builds using VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_CLARITY_PROJECT_ID, deploys on main push or manual dispatch, then pipes GitHub Secrets GROQ_API_KEY, SUPABASE_SERVICE_ROLE_KEY and GOOGLE_SHEETS_LEAD_WEBHOOK_URL into the production Worker. It also uses CLOUDFLARE_API_TOKEN; no historical exposure of that token was found. A future CI run could reintroduce an old value if GitHub Secrets are not replaced.
-- Production and staging Wrangler configurations contain no affected credential literals. They do not prove remotely stored secrets absent. .env.example and OPERATIONS.md still expect the service-role key and current Groq key; no current ANTHROPIC_API_KEY source/deployment reference was found. Groq consumers include ai/router.ts, ai/builder-assist.ts and parseCvForBuilder.ts. Historical-key reuse under GROQ_API_KEY cannot be determined from references alone.
+- .env is not tracked. Rules ignore `.env`, `.env.*`, `.dev.vars`, and `.dev.vars.*`; `.env.example` is deliberately included with placeholders. `git check-ignore --no-index` verified `.dev.vars`, `.dev.vars.production`, and `.dev.vars.staging`.
+- `.github/workflows/deploy.yml` builds using VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / VITE_CLARITY_PROJECT_ID and provisions GROQ_API_KEY and SUPABASE_SERVICE_ROLE_KEY for the production Worker. The historical Google Sheets webhook is no longer wired into source or deployment. It also uses CLOUDFLARE_API_TOKEN; no historical exposure of that token was found.
+- Current source consumers are GROQ_API_KEY in the AI router, builder assistance and builder parser, and SUPABASE_SERVICE_ROLE_KEY in server-side lead persistence. CI workflow wiring and operations instructions name the corresponding replacement settings without exposing values. The owner confirmed affected credentials were replaced/rotated. Remote secret values were not inspected.
+- The tracked-path pattern check found only `.env.example`, whose credential-shaped settings are placeholders. The prior bounded history review covered 844 reachable Git blobs and found historical credential-pattern matches only in the two known `.env` blobs. This is not a claim that historical Git objects were erased.
 
 ### B. Owner/provider verification and action ledger
 
 | Required owner action | Evidence / status |
 |---|---|
-| Identify issuing Groq account/key behind the historical ANTHROPIC_API_KEY label; revoke it and create a replacement only if needed. Check Anthropic only if account records establish a separate affected credential | **BLOCKED ON OWNER**; no provider confirmation or key identifier supplied |
-| Identify affected Supabase project and invalidate the exposed privileged credential using the procedure appropriate to its key type; coordinate dependent clients/services | **BLOCKED ON OWNER**; no revocation/rotation evidence supplied |
-| Determine whether the historical Google Sheets webhook grants unauthenticated write access; disable/replace or restrict it if exposed, or record verified non-sensitive disposition | **BLOCKED ON OWNER**; endpoint was not called |
-| Review provider usage/billing and database/webhook access records from earliest known exposure through invalidation; record findings and any unavailable retention interval | **BLOCKED ON OWNER**; no evidence of either misuse or absence of misuse |
-| Replace affected GitHub Actions secrets, production/staging Worker secrets and developer-local settings; inventory other consumers, retired deployments, logs/artifacts and repository copies | **BLOCKED ON OWNER**; deployment replacement unverified and not performed |
-| Record actor, timestamp, provider-side event/reference, affected environment, replacement deployment ID and synthetic verification outcome without values | **BLOCKED ON OWNER**; evidence fields pending |
+| Invalidate/replace affected Groq and Supabase credentials and update applicable consumers | **OWNER CONFIRMED COMPLETE** 2026-09-27; no values inspected |
+| Determine webhook use/sensitivity and remove any active use | **OWNER CONFIRMED UNUSED**; removed from source, sample config, operations instructions, and deployment wiring. A manual command is documented to delete any residual production Worker secret; it was not executed here |
+| Review provider usage/billing and database/webhook access | **OWNER CONFIRMED COMPLETE**; no suspicious activity found |
+| Decide Git-history cleanup after rotation | **OWNER DECISION: do not rewrite history; retain rotated values only as historical exposure; cleanup is non-blocking** |
+| Verify repository wiring and secret-file ignore coverage | **PASSED**; only variable names/wiring inspected, `.dev.vars.*` and `.env*` ignore coverage checked |
 
 For Supabase, issuing a new key alone does not invalidate an old legacy key. Use the current [provider API-key guidance](https://supabase.com/docs/guides/getting-started/api-keys) and confirm explicit invalidation in the owner dashboard. Do not validate historical keys by sending requests. New-key verification must use synthetic data in an approved environment.
 
-### History cleanup decision and remaining risk
+### History cleanup decision
 
-**DEFERRED ? separate explicit owner decision after revocation is confirmed.** No history rewriting, deletion, force push or repository recreation is authorized or performed here. Existing ADR-002 release block remains in force; no new architecture decision is made.
+**Owner decision (2026-09-27): do not rewrite Git history.** Rotated credentials remain in reachable history only as historical exposure. History rewriting is non-blocking and was not performed. This closure does not claim that historical objects were erased or that Release 0.1 is ready.
 
-Historical values remain retrievable by anyone with the relevant repository history. Potential privileged data access, provider usage/cost and webhook abuse remain unresolved until invalidation and access review are evidenced. Current-source absence and ignore rules are not revocation. Avoid further distribution of historical copies pending owner review.
+Historical values remain retrievable by anyone with relevant repository history. Credential rotation and owner-reported access review address active validity/use; repository closure does not certify remote-only refs, forks, logs, or artifacts.
 
 ### Exact closure conditions
 
-1. Owner evidence identifies and confirms invalidation of every exposed privileged/provider credential, including the mislabeled Groq value; webhook sensitivity is resolved with revocation/restriction evidence or justified non-sensitive disposition.
-2. All affected CI, runtime, local and other consumer stores are replaced or removed; recorded deployment/synthetic checks confirm intended new configuration without using historical credentials.
-3. Access/usage review is completed, with retention gaps and any incident follow-up explicitly recorded and accepted by the owner.
-4. Current tracked/nonignored files and index pass repeat redacted pattern and exact-history-value checks; .env and .dev.vars variants have verified ignore coverage while safe examples remain trackable.
-5. After invalidation, owner records a separate history-cleanup decision and either verifies authorized cleanup across agreed copies or explicitly accepts residual inert historical material. Deletion alone never satisfies invalidation.
-6. Evidence references, timestamps and owner sign-off are recorded here without credentials. Only then may ISSUE-017 close; closure does not imply Release 0.1 readiness.
+1. Owner confirms all affected credentials are rotated/replaced and the access/usage review is complete.
+2. The owner confirms the historical webhook is unused; all active code, sample configuration, deployment wiring, and operations instructions for it are removed.
+3. Current source wiring for affected secret consumers and ignore coverage are checked without revealing values; prior bounded history scan remains recorded.
+4. Owner explicitly decides not to rewrite history and accepts rotated credentials remaining as historical exposure. This cleanup is non-blocking.
+5. Record owner confirmations without secret values. Closure does not imply Release 0.1 readiness.
+
+The residual Worker secret cleanup is an operator follow-up because deleting a
+remote Worker secret is a destructive operation. No application code or deploy
+workflow consumes or provisions the retired webhook.
 
 ### Verification record
 
-Security verification only; no UI/build/provider tests, dependency installation, deployment or credential authentication. No old value was printed, echoed, pasted, reconstructed into output or stored in journals; scanner output was limited to names, paths, line numbers, blob/commit IDs, counts and classifications. Temporary local scanner processes used captured Git stdout, never raw blob display. See [session journal](../sessions/2026-09-23-01-credential-incident.md) for scope/preservation evidence.
+Security verification only; no credential was authenticated and no secret value was inspected or printed. The owner confirmed credential replacement and access/usage review with no suspicious activity on 2026-09-27. Repository checks verified secret-name wiring, removed the unused historical webhook consumer, and verified ignore coverage. The prior bounded history scan is documented in the [2026-09-23 incident journal](../sessions/2026-09-23-01-credential-incident.md); this closure does not erase historical Git objects. See the [2026-09-27 closure journal](../sessions/2026-09-27-02-issue-017-closed.md) for the current evidence and follow-up.
+
+Focused `tests/unit/leads.test.ts` passed 5/5. In
+`tests/unit/checker-score-regression.test.ts`, 11 tests passed and the
+pre-existing webhook-payload key contract test failed because `full_name` is
+present; this is recorded under ISSUE-009 and is unrelated to the removed
+Google Sheets transport. No production secret deletion, provider request, or
+deployment was performed.
 
 ## ISSUE-001 — Vulnerable server serialization dependency
 
@@ -480,7 +490,7 @@ First observed: 2026-09-22.
 Affected area: CI, staging, environment reproducibility.
 
 ### Problem
-Main push auto-deploys after build without tests/type/lint/approval. Bun latest install differs from npm lock workflow; staging KV placeholder; incomplete runtime secret provisioning.
+Main push auto-deploys after build without tests/type/lint/approval. Bun latest install differs from npm lock workflow; incomplete runtime secret provisioning. The staging KV placeholder and generated-config workflow were reconciled locally on 2026-10-03; release gates remain unresolved.
 
 ### Evidence
 deploy.yml, bunfig.toml, wrangler.staging.jsonc, OPERATIONS.md. No observability block in Wrangler.
