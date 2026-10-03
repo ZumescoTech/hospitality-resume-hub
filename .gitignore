@@ -50,3 +50,6 @@ coverage/
 .codex/session*
 .codex/cache/
 *.tmp
+
+# Temporary staging secret handoff
+.staging.secrets.env

@@ -4,6 +4,8 @@ Read the product spec and current PROJECT_STATUS before this index. Use the most
 
 | Date / sequence | Session | Outcome | Next task |
 |---|---|---|---|
+| 2026-10-03 / 03 | [Staging reconciliation](2026-10-03-03-staging-reconciliation.md) | Production/staging isolation restored; both builds and staging dry-run pass | Reconcile ISSUE-017 state; no rewrite |
+| 2026-09-30 / 01 | [Historical staging deployment](2026-09-30-01-staging-deployment-investigation.md) | Prior successful staging deployment evidence recovered unchanged | Historical evidence |
 | 2026-10-03 / 02 | [Commit preserved work](2026-10-03-02-commit-preserved-work.md) | Logical local commits; validation gaps recorded; no rewrite or deployment | Resolve recorded validation gaps separately |
 | 2026-10-03 / 01 | [Dirty main preservation](2026-10-03-01-preserve-dirty-main.md) | All 96 dirty paths classified; private backup and independent restore verified; no history rewrite | Continue ISSUE-017 containment and owner evidence |
 | 2026-09-23 / 01 | [Credential incident verification](2026-09-23-01-credential-incident.md) | ISSUE-017 OPEN; source scan clear; provider rotation BLOCKED ON OWNER; ignore variant gap | Finish ISSUE-017 containment and owner evidence; no history rewrite |

@@ -11,13 +11,19 @@ Quick reference for deployment, rollback, and incident response.
 
 ### Deploy to staging
 ```bash
-npx wrangler deploy --config wrangler.staging.jsonc
+npm run deploy:staging
 ```
 
 ### Deploy to production
 ```bash
-npx wrangler deploy
+npm run deploy
 ```
+
+Builds select the source configuration in Vite and generate `dist/server/wrangler.json`.
+For local staging validation, run `npm run build:staging`, then
+`npx wrangler deploy --dry-run --config dist/server/wrangler.json`.
+Check the generated Worker name and KV binding before deployment; a subsequent
+production build replaces the same output directory. Do not commit `dist/`.
 
 ## Rollback
 

@@ -23,7 +23,7 @@ function aliasCloudflareWorkersOnClient(): Plugin {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   // Synthetic client settings prevent saving tests from contacting real accounts
   // or recording test CVs in analytics. Playwright intercepts this test origin.
   define: process.env.GETHIRED_LOCAL_SAVE_TEST === '1' ? {
@@ -35,7 +35,11 @@ export default defineConfig({
     aliasCloudflareWorkersOnClient(),
     // Explicit local saving tests do not call Workers AI or remote bindings.
     // Normal development and deployment retain the existing configuration.
-    cloudflare({ viteEnvironment: { name: 'ssr' }, remoteBindings: process.env.GETHIRED_LOCAL_SAVE_TEST !== '1' }),
+    cloudflare({
+      configPath: mode === 'staging' ? 'wrangler.staging.jsonc' : undefined,
+      viteEnvironment: { name: 'ssr' },
+      remoteBindings: process.env.GETHIRED_LOCAL_SAVE_TEST !== '1',
+    }),
     tanstackStart(),
     viteReact(),
     tailwindcss(),
@@ -47,4 +51,4 @@ export default defineConfig({
     },
     dedupe: ['react', 'react-dom', '@tanstack/react-router'],
   },
-})
+}))

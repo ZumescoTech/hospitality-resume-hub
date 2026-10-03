@@ -12,7 +12,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "CV_RESULT_CACHE",
-			"id": "REPLACE_WITH_STAGING_KV_ID"
+			"id": "fe46b47db26245328ea464006925ecc8"
 		}
 	],
 	"ai": {
