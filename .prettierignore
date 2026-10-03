@@ -5,3 +5,10 @@ dist
 pnpm-lock.yaml
 package-lock.json
 routeTree.gen.ts
+.wrangler
+.tanstack
+.worktrees
+.claude/worktrees
+test-results
+playwright-report
+coverage

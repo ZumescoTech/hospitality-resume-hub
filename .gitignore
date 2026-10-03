@@ -42,3 +42,11 @@ test-results/
 playwright-report/
 coverage/
 .vexp/
+
+# Local agent state and temporary files
+.dev.vars.*
+.codex/*.log
+.codex/auth.json
+.codex/session*
+.codex/cache/
+*.tmp

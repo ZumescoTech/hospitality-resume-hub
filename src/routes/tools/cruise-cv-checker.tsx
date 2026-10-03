@@ -449,13 +449,6 @@ function CruiseCvCheckerPage() {
     void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'form' } });
   }
 
-  const tierSummary: Record<CvScoreResult['tier'], string> = {
-    Strong: 'Strong CV — a few final tweaks and you\'re ready to apply.',
-    Good: 'Good CV — address the gaps below to strengthen your application.',
-    'Needs Work': 'Your CV needs work before it will pass cruise recruiter screening.',
-    'Major Gaps': 'Your CV has critical gaps that will likely cause instant rejection.',
-  };
-
   // Show results view when URL says results AND we have a result (or parse failure)
   const showResults = step === 'results' && (result != null || parseFailure != null) && !loading;
 
