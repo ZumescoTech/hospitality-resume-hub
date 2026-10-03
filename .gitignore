@@ -36,3 +36,9 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Generated test output
+test-results/
+playwright-report/
+coverage/
+.vexp/
