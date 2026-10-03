@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { AppHeader } from "@/components/ui/AppHeader";
+import { SaveNotice } from "@/components/builder/SaveNotice";
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useResumeStore } from "@/lib/resume-store";
 import { ResumeData, STORAGE_KEY, sampleResume } from "@/types/resume";
@@ -130,7 +131,7 @@ function sectionHasContent(id: string, d: ResumeData): boolean {
 }
 
 function BuilderPage() {
-  const { data, setData, hydrated, syncing, resumeId, setTemplateColours, resetTemplateColours, loadSample } = useResumeStore();
+  const { data, setData, hydrated, saveStatus, saveIssue, retrySave, resolveRecovery, downloadRecovery, setTemplateColours, resetTemplateColours, loadSample } = useResumeStore();
 
   // ── Tab state ──────────────────────────────────────────────────────────────
   // Two top-level modes only. Template/style choice is a drawer over Preview
@@ -381,13 +382,16 @@ function BuilderPage() {
     }
   }
 
-  if (!hydrated) return <BuilderSkeleton />;
+  const saveNotice = <SaveNotice status={saveStatus} issue={saveIssue}
+    onRetry={retrySave} onResolve={resolveRecovery} onDownload={downloadRecovery} />;
+  if (!hydrated) return saveIssue ? <><AppHeader saveStatus={saveStatus} />{saveNotice}</> : <BuilderSkeleton />;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface-warm, #f7f7f5)' }}>
 
       {/* ── Teal header ─────────────────────────────────────────────────────── */}
-      <AppHeader />
+      <AppHeader saveStatus={saveStatus} />
+      {saveNotice}
 
       {/* ── Mobile mode switcher (< 1024px) ──────────────────────────────────── */}
       <MobileModeSwitcher

@@ -53,7 +53,7 @@ const fixSchema = z.object({
   completedManually: z.boolean().optional(),
 });
 
-const auditSchema = z.object({
+export const auditSchema = z.object({
   overallScore: z.number(),
   tier: z.enum(["Strong", "Good", "Needs Work", "Major Gaps"]),
   confidence: confidenceSchema,
@@ -73,7 +73,7 @@ const auditSchema = z.object({
   fixes: z.array(fixSchema),
 });
 
-const resumeSchema = z
+export const resumeSchema = z
   .object({
     personal: z.object({
       fullName: z.string().optional().default(""),

@@ -24,9 +24,18 @@ function aliasCloudflareWorkersOnClient(): Plugin {
 }
 
 export default defineConfig({
+  // Synthetic client settings prevent saving tests from contacting real accounts
+  // or recording test CVs in analytics. Playwright intercepts this test origin.
+  define: process.env.GETHIRED_LOCAL_SAVE_TEST === '1' ? {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify('https://saving-tests.supabase.co'),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify('local-saving-test-key'),
+    'import.meta.env.VITE_CLARITY_PROJECT_ID': JSON.stringify(''),
+  } : undefined,
   plugins: [
     aliasCloudflareWorkersOnClient(),
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
+    // Explicit local saving tests do not call Workers AI or remote bindings.
+    // Normal development and deployment retain the existing configuration.
+    cloudflare({ viteEnvironment: { name: 'ssr' }, remoteBindings: process.env.GETHIRED_LOCAL_SAVE_TEST !== '1' }),
     tanstackStart(),
     viteReact(),
     tailwindcss(),

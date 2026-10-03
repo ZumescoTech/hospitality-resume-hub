@@ -1,124 +1,82 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { ResumeData, STORAGE_KEY, emptyResume, sampleResume } from "@/types/resume";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { emptyResume, sampleResume, type ResumeData } from "@/types/resume";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/hooks/use-user";
+import { getTemplateColours, type TemplateColours } from "@/lib/template-colours";
+import { ResumePersistence, type ResumeCloud } from "@/lib/resume-persistence";
 
+const cloud: ResumeCloud = {
+  async load(userId, id, signal) {
+    if (!supabase) throw new Error("Cloud storage is unavailable");
+    let query = supabase.from("resumes").select("id, data, template_id").eq("user_id", userId);
+    if (id) query = query.eq("id", id);
+    const { data, error } = await query
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .abortSignal(signal)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  async save(userId, id, data, signal) {
+    if (!supabase) throw new Error("Cloud storage is unavailable");
+    const { error } = await supabase
+      .from("resumes")
+      .upsert(
+        {
+          id,
+          user_id: userId,
+          title: data.personal.fullName || "My CV",
+          data: data as unknown as Record<string, unknown>,
+          template_id: data.templateId,
+        },
+        { onConflict: "id" },
+      )
+      .abortSignal(signal);
+    if (error) throw error;
+  },
+};
+
+/** Call once in the editor; pass status to read-only UI rather than creating another store. */
 export function useResumeStore() {
-  const { user, loading: userLoading } = useUser();
-  const [data, setData] = useState<ResumeData>(emptyResume);
-  const [hydrated, setHydrated] = useState(false);
-  const [resumeId, setResumeId] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
-  // Prevents double-hydration on re-renders while auth state resolves
-  const hydratedRef = useRef(false);
-
-  // --- Hydration: load from Supabase (authed) or localStorage (anon) ---
+  const { user, loading } = useUser();
+  const owner = user?.id ?? null;
+  const store = useMemo(
+    () => new ResumePersistence(loading ? null : owner, cloud),
+    [owner, loading],
+  );
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   useEffect(() => {
-    if (userLoading || hydratedRef.current) return;
-    hydratedRef.current = true;
+    if (loading) return;
+    return store.start();
+  }, [store, loading]);
 
-    if (user) {
-      supabase
-        .from("resumes")
-        .select("id, data, template_id")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then(({ data: row }) => {
-          if (row) {
-            // Resume found — load it
-            setResumeId(row.id as string);
-            setData({
-              ...emptyResume,
-              ...(row.data as ResumeData),
-              templateId: row.template_id as string,
-            });
-          } else {
-            // New user — generate an ID and migrate any anonymous localStorage work
-            setResumeId(crypto.randomUUID());
-            try {
-              const raw = localStorage.getItem(STORAGE_KEY);
-              setData(raw ? { ...emptyResume, ...JSON.parse(raw) } : emptyResume);
-            } catch {
-              setData(emptyResume);
-            }
-          }
-          setHydrated(true);
-        });
-    } else {
-      // Anonymous — localStorage only
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        setData(raw ? { ...emptyResume, ...JSON.parse(raw) } : emptyResume);
-      } catch {
-        setData(emptyResume);
-      }
-      setHydrated(true);
-    }
-  }, [userLoading, user]);
-
-  // --- Auto-save: debounced Supabase upsert (authed) or immediate localStorage (anon) ---
-  useEffect(() => {
-    if (!hydrated) return;
-
-    if (user && resumeId) {
-      // Debounce writes to avoid hammering Supabase on every keystroke
-      const timer = setTimeout(() => {
-        setSyncing(true);
-        void (async () => {
-          try {
-            await supabase
-              .from("resumes")
-              .upsert(
-                {
-                  id: resumeId,
-                  user_id: user.id,
-                  title: data.personal.fullName || "My CV",
-                  data: data as unknown as Record<string, unknown>,
-                  template_id: data.templateId,
-                },
-                { onConflict: "id" },
-              );
-          } finally {
-            setSyncing(false);
-          }
-        })();
-      }, 1500);
-      return () => clearTimeout(timer);
-    } else if (!user) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      } catch { /* ignore */ }
-    }
-  }, [data, hydrated, user, resumeId]);
-
-  const update = useCallback(<K extends keyof ResumeData>(key: K, value: ResumeData[K]) => {
-    setData((d) => ({ ...d, [key]: value }));
-  }, []);
-
-  const setTemplateColours = useCallback((templateId: string, colours: Partial<{ primary: string; accent: string; text: string; background: string }>) => {
-    setData((d) => ({
-      ...d,
-      templateColours: {
-        ...d.templateColours,
-        [templateId]: { ...(d.templateColours?.[templateId] ?? {}), ...colours },
-      },
-    }));
-  }, []);
-
-  const resetTemplateColours = useCallback((templateId: string) => {
-    setData((d) => {
-      const next = { ...(d.templateColours ?? {}) };
-      delete next[templateId];
-      return { ...d, templateColours: next };
-    });
-  }, []);
-
-  const reset = useCallback(() => setData(emptyResume), []);
-  const loadSample = useCallback(() => setData(sampleResume), []);
-
-  return { data, setData, update, reset, loadSample, hydrated, resumeId, syncing, setTemplateColours, resetTemplateColours };
+  return {
+    ...state,
+    syncing: state.saveStatus === "saving",
+    setData: store.setData,
+    retrySave: store.retrySave,
+    resolveRecovery: store.resolveRecovery,
+    downloadRecovery: store.downloadRecovery,
+    update: <K extends keyof ResumeData>(key: K, value: ResumeData[K]) =>
+      store.setData((data) => ({ ...data, [key]: value })),
+    reset: () => store.setData(emptyResume),
+    loadSample: () => store.setData(sampleResume),
+    setTemplateColours: (templateId: string, colours: Partial<TemplateColours>) =>
+      store.setData((data) => ({
+        ...data,
+        templateColours: {
+          ...data.templateColours,
+          [templateId]: { ...getTemplateColours(templateId, data.templateColours), ...colours },
+        },
+      })),
+    resetTemplateColours: (templateId: string) =>
+      store.setData((data) => {
+        const next = { ...data.templateColours };
+        delete next[templateId];
+        return { ...data, templateColours: next };
+      }),
+  };
 }
 
 export { uid } from "@/lib/utils";
