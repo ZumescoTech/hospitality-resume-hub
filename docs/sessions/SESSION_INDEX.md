@@ -4,6 +4,7 @@ Read the product spec and current PROJECT_STATUS before this index. Use the most
 
 | Date / sequence | Session | Outcome | Next task |
 |---|---|---|---|
+| 2026-10-04 / 01 | [ISSUE-001 closure documentation](2026-10-04-01-issue-001-closure.md) | PASS / CLOSED; owner-supplied dependency and validation results recorded; 17 unrelated audit findings remain | ISSUE-002 ownership/RLS verification |
 | 2026-10-03 / 04 | [ISSUE-017 reconciliation](2026-10-03-04-issue-017-reconciliation.md) | CLOSED state and retired webhook remediation reconciled; baseline failures retained | Separately authorized history plan; ISSUE-001 not started |
 | 2026-09-27 / 02 | [Historical ISSUE-017 closure](2026-09-27-02-issue-017-closed.md) | Owner confirmation and closure evidence preserved unchanged | Historical evidence |
 | 2026-09-27 / 01 | [Historical closure check](2026-09-27-01-issue-017-closure-check.md) | Evidence leading to subsequent closure preserved unchanged | Superseded by closure |
@@ -14,5 +15,7 @@ Read the product spec and current PROJECT_STATUS before this index. Use the most
 | 2026-09-23 / 01 | [Credential incident verification](2026-09-23-01-credential-incident.md) | ISSUE-017 OPEN; source scan clear; provider rotation BLOCKED ON OWNER; ignore variant gap | Finish ISSUE-017 containment and owner evidence; no history rewrite |
 | 2026-09-22 / 02 | [Unused-code cleanup](2026-09-22-02-cleanup.md) | 36 source files and 30 direct dependencies removed; existing check failures remain | Historical credential containment and existing verification defects |
 | 2026-09-22 / 01 | [Full repository audit](2026-09-22-01-audit.md) | Documentation-only audit; NOT READY; working skeleton preserved | Historical credential incident containment and revocation/rotation evidence |
+
+Historical rows and journals retain the status at their original checkpoint; ISSUE-001 OPEN/unstarted references are superseded by the 2026-10-04 closure above.
 
 Earlier activity exists in root audit.md, LAUNCH-REVIEW.md, NOTES.md, log.md and Git history. No retrospective sessions or approvals have been invented. New sessions use YYYY-MM-DD-NN-topic.md; increment NN for additional sessions that day.

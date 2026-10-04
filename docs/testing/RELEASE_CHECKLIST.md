@@ -5,7 +5,8 @@
 ## Prerequisite safety gates
 
 - [ ] Historical credential exposure contained, revocation/rotation documented without values (ISSUE-017).
-- [ ] Critical serialization dependency remediated and deployed version verified (ISSUE-001).
+- [x] Critical serialization dependency remediated (ISSUE-001: PASS / CLOSED; [verified results](../sessions/2026-10-04-01-issue-001-closure.md)).
+- [ ] Deployed dependency versions verified before release; not established by the ISSUE-001 closure results.
 - [ ] A/B/anonymous database access tests pass; schema and RLS captured reproducibly.
 - [ ] Public privileged endpoints bounded/authorized; diagnostics restricted and redacted.
 - [ ] Clarity masking/consent and retention/deletion paths verified.

@@ -1,5 +1,9 @@
 # Test strategy and audit command evidence
 
+## ISSUE-001 update - 2026-10-04
+
+ISSUE-001 is **PASS / CLOSED**. Owner-supplied validation: **629 passed / 13 skipped / 1 pre-existing `full_name` payload mismatch**; production build, staging build and diff whitespace check **PASS**. Remaining npm audit findings: **17 (10 high, 6 moderate, 1 low)**, unresolved and outside ISSUE-001. See [closure evidence](../sessions/2026-10-04-01-issue-001-closure.md). No commands were rerun for this documentation update; the September command ledger below remains historical.
+
 Cleanup verification (2026-09-22): build passed after pruning unused dependencies; focused Chromium/Android preview and CTA tests 48/48 passed. Unit suite remains 629 passed / 1 failed / 13 skipped; TypeScript 14 errors; lint 24,078 findings. See [cleanup session](../sessions/2026-09-22-02-cleanup.md).
 
 2026-09-22. Source: spec §7–13, §19–21 and §33. Tests are evidence, not feature completion by themselves.

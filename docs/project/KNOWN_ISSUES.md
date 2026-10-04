@@ -76,34 +76,19 @@ deployment was performed.
 
 ## ISSUE-001 — Vulnerable server serialization dependency
 
-Status: OPEN; dependency confirmed, no exploitation attempted.
+Status: **PASS / CLOSED** - verified results supplied by the owner, recorded 2026-10-04.
 
-Severity: P0
+Severity at discovery: P0. First observed: 2026-09-22.
 
-First observed: 2026-09-22
+### Problem and cause
+The dependency lock predated security patches. Seroval 1.5.2 was used by TanStack's server-function request deserialization (`fromJSON` with plugins), exposing a critical deserialization boundary. The original audit recorded 26 advisories including one critical; that is historical evidence, not the current count.
 
-Affected area: TanStack server functions / supply chain.
+### Resolution and verification
+Updated only `package.json` and `package-lock.json`; resolved Seroval deserialization and TanStack server-function deserialization/XSS vulnerabilities. No vulnerable Seroval copies or invalid peer dependency state remain; no direct Seroval dependency, npm override, application source change or compatibility fix was needed.
 
-### Problem
-Locked/installed seroval 1.5.2 is covered by a critical deserialization advisory.
+Tests: 629 passed, 13 skipped, one pre-existing `full_name` payload mismatch (ISSUE-009/010), not introduced by this fix. Production build, staging build and diff whitespace check PASS. **17 unrelated npm audit findings remain unresolved: 10 high, 6 moderate, 1 low.**
 
-### Evidence
-npm audit: 26 advisories, one critical. Installed start-server-core/src/server-functions-handler.ts imports fromJSON and calls it with plugins on request payloads. [GHSA-mv8w-475r-vwqw](https://github.com/advisories/GHSA-mv8w-475r-vwqw) identifies <=1.5.2 and patch 1.5.3, with TanStack downstream impact.
-
-### Reproduction
-Read lockfile and run npm audit; inspect installed handler. Do not probe production.
-
-### Likely cause
-Dependency lock predates security patches.
-
-### Current workaround
-Restrict to synthetic local testing; no assurance for public deployment.
-
-### Recommended fix
-Small compatible dependency remediation, frozen install and server-function regression. Verify deployed versions separately.
-
-### Related files
-package.json, package-lock.json, .github/workflows/deploy.yml; DEPENDENCY_AUDIT.md.
+Exact before/after versions and evidence provenance: [ISSUE-001 closure journal](../sessions/2026-10-04-01-issue-001-closure.md). No tests, audit or deployment were performed in this documentation session; deployed-version verification remains a separate release checklist gate.
 
 ## ISSUE-002 — Resume ownership policies cannot be verified from repository
 

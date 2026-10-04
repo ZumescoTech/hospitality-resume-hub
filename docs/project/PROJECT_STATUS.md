@@ -1,12 +1,14 @@
 # Current Product Status
 
-Last updated: 2026-10-03
+Last updated: 2026-10-04
 
-Reconciliation validation: production and staging builds, staging generated-config assertions and Wrangler dry-run PASS. Relevant tests: 57 passed / 1 existing payload-contract failure; TypeScript retains 14 baseline errors. The earlier account-hydration E2E failure remains unresolved (not rerun). See [staging evidence](../sessions/2026-10-03-03-staging-reconciliation.md). Release readiness is unchanged.
+ISSUE-001 is **PASS / CLOSED** on owner-supplied verified results recorded 2026-10-04. Tests: **629 passed / 13 skipped / 1 pre-existing `full_name` payload mismatch** (not introduced by ISSUE-001). Production build, staging build and diff whitespace check: **PASS**. Remaining npm audit findings: **17 (10 high, 6 moderate, 1 low)**, outside ISSUE-001 and unresolved. See [closure evidence](../sessions/2026-10-04-01-issue-001-closure.md). This documentation session did not rerun validation.
+
+Previously recorded TypeScript (14 errors), lint and account-hydration E2E failures remain unresolved; see [staging evidence](../sessions/2026-10-03-03-staging-reconciliation.md). Release readiness is unchanged.
 
 Current release: Release 0.1 target; no verified released version/tag established.
 
-Current readiness: **NOT READY** for real applicants/public use. Synthetic local development/testing is possible. This label is driven by critical dependency risk, a broken account landing route, unverified data isolation, unsafe recommendation wording, and missing report/save/feedback gates—not by feature count.
+Current readiness: **NOT READY** for real applicants/public use. Synthetic local development/testing is possible. This label is driven by a broken account landing route, unverified data isolation, unsafe recommendation wording, and missing report/save/feedback gates—not by feature count.
 
 ISSUE-017 is **CLOSED** on the recorded 2026-09-27 owner confirmation of credential rotation and access review. Repository remediation and closure evidence are reconciled into main; historical Git objects remain. No new provider verification was performed.
 
@@ -42,13 +44,15 @@ ISSUE-017 is **CLOSED** on the recorded 2026-09-27 owner confirmation of credent
 
 ## Current blockers
 
-P0: ISSUE-001 critical seroval advisory; ISSUE-002 database isolation unverified; ISSUE-003 public privileged lead/diagnostic/AI boundaries; ISSUE-004 replay/local retention/privacy; ISSUE-005 dashboard; ISSUE-006 report continuity; ISSUE-007 truth constraints. See [KNOWN_ISSUES](KNOWN_ISSUES.md) for evidence and severities.
+P0: ISSUE-002 database isolation unverified; ISSUE-003 public privileged lead/diagnostic/AI boundaries; ISSUE-004 replay/local retention/privacy; ISSUE-005 dashboard; ISSUE-006 report continuity; ISSUE-007 truth constraints. See [KNOWN_ISSUES](KNOWN_ISSUES.md) for evidence and severities.
 
 ## Next recommended task
 
-ISSUE-001 remains the next roadmap issue, but is not started in this reconciliation session. Any Git history rewrite requires a separately authorized plan covering all refs, sibling worktrees and retained private backups.
+ISSUE-002: verify resume ownership and database isolation. Capture schema/RLS reproducibly and prove anonymous and cross-user access restrictions using approved synthetic accounts. This is a verification gap, not a confirmed leak; no work on it was started here.
 
 ## Last completed work
+
+[2026-10-04 ISSUE-001 closure](../sessions/2026-10-04-01-issue-001-closure.md): recorded the verified dependency-only remediation and validation; Seroval deserialization and TanStack server-function deserialization/XSS vulnerabilities resolved. No application compatibility changes required.
 
 [2026-10-03 ISSUE-017 reconciliation](../sessions/2026-10-03-04-issue-017-reconciliation.md): retired webhook wiring removed; owner-confirmed closure evidence preserved unchanged and reflected in main. Groq model migration remains separate.
 

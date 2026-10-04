@@ -1,5 +1,9 @@
 # Dependency audit
 
+## Closure update - 2026-10-04
+
+ISSUE-001 is **PASS / CLOSED** per the [verified closure record](../sessions/2026-10-04-01-issue-001-closure.md). Seroval and TanStack server-function deserialization/XSS remediation passed; **17 unrelated findings remain (10 high, 6 moderate, 1 low)**. The September snapshot, package versions and remediation priorities below are historical and superseded for ISSUE-001; they have not been rewritten. No new audit was run for this update.
+
 ## Cleanup executed 2026-09-22
 
 Removed 30 unused direct dependencies after checking source, tests, scripts and configuration. npm regenerated the lockfile and pruned 78 installed packages; retained lockfile package versions did not change. `@tanstack/router-plugin` remains transitively available through TanStack Start; the application does not configure it directly. The table and advisory totals below are the **pre-cleanup audit snapshot**; vulnerability remediation was not performed or claimed.
