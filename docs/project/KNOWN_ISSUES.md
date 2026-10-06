@@ -92,7 +92,15 @@ Exact before/after versions and evidence provenance: [ISSUE-001 closure journal]
 
 ## ISSUE-002 — Resume ownership policies cannot be verified from repository
 
-Status: OPEN — verification gap, not a confirmed cross-user leak.
+Status: **CLOSED — assigned resume schema/ownership scope verified locally, 2026-10-06**. No hosted migration or deployment performed; hosted verification remains a release gate.
+
+Six-column migration `20261005121313_create_resumes_ownership.sql` replayed from empty on `gethired-issue002-local`. Explicit session-identity RLS covers SELECT/INSERT/UPDATE/DELETE (UPDATE has USING and WITH CHECK); authenticated effective privileges are CRUD only, with no PUBLIC/anon grants or client RLS bypass. JSON object constraint, UUID/FK, owner/latest index and invoker timestamp trigger verified. **49 pgTAP checks and 185 direct Data API assertions PASS**: owner success, both attack directions, conflicting upserts, reassignment, signed-out reads/writes and unchanged-owner snapshots after denied mutations. Synthetic fixtures removed. Focused persistence/auth 26/26 PASS; build PASS; second read-only security review found no blockers. See [verification journal](../sessions/2026-10-06-01-issue-002-resume-rls-verification.md) for regressions and limits.
+
+Scope limit: this closes resume-table ownership only. Shared checker-cache privacy, saved-analysis persistence, account deletion/retention UX and production rollout are not certified by these tests; their release gates remain open under ISSUE-004/006/014/016. FK retains ON DELETE CASCADE as explicitly confirmed by the owner on 2026-10-06; this does not implement an account deletion flow.
+
+The following discovery/proposal evidence is historical and superseded by the verification above:
+
+2026-10-04 verification: **PARTIAL**; remains OPEN. Local access-path review complete; read-only metadata on owner-identified ServSail confirms `public.resumes` is absent (only CRM public tables), with no Storage buckets or Edge Functions. Cross-user tests not run; no non-production branch identified. Confirmed schema gap, no cross-user exploit confirmed. See [2026-10-04 ownership verification](../sessions/2026-10-04-02-issue-002-ownership-verification.md).
 
 Severity: P0
 
@@ -110,13 +118,13 @@ Only CRM migration checked in. resume-store filters user_id; dashboard delete fi
 Inventory migrations and queries. In an approved test environment, verify anon and A/B SELECT/INSERT/UPDATE/DELETE including ownership reassignment.
 
 ### Likely cause
-Schema configured outside this repository; history of that setup unknown.
+Owner clarification (2026-10-05): no authoritative resume database schema exists. The application contract has not yet been implemented as a reproducible schema; do not assume an external schema can be recovered.
 
 ### Current workaround
 Synthetic/mock account tests only.
 
 ### Recommended fix
-Capture deployed schema/policies safely, establish reproducible ownership migrations/tests; do not rely on UUID secrecy.
+Derive the contract from application/types/UI/auth and the product specification, then implement reproducible ownership migrations/tests; do not rely on UUID secrecy. [Proposed contract](../sessions/2026-10-05-01-issue-002-resume-contract.md): six application-required columns, separately documented specification analysis requirements and unresolved design assumptions. No migration implemented.
 
 ### Related files
 src/lib/resume-store.ts, src/routes/dashboard.tsx, supabase/migrations.

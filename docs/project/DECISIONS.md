@@ -85,3 +85,13 @@ Unknown historical parser/auth/provider selection rationale: PURPOSE UNKNOWN —
 
 ### Consequences
 Retain current modules. Decide retention, anonymized fixtures, analysis schema, RLS and analytics masking in explicit future ADRs; no migration during audit.
+
+## ADR-005 — Resume ownership and user foreign key
+
+Date: 2026-10-06. Status: Implemented and verified locally for ISSUE-002.
+
+The existing builder stores a six-column `public.resumes` document with UUID identity, an `auth.users(id)` owner, object JSONB, title/template and server-managed update time. Database session identity enforces ownership for all CRUD operations, independently of browser filtering. No new report relation, privileged CRUD RPC or browser service-role path is introduced.
+
+The owner explicitly confirmed retaining the unfinished migration's `ON DELETE CASCADE` foreign key. Deleting an Auth user therefore removes their resume rows; transactional database tests verify this behavior. This settles the FK choice only: account deletion UI, retention periods and shared-cache cleanup remain separate unresolved release requirements. Historical proposal assumptions are preserved in the October 5 journal.
+
+Evidence: [ISSUE-002 verification](../sessions/2026-10-06-01-issue-002-resume-rls-verification.md). No production migration or deployment was performed.

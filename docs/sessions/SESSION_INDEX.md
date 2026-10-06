@@ -4,6 +4,9 @@ Read the product spec and current PROJECT_STATUS before this index. Use the most
 
 | Date / sequence | Session | Outcome | Next task |
 |---|---|---|---|
+| 2026-10-06 / 01 | [ISSUE-002 resume RLS verification](2026-10-06-01-issue-002-resume-rls-verification.md) | CLOSED locally; clean migration replay; 49 pgTAP + 185 REST checks PASS; 26 focused regressions PASS; broader baseline failures retained | ISSUE-003 public privileged endpoint controls |
+| 2026-10-05 / 01 | [ISSUE-002 proposed resume contract](2026-10-05-01-issue-002-resume-contract.md) | Six-column proposal; code and specification requirements separated; no authoritative schema exists; OPEN | Resolve design assumptions, then migration and synthetic ownership tests |
+| 2026-10-04 / 02 | [ISSUE-002 ownership verification](2026-10-04-02-issue-002-ownership-verification.md) | PARTIAL / OPEN; ServSail lacks resumes table; isolation matrix not runnable | Establish intended schema in synthetic test environment |
 | 2026-10-04 / 01 | [ISSUE-001 closure documentation](2026-10-04-01-issue-001-closure.md) | PASS / CLOSED; owner-supplied dependency and validation results recorded; 17 unrelated audit findings remain | ISSUE-002 ownership/RLS verification |
 | 2026-10-03 / 04 | [ISSUE-017 reconciliation](2026-10-03-04-issue-017-reconciliation.md) | CLOSED state and retired webhook remediation reconciled; baseline failures retained | Separately authorized history plan; ISSUE-001 not started |
 | 2026-09-27 / 02 | [Historical ISSUE-017 closure](2026-09-27-02-issue-017-closed.md) | Owner confirmation and closure evidence preserved unchanged | Historical evidence |

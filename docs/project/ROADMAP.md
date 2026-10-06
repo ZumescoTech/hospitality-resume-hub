@@ -4,7 +4,7 @@
 
 | Order | Feature | Status | Exit evidence |
 |---|---|---|---|
-| Prerequisite | Security and baseline recovery | BLOCKED | ISSUE-001 CLOSED; RLS proof, public endpoint controls and trustworthy checks remain |
+| Prerequisite | Security and baseline recovery | BLOCKED | ISSUE-001/002 CLOSED locally; hosted verification, public endpoint controls and trustworthy checks remain |
 | 1 | F-001 Target Cruise Role | IN PROGRESS | Versioned supported registry, honest custom flow, role-difference QA |
 | 2 | F-002 CV Upload & Parsing | IN PROGRESS | Validated/versioned parse contract, recovery, ≥95% on 30+ fixtures |
 | 3 | F-003 Cruise CV Analysis Engine | IN PROGRESS | Evidence/score schema, safe cache boundary, versions, no-fabrication/injection matrix |
@@ -14,12 +14,12 @@
 | 7 | F-007 Feedback Capture | NOT STARTED | Analysis-linked Yes/Partly/No + optional comment + safe persistence |
 | 8 | Release 0.1 regression / approval / observation | BLOCKED | All release gates; controlled pilot; owner approval before rollout |
 
-## Next release workstreams (updated 2026-10-04)
+## Next release workstreams (updated 2026-10-06)
 
-ISSUE-017 and ISSUE-001 are CLOSED. ISSUE-001 closure does not resolve the remaining 17 npm audit findings or establish release readiness.
+ISSUE-017, ISSUE-001 and the assigned ISSUE-002 resume ownership scope are CLOSED. ISSUE-002 has local migration and A/B/anon proof; production is unchanged. These closures do not resolve the remaining 17 npm audit findings or establish release readiness.
 
-1. Next: ISSUE-002 - prove resume ownership and database isolation with reproducible schema/RLS evidence and approved synthetic anonymous/A/B access tests.
-2. Address ISSUE-003 public privileged endpoint controls, then ISSUE-004 privacy/retention and replay masking.
+1. Completed locally: ISSUE-002 - reproducible resume schema/RLS; 49 metadata checks and 185 synthetic Data API assertions pass. Hosted rollout verification remains a release gate.
+2. Next: ISSUE-003 public privileged endpoint controls, then ISSUE-004 privacy/retention and replay masking (including shared report-cache privacy).
 3. Restore account/dashboard and durable report continuity using the current persistence work; define analysis ID and versioned report contract. Avoid rebuilding the CV editor.
 4. Harden F-001→F-005 in order: role registry/custom support, parser contract/fixtures, truthful evidence-based analysis/fixes and accessible report. Instrument canonical events with each transition.
 5. Finish F-006 report signup/save and F-007 feedback against that contract; run the launch fixture/E2E/usability matrix, approve, release to controlled traffic, observe.

@@ -1,10 +1,12 @@
 # Current Product Status
 
-Last updated: 2026-10-04
+Last updated: 2026-10-06
+
+ISSUE-002: **CLOSED for the assigned resume database scope**, verified 2026-10-06. Six-column migration, explicit CRUD ownership RLS, restricted effective grants, JSON-object constraint, owner/latest index and server-managed timestamps reproduced on the dedicated local Supabase stack. **49 pgTAP checks + 185 direct Data API assertions PASS**, including both A/B directions and signed-out requests; fixtures cleaned up. Focused persistence/auth **26/26 PASS**; synthetic-config production build PASS; read-only security review found no blockers. No production migration/deployment or hosted authorization proof. Separate shared report-cache privacy and saved-analysis gates remain unresolved. See [verification journal](../sessions/2026-10-06-01-issue-002-resume-rls-verification.md).
 
 ISSUE-001 is **PASS / CLOSED** on owner-supplied verified results recorded 2026-10-04. Tests: **629 passed / 13 skipped / 1 pre-existing `full_name` payload mismatch** (not introduced by ISSUE-001). Production build, staging build and diff whitespace check: **PASS**. Remaining npm audit findings: **17 (10 high, 6 moderate, 1 low)**, outside ISSUE-001 and unresolved. See [closure evidence](../sessions/2026-10-04-01-issue-001-closure.md). This documentation session did not rerun validation.
 
-Previously recorded TypeScript (14 errors), lint and account-hydration E2E failures remain unresolved; see [staging evidence](../sessions/2026-10-03-03-staging-reconciliation.md). Release readiness is unchanged.
+Current regression evidence: full unit run **628 passed / 2 failed / 13 skipped** (known `full_name` mismatch plus builder-import timeout; isolated builder rerun **2/2 PASS**). TypeScript reports **15 errors** in unchanged application sources; repository lint remains failing, while the new isolation script passes scoped lint. Historical E2E failures remain unresolved and were not rerun for this database-only change. Release readiness is unchanged.
 
 Current release: Release 0.1 target; no verified released version/tag established.
 
@@ -31,7 +33,7 @@ ISSUE-017 is **CLOSED** on the recorded 2026-09-27 owner confirmation of credent
 
 - /dashboard renders error boundary: No QueryClient set. Hooks also occur after conditional return; Edit/New links target home.
 - Completed checker report disappears on refresh; backward/forward cannot reconstruct it.
-- One unit test fails (lead payload includes full_name unexpectedly); 14 TypeScript errors; lint fails.
+- Known unit contract failure (lead payload includes full_name unexpectedly); 15 TypeScript errors in the current run; lint fails. The full-run builder-import timeout passed in isolation.
 - E2E smoke tests use stale download/mobile preview assumptions; combined run 27 passed/3 failed, isolated save rerun 4 passed.
 
 ## Missing
@@ -44,13 +46,15 @@ ISSUE-017 is **CLOSED** on the recorded 2026-09-27 owner confirmation of credent
 
 ## Current blockers
 
-P0: ISSUE-002 database isolation unverified; ISSUE-003 public privileged lead/diagnostic/AI boundaries; ISSUE-004 replay/local retention/privacy; ISSUE-005 dashboard; ISSUE-006 report continuity; ISSUE-007 truth constraints. See [KNOWN_ISSUES](KNOWN_ISSUES.md) for evidence and severities.
+P0: ISSUE-003 public privileged lead/diagnostic/AI boundaries; ISSUE-004 replay/local retention/privacy; ISSUE-005 dashboard; ISSUE-006 report continuity; ISSUE-007 truth constraints. ISSUE-002 local resume isolation is proven; hosted rollout verification and broader report/cache isolation remain release gates. See [KNOWN_ISSUES](KNOWN_ISSUES.md) for evidence and severities.
 
 ## Next recommended task
 
-ISSUE-002: verify resume ownership and database isolation. Capture schema/RLS reproducibly and prove anonymous and cross-user access restrictions using approved synthetic accounts. This is a verification gap, not a confirmed leak; no work on it was started here.
+ISSUE-003: bound and authorize public privileged lead, diagnostics and AI endpoints. Do not deploy the resume migration or start the next issue without owner authorization.
 
 ## Last completed work
+
+[2026-10-06 ISSUE-002 verification](../sessions/2026-10-06-01-issue-002-resume-rls-verification.md): local migration replay, metadata/effective grants and synthetic owner/A/B/signed-out behavior PASS; scoped issue closed. Authoritative product specification was supplied during the session and checked against the owner's explicit six-column requirements; saved-analysis/F-006 gates remain open.
 
 [2026-10-04 ISSUE-001 closure](../sessions/2026-10-04-01-issue-001-closure.md): recorded the verified dependency-only remediation and validation; Seroval deserialization and TanStack server-function deserialization/XSS vulnerabilities resolved. No application compatibility changes required.
 
@@ -70,6 +74,6 @@ ISSUE-002: verify resume ownership and database isolation. Capture schema/RLS re
 
 - Historical audit began on dirty main at d84292a; that work was subsequently preserved and committed. Do not discard existing work or sibling worktree changes.
 - Current production/staging builds and staging packaging dry-run passed; remote resources and runtime behavior were not reverified.
-- No live database policies, applicant data or live model quality were tested. Current nonignored text-file pattern scan found no credential match; a separate scan of 786 historical text blobs found two .env versions with matches. See ISSUE-017. Neither scan establishes credential validity or absence of other secret types.
+- Local resume database policies were behaviorally tested with synthetic users on 2026-10-06; no hosted applicant data or live model quality was tested. Historical credential scan evidence remains under ISSUE-017 and does not establish credential validity or absence of other secret types.
 - Existing older launch/audit plans remain historical; their test counts and separate-store finding are superseded for this working tree.
 - Future sessions must follow AGENTS.md continuity steps and update status, session journal, issues, roadmap/decisions when applicable.

@@ -7,7 +7,8 @@
 - [ ] Historical credential exposure contained, revocation/rotation documented without values (ISSUE-017).
 - [x] Critical serialization dependency remediated (ISSUE-001: PASS / CLOSED; [verified results](../sessions/2026-10-04-01-issue-001-closure.md)).
 - [ ] Deployed dependency versions verified before release; not established by the ISSUE-001 closure results.
-- [ ] A/B/anonymous database access tests pass; schema and RLS captured reproducibly.
+- [x] Local resume A/B/signed-out access tests pass; schema and RLS captured reproducibly. ISSUE-002: 49 pgTAP + 185 REST checks PASS; [2026-10-06 verification](../sessions/2026-10-06-01-issue-002-resume-rls-verification.md).
+- [ ] Authorized hosted rollout and environment-specific resume isolation verification; shared report-cache privacy and saved-analysis gates remain open.
 - [ ] Public privileged endpoints bounded/authorized; diagnostics restricted and redacted.
 - [ ] Clarity masking/consent and retention/deletion paths verified.
 - [ ] Unit, typecheck, scoped lint, build and actual E2E journey pass.
