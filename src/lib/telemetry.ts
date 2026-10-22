@@ -87,7 +87,12 @@ async function recordLatency(ms: number): Promise<void> {
 
 // ─── Public API: record events ───────────────────────────────────────────────
 
-export type CheckOutcomeKind = 'scored' | 'parse_failed' | 'insufficient_content';
+export type CheckOutcomeKind =
+  | 'scored'
+  | 'parse_failed'
+  | 'insufficient_content'
+  | 'not_a_cv'
+  | 'uncertain_document';
 export type ApiOutcome = 'ok' | 'rate_limit' | 'server_error' | 'bad_json' | 'exhausted';
 
 /** Record the outcome of a CV check (call after every check completes). */

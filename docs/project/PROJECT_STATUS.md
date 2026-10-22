@@ -1,6 +1,8 @@
 # Current Product Status
 
-Last updated: 2026-10-06
+Last updated: 2026-10-22
+
+ISSUE-018 (MVP brief §3A, non-CVs scored): **FIXED locally**, not deployed. A deterministic document classifier now runs before the cache and scoring; not-a-CV is never scored, and uncertain files are scored only after the candidate confirms. See [session journal](../sessions/2026-10-22-01-cv-validation-gate.md) for the open owner decisions the brief raises.
 
 ISSUE-002: **CLOSED for the assigned resume database scope**, verified 2026-10-06. Six-column migration, explicit CRUD ownership RLS, restricted effective grants, JSON-object constraint, owner/latest index and server-managed timestamps reproduced on the dedicated local Supabase stack. **49 pgTAP checks + 185 direct Data API assertions PASS**, including both A/B directions and signed-out requests; fixtures cleaned up. Focused persistence/auth **26/26 PASS**; synthetic-config production build PASS; read-only security review found no blockers. No production migration/deployment or hosted authorization proof. Separate shared report-cache privacy and saved-analysis gates remain unresolved. See [verification journal](../sessions/2026-10-06-01-issue-002-resume-rls-verification.md).
 

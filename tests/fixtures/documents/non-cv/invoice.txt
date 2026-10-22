@@ -1,0 +1,19 @@
+TAX INVOICE
+Harbour Linen Supplies (Pty) Ltd
+VAT No 4000000000
+Invoice No: INV-20931
+Date: 03/09/2026
+
+Bill To:
+Seaview Guest House
+12 Marine Drive, Durban
+
+Description                 Qty   Unit Price   Amount
+Bath towels (white)          40      85.00     3400.00
+Table cloths (round)         12     120.00     1440.00
+
+Subtotal                                       4840.00
+VAT 15%                                         726.00
+Total Due                                      5566.00
+
+Payment terms: 30 days. Thank you for your business.

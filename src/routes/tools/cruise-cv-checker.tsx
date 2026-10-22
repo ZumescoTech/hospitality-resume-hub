@@ -196,7 +196,7 @@ function CruiseCvCheckerPage() {
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CvScoreResult | null>(null);
-  const [parseFailure, setParseFailure] = useState<Extract<CvCheckOutcome, { kind: 'parse_failed' | 'insufficient_content' }> | null>(null);
+  const [parseFailure, setParseFailure] = useState<Exclude<CvCheckOutcome, { kind: 'scored' }> | null>(null);
   const [parsedCv, setParsedCv] = useState<ResumeData | null>(null);
   const [whatsappCaptured, setWhatsappCaptured] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -285,8 +285,8 @@ function CruiseCvCheckerPage() {
     setRoleSlug(value);
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(e?: React.FormEvent, confirmedCv = false) {
+    e?.preventDefault();
     if (!hasInput || !roleSlug) {
       toast.error('Please add your CV and select a role.');
       return;
@@ -332,16 +332,23 @@ function CruiseCvCheckerPage() {
             cvText: cvTextToUse.trim(),
             roleSlug,
             jobDescription: jobDescription.trim() || undefined,
+            confirmedCv,
           }),
         } as any),
         timeoutPromise,
       ])) as CvCheckOutcome;
 
-      // Handle parse quality gate failures — distinct from a low score
-      if (outcome.kind === 'parse_failed' || outcome.kind === 'insufficient_content') {
+      // Handle document gate failures (unreadable, not a CV, uncertain) — never a score
+      if (outcome.kind !== 'scored') {
         progress.setStage('done', 100);
         setParseFailure(outcome);
-        trackEvent('cv_parse_failed');
+        trackEvent(
+          outcome.kind === 'not_a_cv'
+            ? 'cv_not_a_cv'
+            : outcome.kind === 'uncertain_document'
+              ? 'cv_uncertain_document'
+              : 'cv_parse_failed',
+        );
         setTimeout(() => progress.reset(), 1500);
         void navigate({ to: '/tools/cruise-cv-checker', search: { step: 'results' } });
         return;
@@ -606,7 +613,11 @@ function CruiseCvCheckerPage() {
               <h2 className="font-display text-xl font-bold text-foreground">
                 {parseFailure.kind === 'parse_failed'
                   ? "We couldn't read your CV"
-                  : 'Not enough content to score'}
+                  : parseFailure.kind === 'not_a_cv'
+                    ? "This file doesn't look like a CV"
+                    : parseFailure.kind === 'uncertain_document'
+                      ? 'Is this your CV?'
+                      : 'Not enough content to score'}
               </h2>
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
                 {parseFailure.reason}
@@ -621,6 +632,33 @@ function CruiseCvCheckerPage() {
                 </p>
               </div>
             </div>
+
+            {(parseFailure.kind === 'not_a_cv' || parseFailure.kind === 'uncertain_document') && (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {parseFailure.kind === 'uncertain_document' && (
+                  <Button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      trackEvent('cv_uncertain_confirmed');
+                      void handleSubmit(undefined, true);
+                    }}
+                  >
+                    Yes, this is my CV — check it
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    trackEvent('builder_entered');
+                    void navigate({ to: '/builder', search: { role: roleSlug } as never });
+                  }}
+                >
+                  Start a CV from scratch
+                </Button>
+              </div>
+            )}
 
             {/* Try again */}
             <div className="text-center pt-2">

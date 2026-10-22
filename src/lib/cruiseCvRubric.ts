@@ -100,7 +100,11 @@ export interface PrecheckSummary {
 export type CvCheckOutcome =
   | { kind: 'scored'; result: CvScoreResult }
   | { kind: 'parse_failed'; reason: string; suggestion: string }
-  | { kind: 'insufficient_content'; reason: string; suggestion: string };
+  | { kind: 'insufficient_content'; reason: string; suggestion: string }
+  // Document classification gate: not a CV → never scored; uncertain → no
+  // score until the candidate confirms the file is their CV.
+  | { kind: 'not_a_cv'; reason: string; suggestion: string }
+  | { kind: 'uncertain_document'; reason: string; suggestion: string };
 
 // ─── Weights & labels ─────────────────────────────────────────────────────────
 

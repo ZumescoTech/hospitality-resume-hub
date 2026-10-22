@@ -564,3 +564,28 @@ Validate final/cache report, persist semantic versions, bound whole operation, u
 
 ### Related files
 src/lib/kv-cache.ts, src/lib/cruise-cv-check.ts, src/lib/ai/router.ts, src/routes/tools/cruise-cv-checker.tsx.
+
+## ISSUE-018 — Checker scores documents that are not CVs
+
+Status: FIXED locally 2026-10-22, not deployed.
+
+Severity: P0
+
+First observed: reported in MVP Release Brief v1.0 (2026-10-14).
+
+Affected area: F002/F003 upload and analysis.
+
+### Problem
+The only gate before scoring was readable text of 30+ words, so invoices, cover letters, certificates and similar files received an ATS score.
+
+### Evidence
+`parseQualityGate` checked garbling and word count only. Cached results were returned before any gate ran.
+
+### Fix
+`classifyCvDocument` (deterministic) and `documentGate` now run before the cache lookup. The gate returns `not_a_cv` (no override) or `uncertain_document` (scored only after the candidate confirms). The UI offers re-upload or Start a CV.
+
+### Remaining
+The labelled set (21 CVs / 7 non-CVs) is too small to substantiate the brief's 98%/99% gates. There are no binary PDF/DOCX non-CV fixtures, and the UI has not been checked in a browser. The builder's "Improve my uploaded CV" import (`src/routes/builder.tsx`) does not use the gate yet.
+
+### Related files
+src/lib/cvDocumentClassifier.ts, src/lib/cruise-cv-check.ts, src/routes/tools/cruise-cv-checker.tsx, tests/unit/cv-document-classifier.test.ts, tests/unit/check-cruise-cv-document-gate.test.ts, tests/fixtures/documents/.

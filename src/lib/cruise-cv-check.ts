@@ -9,6 +9,7 @@ import {
   type CvCheckOutcome,
 } from '@/lib/cruiseCvRubric';
 import { runDeterministicChecks, scoreKeywordAlignment, parseQualityGate, sanitizeJobDescription } from '@/lib/cvDeterministicChecks';
+import { classifyCvDocument } from '@/lib/cvDocumentClassifier';
 import { createRouter } from '@/lib/ai/router';
 import { ProviderError } from '@/lib/ai/provider';
 import { buildCacheKey, getCachedResult, setCachedResult } from '@/lib/kv-cache';
@@ -108,6 +109,8 @@ const CvCheckSchema = z.object({
   roleSlug: z.string().min(1, 'Role is required'),
   jobDescription: z.string().optional(),
   tier: z.enum(['free', 'paid']).default('paid'),
+  /** Candidate confirmed an "uncertain" document is their CV. Never overrides not_a_cv. */
+  confirmedCv: z.boolean().optional(),
 });
 
 const SaveLeadSchema = z.object({
@@ -162,6 +165,7 @@ export function publicCruiseCvCheckData(input: {
   cvText: string;
   roleSlug: string;
   jobDescription?: string;
+  confirmedCv?: boolean;
 }): CvCheckInput {
   const jd = input.jobDescription?.trim();
   return {
@@ -169,7 +173,35 @@ export function publicCruiseCvCheckData(input: {
     roleSlug: input.roleSlug,
     jobDescription: jd ? jd : undefined,
     tier: 'free',
+    ...(input.confirmedCv ? { confirmedCv: true } : {}),
   };
+}
+
+/**
+ * Hard validation gate: unreadable text, then document classification.
+ * Runs before the cache lookup so no stored score can bypass it.
+ */
+export function documentGate(cvText: string, confirmedCv: boolean | undefined): Exclude<CvCheckOutcome, { kind: 'scored' }> | null {
+  const signals = runDeterministicChecks(cvText);
+  const qualityFailure = parseQualityGate(cvText, signals);
+  if (qualityFailure) return qualityFailure;
+  const classification = classifyCvDocument(cvText);
+  if (classification.verdict === 'not_a_cv') {
+    return {
+      kind: 'not_a_cv',
+      reason: classification.reason,
+      suggestion: 'Upload your CV instead, or start a new CV in the builder if you do not have one yet.',
+    };
+  }
+  if (classification.verdict === 'uncertain' && !confirmedCv) {
+    return {
+      kind: 'uncertain_document',
+      reason: classification.reason,
+      suggestion:
+        'If this is your CV, confirm below and we will check it. Otherwise upload your CV, or start one in the builder.',
+    };
+  }
+  return null;
 }
 
 export async function persistCvLead(parsed: SaveLeadInput): Promise<{
@@ -270,6 +302,13 @@ export async function runCruiseCvCheck(input: CvCheckInput): Promise<CvCheckOutc
   if (!role) throw new Error(`Unknown role: ${parsed.roleSlug}`);
   const scoringTier: ScoringTier = parsed.tier ?? 'paid';
   const cleanJd = sanitizeJobDescription(parsed.jobDescription) ?? undefined;
+  const gateFailure = documentGate(parsed.cvText, parsed.confirmedCv);
+  if (gateFailure) {
+    console.log(`[cv-check] document gate: ${gateFailure.kind}`);
+    recordCheckOutcome(gateFailure.kind);
+    recordLatencyMs(Date.now() - startMs);
+    return gateFailure;
+  }
   const precheck: PrecheckResult | null = resolvePrecheck(parsed.cvText, parsed.roleSlug, precheckEnabled());
   const cacheKey = await buildCacheKey(parsed.cvText, cleanJd, parsed.roleSlug, scoringTier);
   const cached = await getCachedResult(cacheKey);
@@ -279,13 +318,6 @@ export async function runCruiseCvCheck(input: CvCheckInput): Promise<CvCheckOutc
   }
   console.log(`[cv-check] cache miss: ${cacheKey}`);
   const signals = runDeterministicChecks(parsed.cvText);
-  const qualityFailure = parseQualityGate(parsed.cvText, signals);
-  if (qualityFailure) {
-    console.log(`[cv-check] quality gate: ${qualityFailure.kind}`);
-    recordCheckOutcome(qualityFailure.kind);
-    recordLatencyMs(Date.now() - startMs);
-    return qualityFailure;
-  }
   if (scoringTier === 'free') {
     const localResult = scoreLocally(
       { cvText: parsed.cvText, roleSlug: parsed.roleSlug, jobDescription: cleanJd },
