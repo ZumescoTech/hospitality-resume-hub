@@ -36,7 +36,10 @@ export type ClarityEvent =
   | 'builder_entered'
   | 'export_triggered'
   | 'export_succeeded'
-  | 'export_failed';
+  | 'export_failed'
+  | 'tailor_cv_started'
+  | 'tailor_cv_succeeded'
+  | 'tailor_cv_failed';
 
 export function trackEvent(name: ClarityEvent): void {
   if (!PROJECT_ID) return;

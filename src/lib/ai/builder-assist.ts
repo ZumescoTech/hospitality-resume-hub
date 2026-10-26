@@ -7,6 +7,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { buildRolePatternBlock } from '@/lib/ai/role-patterns';
 import { groqChatCompletion, GROQ_MODEL } from '@/lib/ai/groq-client';
+import type { TailorCvResult } from '@/lib/tailor-cv';
 
 // ─── Shared types (exported for client components) ─────────────────────────────
 
@@ -180,7 +181,7 @@ export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async 
   // Retries on 429 — see groq-client.ts. Errors propagate to the caller's UI feedback.
   const content = await groqChatCompletion(groqKey, {
     model: GROQ_MODEL,
-        reasoning_effort: 'low',
+    reasoning_effort: 'low',
     max_tokens: 800,
     temperature: 0.3,
     messages: [
@@ -206,5 +207,46 @@ export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async 
     };
   } catch {
     return { rewrittenText: currentText, suggestedSkills: [] };
+  }
+});
+
+// ─── Layer 3: tailorCvToJobFn ─────────────────────────────────────────────────
+// Whole-CV tailoring to the pasted job ad. Goes through the provider router
+// (Groq → Gemini) and validates the JSON at this boundary; the client merges
+// the result with applyTailoring() (tailor-cv.ts), which guards numbers.
+
+const TailorCvSchema = z.object({
+  jobDescription: z.string().min(30, 'Paste the job ad first.'),
+  jobTitle: z.string(),
+  targetRoleSlug: z.string().optional(),
+  summary: z.string(),
+  skills: z.array(z.string()).max(100),
+  experience: z
+    .array(z.object({ id: z.string(), role: z.string(), venue: z.string(), bullets: z.array(z.string()) }))
+    .max(20),
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const tailorCvToJobFn = createServerFn({ method: 'POST' }).handler(async (ctx: any): Promise<TailorCvResult> => {
+  const input = TailorCvSchema.parse(ctx.data);
+  const { TAILOR_CV_SYSTEM, buildTailorUserPrompt, parseTailorResponse } = await import('@/lib/tailor-cv');
+  const { createRouter } = await import('@/lib/ai/router');
+
+  const { block: rolePatternBlock } = buildRolePatternBlock(input.targetRoleSlug, input.jobTitle);
+  const system = rolePatternBlock ? `${TAILOR_CV_SYSTEM}\n\n${rolePatternBlock}` : TAILOR_CV_SYSTEM;
+
+  const router = await createRouter({
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,
+  });
+
+  // Log shape only — never CV or job-ad text.
+  console.info('[tailor-cv] request', { entries: input.experience.length, hasSummary: !!input.summary });
+  const raw = await router.callRaw({ system, user: buildTailorUserPrompt(input) });
+  try {
+    return parseTailorResponse(raw);
+  } catch {
+    throw new Error('The AI returned an unreadable answer. Please try again.');
   }
 });

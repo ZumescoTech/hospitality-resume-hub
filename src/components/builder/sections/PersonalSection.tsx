@@ -12,18 +12,22 @@ import {
 } from "@/components/ui/select";
 import { CRUISE_ROLE_OPTIONS } from "@/lib/cruise-role-options";
 import { Button } from "@/components/ui/button";
-import { SlidersHorizontal } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 interface Props {
   data: ResumeData;
   onChange: (next: Partial<ResumeData>) => void;
   /** When true, show required-field errors even without blur (triggered by Continue tap). */
   showErrors?: boolean;
-  /** Opens the Customize drawer (template, colours, formatting). */
-  onOpenCustomize?: () => void;
+  /** Rewrites the summary and experience bullets to fit the pasted job ad. */
+  onTailorToJob?: () => void;
+  /** True while the tailoring request is in flight. */
+  tailoring?: boolean;
 }
 
-export function PersonalSection({ data, onChange, showErrors, onOpenCustomize }: Props) {
+export function PersonalSection({ data, onChange, showErrors, onTailorToJob, tailoring }: Props) {
+  const hasJobAd = (data.targetJobDescription ?? "").trim().length >= 30;
+
   const set = (patch: Partial<PersonalDetails>) =>
     onChange({ personal: { ...data.personal, ...patch } });
 
@@ -127,19 +131,25 @@ export function PersonalSection({ data, onChange, showErrors, onOpenCustomize }:
         />
       </Field>
 
-      {onOpenCustomize && (
-        <Button
-          type="button"
-          variant="outline"
-          id="personal-customize-btn"
-          data-testid="personal-customize-btn"
-          aria-haspopup="dialog"
-          className="w-full gap-2"
-          onClick={onOpenCustomize}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          Customise your CV
-        </Button>
+      {onTailorToJob && (
+        <div className="space-y-1.5">
+          <Button
+            type="button"
+            id="personal-customize-btn"
+            data-testid="personal-customize-btn"
+            className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+            disabled={!hasJobAd || tailoring}
+            onClick={onTailorToJob}
+          >
+            {tailoring ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {tailoring ? "Customising your CV…" : "Customise CV to this job"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            {hasJobAd
+              ? "Rewrites your summary and experience to match the job ad. Nothing is invented — missing figures show as [X]."
+              : "Paste a job ad above to customise your CV to it."}
+          </p>
+        </div>
       )}
 
       {/* Summary with Layer 1 + Layer 2 AI assistance */}

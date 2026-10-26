@@ -37,6 +37,8 @@ import { hydrateBuilderFromHandoff } from "@/lib/map-parsed-cv-to-builder";
 import { ImprovementChecklist } from "@/components/builder/ImprovementChecklist";
 import type { BuilderSectionId } from "@/types/checker-audit";
 import { printCv } from "@/lib/print-cv";
+import { tailorCvToJobFn } from "@/lib/ai/builder-assist";
+import { applyTailoring, buildTailorInput, newSuggestedSkills } from "@/lib/tailor-cv";
 import { PrintableCv } from "@/components/builder/PrintableCv";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/clarity";
@@ -354,12 +356,38 @@ function BuilderPage() {
 
   const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
 
-  // The Customize drawer only renders in the Preview pane, so on mobile jump
-  // there first; on desktop both panes are visible and the tab is ignored.
-  const openCustomize = () => {
-    setActiveTab("preview");
-    setStyleDrawerOpen(true);
-  };
+  // ── Customise CV to the pasted job ad ───────────────────────────────────────
+  // Rewrites summary + experience bullets only; applyTailoring() swaps any
+  // invented number for [X]. Suggested skills are shown, never auto-added.
+  const [tailoring, setTailoring] = useState(false);
+  async function handleTailorToJob() {
+    if (tailoring) return;
+    setTailoring(true);
+    trackEvent('tailor_cv_started');
+    const before = data;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await tailorCvToJobFn({ data: buildTailorInput(before) } as any);
+      setData((d) => applyTailoring(d, result));
+      openContentSections(before);
+      trackEvent('tailor_cv_succeeded');
+      const skills = newSuggestedSkills(before, result);
+      toast.success("CV customised to the job ad", {
+        description: skills.length
+          ? `Check any [X] placeholders. Skills the ad asks for, if you have them: ${skills.join(", ")}.`
+          : "Check any [X] placeholders and fill in your real figures.",
+        duration: 12000,
+        action: { label: "Undo", onClick: () => setData(before) },
+      });
+    } catch (err) {
+      trackEvent('tailor_cv_failed');
+      // Server-side detail goes to logs; users get one actionable message.
+      console.warn('[tailor-cv] failed', err instanceof Error ? err.message : err);
+      toast.error("Couldn't customise your CV right now. Your CV is unchanged — please try again in a minute.");
+    } finally {
+      setTailoring(false);
+    }
+  }
   const sectionProps = { data, onChange: onPatch };
 
   // ── PDF download ────────────────────────────────────────────────────────────
@@ -557,7 +585,8 @@ function BuilderPage() {
               <PersonalSection
                 {...sectionProps}
                 showErrors={false}
-                onOpenCustomize={openCustomize}
+                onTailorToJob={handleTailorToJob}
+                tailoring={tailoring}
               />
             </Section>
             <Section id="experience" title="Work experience" isOpen={openSections.has('experience')} onToggle={() => toggleSection('experience')}>
