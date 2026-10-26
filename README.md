@@ -9,7 +9,7 @@ galley and F&B crew.
    ("Mention Micros POS", "Add your STCW certificate number").
 2. **Build** — "Build My CV" hands the parsed CV into the builder at
    `/builder` (Plate & Pen), or you can import a CV there directly.
-3. **Export** — pick a template and download a PDF.
+3. **Export** — pick a template and download a PDF that matches the preview.
 
 ## How it works
 
@@ -38,7 +38,7 @@ galley and F&B crew.
 | AI        | Groq → Gemini failover (`src/lib/ai/`), free tiers only       |
 | Data      | Supabase (auth, saved resumes, leads)                         |
 | CV import | pdf.js, Mammoth, Tesseract.js                                 |
-| PDF out   | `@react-pdf/renderer` download, plus browser print            |
+| PDF out   | Browser Save as PDF of the live preview (print CSS)           |
 | Tests     | Vitest (unit + golden-file scores), Playwright (e2e)          |
 
 ## Getting started
