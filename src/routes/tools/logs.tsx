@@ -1,5 +1,5 @@
 // TEMPORARY debug page: every captured server log and browser error.
-// Protected by the LOGS_TOKEN secret. Remove with src/lib/debug-log*.ts,
+// Intentionally open (temporary). Remove with src/lib/debug-log*.ts,
 // src/lib/client-log-capture.ts and src/start.ts when no longer needed.
 
 import { createFileRoute } from '@tanstack/react-router';
@@ -17,7 +17,6 @@ export const Route = createFileRoute('/tools/logs')({
   }),
 });
 
-const TOKEN_KEY = 'gethired-logs-token';
 const LEVEL_STYLES: Record<LogLevel, string> = {
   error: 'bg-destructive/10 text-destructive',
   warn: 'bg-amber-500/10 text-amber-700',
@@ -26,16 +25,7 @@ const LEVEL_STYLES: Record<LogLevel, string> = {
   debug: 'bg-muted text-muted-foreground',
 };
 
-function readStoredToken(): string {
-  try {
-    return sessionStorage.getItem(TOKEN_KEY) ?? '';
-  } catch {
-    return '';
-  }
-}
-
 function LogsPage() {
-  const [token, setToken] = useState('');
   const [entries, setEntries] = useState<DebugLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,20 +35,14 @@ function LogsPage() {
   const [search, setSearch] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  async function load(withToken = token) {
-    if (!withToken) return;
+  async function load() {
     setLoading(true);
     setError(null);
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await getDebugLogs({ data: { token: withToken } } as any);
+      const data = await getDebugLogs({ data: {} } as any);
       setEntries(data);
       setLoaded(true);
-      try {
-        sessionStorage.setItem(TOKEN_KEY, withToken);
-      } catch {
-        // sessionStorage unavailable — token just isn't remembered.
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load logs');
     } finally {
@@ -67,12 +51,7 @@ function LogsPage() {
   }
 
   useEffect(() => {
-    const stored = readStoredToken();
-    if (stored) {
-      setToken(stored);
-      void load(stored);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void load();
   }, []);
 
   useEffect(() => {
@@ -80,7 +59,7 @@ function LogsPage() {
     const id = setInterval(() => void load(), 10_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, loaded, token]);
+  }, [autoRefresh, loaded]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -103,26 +82,6 @@ function LogsPage() {
             Server logs and browser errors from the last 3 days, newest first. New entries can take up to a minute to appear.
           </p>
         </div>
-
-        <form
-          className="mb-6 flex flex-wrap items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void load();
-          }}
-        >
-          <input
-            type="password"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder="Logs token"
-            autoComplete="off"
-            className="w-full rounded-lg border border-border bg-card px-3 py-1.5 text-sm sm:w-64"
-          />
-          <Button type="submit" size="sm" disabled={!token || loading}>
-            {loaded ? 'Reload' : 'Open logs'}
-          </Button>
-        </form>
 
         {error && (
           <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3">
