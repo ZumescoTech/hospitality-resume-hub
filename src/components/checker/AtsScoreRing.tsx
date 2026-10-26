@@ -120,7 +120,7 @@ export function AtsScoreRing({ score, topFixes }: Props) {
         {/* 160px desktop, 140px mobile — CSS clamp via style */}
         <svg
           role="img"
-          aria-label={`ATS score: ${score} out of 100`}
+          aria-label={`CV readiness score: ${score} out of 100 (GetHired internal indicator)`}
           style={{
             width: 'clamp(140px, 40vw, 160px)',
             height: 'clamp(140px, 40vw, 160px)',
@@ -164,7 +164,7 @@ export function AtsScoreRing({ score, topFixes }: Props) {
           >
             {displayed}
           </text>
-          {/* "ATS Score" label */}
+          {/* "CV readiness" label — internal indicator, not an official ATS score */}
           <text
             x={CX}
             y={CY + 18}
@@ -172,7 +172,7 @@ export function AtsScoreRing({ score, topFixes }: Props) {
             fontSize="11"
             fill="#94a3b8"
           >
-            ATS Score
+            CV readiness
           </text>
         </svg>
       </div>
@@ -188,6 +188,24 @@ export function AtsScoreRing({ score, topFixes }: Props) {
         }}
       >
         {scoreBandLabel(score)}
+      </p>
+
+      {/* What the number means — required so it is never read as a cruise
+          line's official ATS score or a hiring prediction. */}
+      <p
+        data-testid="score-explainer"
+        style={{
+          textAlign: 'center',
+          fontSize: 12,
+          color: '#64748b',
+          margin: '-8px 0 20px',
+          lineHeight: 1.5,
+        }}
+      >
+        GetHired&apos;s internal guide to how ready your CV is for this role, based on role
+        keywords, experience detail, measurable results, how easily ATS software can read it,
+        and your summary. It is not a cruise line&apos;s official ATS score or a prediction of
+        being hired.
       </p>
 
       {/* ── Fix suggestion cards ── */}

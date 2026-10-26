@@ -63,8 +63,8 @@ Strict rules:
 - education startDate/endDate: "YYYY" if only year is known, "YYYY-MM" otherwise.
 - Each qualification appears in EXACTLY ONE section — never both education and certifications. Named professional certifications and licences (e.g. WSET, Court of Master Sommeliers / CMS, STCW, HACCP, ENG1, Cape Wine Academy) go under "certifications". Formal academic qualifications (degrees, diplomas, matric / O-Level / Higher Certificate) go under "education". If a single credential could plausibly fit either, place it under "certifications" only.
 - skills: array of individual skill strings, 1–5 words each.
-- wineKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Sommelier" — use "None" if not mentioned.
-- spiritsKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Mixologist" — use "None" if not mentioned.
+- wineKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Sommelier". "None" means NOT STATED in the CV — use it when wine knowledge is not mentioned; never infer that the candidate lacks it.
+- spiritsKnowledge: one of exactly: "None","Beginner","Intermediate","Advanced","Mixologist". "None" means NOT STATED in the CV — use it when spirits knowledge is not mentioned; never infer that the candidate lacks it.
 - languages[].level: one of exactly: "Basic","Conversational","Fluent","Native".
 - serviceStyles: populate ONLY if the CV explicitly names service styles (fine dining, à la carte, banquet, etc.).
 - posSystems: populate ONLY if POS system names appear in the CV (Toast, Micros, Lightspeed, etc.).

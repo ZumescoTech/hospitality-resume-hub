@@ -104,7 +104,7 @@ async function waitForCheckerResults(page: import('@playwright/test').Page) {
 }
 
 async function extractCheckerScore(page: import('@playwright/test').Page): Promise<Record<string, unknown>> {
-  // Score is in img alt: "ATS score: 63 out of 100"
+  // Score is in img alt: "CV readiness score: 63 out of 100 …"
   // Use short timeouts — elements should already be visible from waitForCheckerResults
   const imgAlt = await page.locator('img[alt*="score"]').first().getAttribute('alt', { timeout: 3000 }).catch(() => '')
   const numMatch = imgAlt?.match(/(\d+)/)

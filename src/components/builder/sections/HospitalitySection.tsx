@@ -22,6 +22,8 @@ export function HospitalitySection({
   data: ResumeData;
   onChange: (n: Partial<ResumeData>) => void;
 }) {
+  // "None" is the stored marker for "not stated" — never shown as "has none".
+  const levelLabel = (level: string) => (level === "None" ? "Not stated" : level);
   const set = (patch: Partial<Hospitality>) =>
     onChange({ hospitality: { ...data.hospitality, ...patch } });
   const h = data.hospitality;
@@ -33,7 +35,7 @@ export function HospitalitySection({
           <Select value={h.wineKnowledge} onValueChange={(v) => set({ wineKnowledge: v as Hospitality["wineKnowledge"] })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {WINE.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+              {WINE.map((w) => <SelectItem key={w} value={w}>{levelLabel(w)}</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>
@@ -41,7 +43,7 @@ export function HospitalitySection({
           <Select value={h.spiritsKnowledge} onValueChange={(v) => set({ spiritsKnowledge: v as Hospitality["spiritsKnowledge"] })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {SPIRITS.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+              {SPIRITS.map((w) => <SelectItem key={w} value={w}>{levelLabel(w)}</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>

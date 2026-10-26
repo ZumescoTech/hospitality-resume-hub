@@ -485,7 +485,7 @@ function CruiseCvCheckerPage() {
             <span className="text-primary">Cruise-Ready?</span>
           </h1>
           <p className="mt-4 text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Scored against real cruise recruiter standards. Know exactly what's missing before you apply.
+            Checked against what cruise and hotel roles ask for. See what your CV doesn't show yet before you apply.
           </p>
         </div>
 
@@ -739,7 +739,7 @@ function CruiseCvCheckerPage() {
                     {result!.precheck.hardGateFailures.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-destructive mb-1.5">
-                          Hard requirements missing
+                          Hard requirements not shown on your CV
                         </p>
                         <ul className="space-y-1.5">
                           {result!.precheck.hardGateFailures.map((f, i) => (
@@ -841,6 +841,9 @@ function CruiseCvCheckerPage() {
                     {result!.missingKeywords.length > 0 && (
                       <div>
                         <p className="text-xs font-medium text-destructive mb-1.5">Missing from your CV</p>
+                        <p className="text-xs text-muted-foreground mb-1.5" data-testid="not-mentioned-note">
+                          Not mentioned isn&apos;t the same as not having it — if you have these, add them to your CV.
+                        </p>
                         <div className="flex flex-wrap gap-1.5">
                           {result!.missingKeywords.map((kw) => (
                             <span key={kw} className="rounded-md bg-destructive/8 border border-destructive/20 px-2 py-0.5 text-xs text-destructive">

@@ -277,8 +277,8 @@ function LandingPage() {
                 },
                 {
                   num: "02",
-                  title: "Get your ATS score",
-                  body: "GetHired analyses your CV against real cruise line hiring criteria. You get a score, a breakdown of what's working, and exactly what's costing you interviews.",
+                  title: "Get your CV readiness score",
+                  body: "GetHired checks your CV against the keywords, experience and results cruise and hotel roles ask for. You get a readiness score, a breakdown of what's working, and what to fix first.",
                   icon: (
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                       <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -377,7 +377,7 @@ function LandingPage() {
                   {/* What you get free */}
                   <ul className="gh-reveal gh-d3 space-y-3 mb-10">
                     {[
-                      "Overall ATS score (0–100)",
+                      "Overall CV readiness score (0–100)",
                       "Risk level — High / Medium / Low",
                       "Your top 2–4 rejection triggers",
                       "Full category breakdown (email unlock)",

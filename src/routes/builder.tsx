@@ -39,6 +39,7 @@ import type { BuilderSectionId } from "@/types/checker-audit";
 import { printCv } from "@/lib/print-cv";
 import { tailorCvToJobFn } from "@/lib/ai/builder-assist";
 import { applyTailoring, buildTailorInput, newSuggestedSkills } from "@/lib/tailor-cv";
+import { TailorReviewDialog, type TailorReview } from "@/components/builder/TailorReviewDialog";
 import { PrintableCv } from "@/components/builder/PrintableCv";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/clarity";
@@ -358,8 +359,11 @@ function BuilderPage() {
 
   // ── Customise CV to the pasted job ad ───────────────────────────────────────
   // Rewrites summary + experience bullets only; applyTailoring() swaps any
-  // invented number for [X]. Suggested skills are shown, never auto-added.
+  // invented number for [X]. The result goes to a review dialog first —
+  // nothing changes until the candidate applies, and suggested skills are
+  // only added when the candidate ticks them.
   const [tailoring, setTailoring] = useState(false);
+  const [tailorReview, setTailorReview] = useState<TailorReview | null>(null);
   async function handleTailorToJob() {
     if (tailoring) return;
     setTailoring(true);
@@ -368,17 +372,12 @@ function BuilderPage() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await tailorCvToJobFn({ data: buildTailorInput(before) } as any);
-      setData((d) => applyTailoring(d, result));
-      openContentSections(before);
-      trackEvent('tailor_cv_succeeded');
-      const skills = newSuggestedSkills(before, result);
-      toast.success("CV customised to the job ad", {
-        description: skills.length
-          ? `Check any [X] placeholders. Skills the ad asks for, if you have them: ${skills.join(", ")}.`
-          : "Check any [X] placeholders and fill in your real figures.",
-        duration: 12000,
-        action: { label: "Undo", onClick: () => setData(before) },
+      setTailorReview({
+        before,
+        proposed: applyTailoring(before, result),
+        suggestedSkills: newSuggestedSkills(before, result),
       });
+      trackEvent('tailor_cv_succeeded');
     } catch (err) {
       trackEvent('tailor_cv_failed');
       // Server-side detail goes to logs; users get one actionable message.
@@ -388,6 +387,20 @@ function BuilderPage() {
       setTailoring(false);
     }
   }
+
+  function applyTailorReview(skillsToAdd: string[]) {
+    if (!tailorReview) return;
+    const { before, proposed } = tailorReview;
+    setData({ ...proposed, skills: [...proposed.skills, ...skillsToAdd] });
+    setTailorReview(null);
+    openContentSections(proposed);
+    toast.success("CV customised to the job ad", {
+      description: "Fill in any [X] placeholders with your real figures.",
+      duration: 10000,
+      action: { label: "Undo", onClick: () => setData(before) },
+    });
+  }
+
   const sectionProps = { data, onChange: onPatch };
 
   // ── PDF download ────────────────────────────────────────────────────────────
@@ -665,6 +678,12 @@ function BuilderPage() {
         onPress={handleDownload}
         busy={false}
         hidden={lightboxOpen}
+      />
+
+      <TailorReviewDialog
+        review={tailorReview}
+        onApply={applyTailorReview}
+        onDiscard={() => setTailorReview(null)}
       />
 
       {/* Hidden full-size CV copy — the only thing shown when printing. */}
