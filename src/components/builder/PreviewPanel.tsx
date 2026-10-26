@@ -1,12 +1,10 @@
-import { useState, useEffect, useRef, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ResumeData } from "@/types/resume";
 import { FormattingSettings } from "@/types/formatting";
 import { defaultFormatting } from "@/types/formatting";
 import { TEMPLATES, getTemplate } from "@/components/templates/registry";
-const PDFDownloadButton = lazy(() =>
-  import("@/lib/pdf/PDFDownloadButton").then((m) => ({ default: m.PDFDownloadButton }))
-);
 import { cn } from "@/lib/utils";
+import { printCv } from "@/lib/print-cv";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -18,7 +16,8 @@ import {
   Expand,
   Maximize2,
   Minimize2,
-  Printer,
+  Download,
+  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -43,13 +42,17 @@ interface Props {
   data: ResumeData;
   /** Notifies the builder while the zoom lightbox owns the screen (Step 6). */
   onLightboxOpenChange?: (open: boolean) => void;
+  /** Opens the Customize drawer from the top toolbar (>=1024px). */
+  onOpenCustomize?: () => void;
+  /** Whether the Customize drawer is open (for aria-expanded). */
+  customizeOpen?: boolean;
 }
 
 /**
  * PreviewPanel
  *
  * Renders the right-hand live preview pane. Contains:
- *  - Zoom controls (auto-fit "Fit" mode + manual %) + print + PDF download
+ *  - Customize button, zoom controls (auto-fit "Fit" mode + manual %) + PDF download
  *  - Live A4-proportioned resume preview with pagination for long CVs
  *
  * Template, colour and formatting controls used to live in this toolbar too.
@@ -66,7 +69,7 @@ interface Props {
  *   the clip div shifts content via negative marginTop so no internal scroll
  *   is ever needed.
  */
-export function PreviewPanel({ data, onLightboxOpenChange }: Props) {
+export function PreviewPanel({ data, onLightboxOpenChange, onOpenCustomize, customizeOpen }: Props) {
   // Step 4: the document renders at its true print width (A4, 794px) by
   // default — never auto-shrunk to the viewport. Narrower viewports scroll
   // horizontally to reveal it. "Fit" remains an opt-in zoom toggle.
@@ -186,8 +189,25 @@ export function PreviewPanel({ data, onLightboxOpenChange }: Props) {
       <div className="no-print hidden lg:block border-b-half border-border bg-card px-4 py-2.5">
         <div className="flex items-center justify-between gap-3">
 
-          {/* Active template label — read-only now; changing it is the
-              drawer's job. */}
+          {/* Customize — first thing in the toolbar so style controls are
+              always one click away at the top of the preview. */}
+          {onOpenCustomize && (
+            <Button
+              variant="outline"
+              size="sm"
+              id="toolbar-customize-btn"
+              data-testid="toolbar-customize-btn"
+              aria-haspopup="dialog"
+              aria-expanded={customizeOpen ?? false}
+              className="shrink-0 gap-1.5"
+              onClick={onOpenCustomize}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Customize
+            </Button>
+          )}
+
+          {/* Active template label — read-only; changing it is the drawer's job. */}
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs text-muted-foreground">
               <span className="font-medium text-foreground">{activeTpl.name}</span>
@@ -237,34 +257,19 @@ export function PreviewPanel({ data, onLightboxOpenChange }: Props) {
               <Maximize2 className="h-4 w-4" />
             </Button>
 
-            {/* Print visual template */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    id="print-btn"
-                    aria-label="Print visual template"
-                    onClick={() => window.print()}
-                  >
-                    <Printer className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Print visual template</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            {/* ATS-safe PDF download — lazy-loaded to avoid SSR issues */}
-            <Suspense fallback={null}>
-              <PDFDownloadButton
-                data={data}
-                formatting={fmt}
-                variant="default"
-                size="sm"
-                className="ml-1"
-              />
-            </Suspense>
+            {/* PDF export — prints the full-size copy of this exact preview
+                (PrintableCv) via the browser's Save as PDF. */}
+            <Button
+              variant="default"
+              size="sm"
+              id="download-pdf-btn"
+              data-testid="download-pdf-btn"
+              className="ml-1 gap-1.5"
+              onClick={() => printCv(data.personal.fullName)}
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
           </div>
         </div>
 

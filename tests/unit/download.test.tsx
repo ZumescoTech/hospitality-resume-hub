@@ -1,30 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 
-// P0-4: Download must call pdf() from @react-pdf/renderer, show loading state,
-// trigger a file download, and surface an error toast on failure.
-// RED before fix: handleDownload uses the hidden-link approach, not pdf() → these tests fail.
+// Download PDF opens the browser's print dialog over the hidden full-size copy
+// of the preview (PrintableCv), so the PDF matches the preview exactly.
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const mockToBlob = vi.fn()
-const mockPdf = vi.fn(() => ({ toBlob: mockToBlob }))
-
-vi.mock('@react-pdf/renderer', () => ({
-  pdf: mockPdf,
-  PDFDownloadLink: () => null,
-  Document: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Page: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  View: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Text: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Image: () => null,
-  Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  StyleSheet: { create: (s: unknown) => s },
-  Font: { register: vi.fn(), registerHyphenationCallback: vi.fn() },
-}))
-
-vi.mock('@/lib/pdf/ResumePDF', () => ({ ResumePDF: () => null }))
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn(), loading: vi.fn(), dismiss: vi.fn() } }))
 
 // Mock all store / router deps so we can import the builder route
@@ -97,58 +79,50 @@ async function renderBuilder() {
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
-describe('P0-4 — Download button calls pdf() and triggers file download', () => {
+describe('Download PDF prints the preview copy', () => {
+  let printSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     vi.clearAllMocks()
-    // Mock successful blob generation
-    const fakeBlob = new Blob(['%PDF-1.4 fake'], { type: 'application/pdf' })
-    mockToBlob.mockResolvedValue(fakeBlob)
-    // Spy on URL methods without replacing the constructor
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:http://localhost/fake-pdf')
-    vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined)
+    printSpy = vi.spyOn(window, 'print').mockImplementation(() => {})
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('RED → clicking Download calls pdf() from @react-pdf/renderer', async () => {
-    await renderBuilder()
-    const btn = screen.getByTestId('download-btn')
-
-    fireEvent.click(btn)
-    await waitFor(() => {
-      // After fix: pdf() is called. Before fix: hidden-link approach used → pdf() never called → RED
-      expect(mockPdf).toHaveBeenCalled()
-    }, { timeout: 2000 })
-  })
-
-  it('RED → clicking Download shows a loading state (data-testid="pdf-loading")', async () => {
-    // Slow the blob so we can catch the loading state
-    let resolveBlob!: (b: Blob) => void
-    mockToBlob.mockReturnValue(new Promise<Blob>(r => { resolveBlob = r }))
-
+  it('clicking Download opens the print dialog', async () => {
     await renderBuilder()
     fireEvent.click(screen.getByTestId('download-btn'))
-
-    // Loading indicator must appear while PDF is generating
-    await waitFor(() => {
-      expect(screen.getByTestId('pdf-loading')).toBeDefined()
-    }, { timeout: 1000 })
-
-    // Resolve the blob to clean up
-    resolveBlob(new Blob(['%PDF'], { type: 'application/pdf' }))
+    expect(printSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('RED → on pdf() failure, shows an error toast (not silent)', async () => {
+  it('names the PDF after the candidate while printing, then restores the title', async () => {
+    await renderBuilder()
+    document.title = 'GetHired'
+    let titleDuringPrint = ''
+    printSpy.mockImplementation(() => { titleDuringPrint = document.title })
+
+    fireEvent.click(screen.getByTestId('download-btn'))
+    expect(titleDuringPrint).toBe('Jane_Doe_CV')
+
+    window.dispatchEvent(new Event('afterprint'))
+    expect(document.title).toBe('GetHired')
+  })
+
+  it('renders a hidden full-size CV copy for printing', async () => {
+    await renderBuilder()
+    const copy = document.querySelector('[data-testid="cv-print-root"]')
+    expect(copy).not.toBeNull()
+    expect(copy?.parentElement).toBe(document.body)
+    expect(copy?.textContent).toContain('Jane Doe')
+  })
+
+  it('shows an error toast if the print dialog cannot open', async () => {
     const { toast } = await import('sonner')
-    mockToBlob.mockRejectedValue(new Error('PDF generation failed'))
-
+    printSpy.mockImplementation(() => { throw new Error('blocked') })
     await renderBuilder()
     fireEvent.click(screen.getByTestId('download-btn'))
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalled()
-    }, { timeout: 2000 })
+    expect(toast.error).toHaveBeenCalled()
   })
 })

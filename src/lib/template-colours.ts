@@ -1,7 +1,7 @@
 // src/lib/template-colours.ts
 // Colour customisation system for CV templates.
 // Custom colours apply to browser preview only.
-// PDF export uses ResumePDF.tsx with fixed styles — unaffected by this system.
+// PDF export prints this same template (PrintableCv) — unaffected by this system.
 
 export interface TemplateColours {
   primary:    string   // main accent — section headings, sidebar bg, header band

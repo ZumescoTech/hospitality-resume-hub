@@ -36,8 +36,8 @@ import { consumeCvImport } from "@/lib/cv-import-handoff";
 import { hydrateBuilderFromHandoff } from "@/lib/map-parsed-cv-to-builder";
 import { ImprovementChecklist } from "@/components/builder/ImprovementChecklist";
 import type { BuilderSectionId } from "@/types/checker-audit";
-import { pdf } from "@react-pdf/renderer";
-import { ResumePDF } from "@/lib/pdf/ResumePDF";
+import { printCv } from "@/lib/print-cv";
+import { PrintableCv } from "@/components/builder/PrintableCv";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/clarity";
 import { MobileModeSwitcher } from "@/components/builder/MobileModeSwitcher";
@@ -171,7 +171,6 @@ function BuilderPage() {
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set<string>(['personal']));
   const didInitOpenRef = useRef(false);
   const didImportRef = useRef(false);
-  const [downloading, setDownloading] = useState(false);
 
   const toggleSection = (id: string) => {
     const willOpen = !openSections.has(id);
@@ -357,28 +356,17 @@ function BuilderPage() {
   const sectionProps = { data, onChange: onPatch };
 
   // ── PDF download ────────────────────────────────────────────────────────────
-  async function handleDownload() {
-    if (downloading) return;
-    setDownloading(true);
+  // Opens the browser's Save as PDF over <PrintableCv>, so the file matches
+  // the preview exactly.
+  function handleDownload() {
     trackEvent('export_triggered');
     try {
-      const fileName = `${(data.personal.fullName || "resume").replace(/\s+/g, "_")}_CV.pdf`;
-      const blob = await pdf(<ResumePDF data={data} formatting={data.formatting} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      printCv(data.personal.fullName);
       trackEvent('export_succeeded');
     } catch (err) {
       trackEvent('export_failed');
-      const msg = err instanceof Error ? err.message : 'Could not generate PDF. Please try again.';
+      const msg = err instanceof Error ? err.message : 'Could not open the print dialog. Please try again.';
       toast.error(`Download failed: ${msg}`);
-    } finally {
-      setDownloading(false);
     }
   }
 
@@ -410,26 +398,6 @@ function BuilderPage() {
         activeTab={isDesktop ? "edit" : activeTab}
         onSectionOpen={(id) => setOpenSections(prev => (prev.has(id) ? prev : new Set(prev).add(id)))}
       />
-
-      {/* ── PDF loading overlay ───────────────────────────────────────────────── */}
-      {downloading && (
-        <div
-          data-testid="pdf-loading"
-          style={{
-            position: 'fixed', inset: 0, zIndex: 200,
-            background: 'rgba(0,0,0,0.35)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <div style={{
-            background: '#fff', borderRadius: 12, padding: '24px 32px',
-            display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, fontWeight: 500,
-          }}>
-            <Loader2 style={{ width: 20, height: 20, animation: 'spin 1s linear infinite' }} />
-            Generating PDF…
-          </div>
-        </div>
-      )}
 
       {/* ── Builder body ──────────────────────────────────────────────────────── */}
       <div
@@ -606,11 +574,9 @@ function BuilderPage() {
             isDesktop || activeTab === "preview" ? "block" : "hidden",
           )}
         >
-          {/* Style drawer trigger. Lives only in Preview's base view — the
-              lightbox renders over it, so it is unreachable while zoomed.
-              Top-right below the split; bottom-right at >=1024px, where the
-              preview toolbar already occupies the top of the pane and the
-              sheet rises from the bottom edge the button sits on. */}
+          {/* Style drawer trigger below 1024px (top-right of the preview).
+              At >=1024px the Customize button lives in the preview toolbar
+              at the top of the pane instead. */}
           <button
             type="button"
             id="open-style-drawer-btn"
@@ -618,7 +584,7 @@ function BuilderPage() {
             aria-haspopup="dialog"
             aria-expanded={styleDrawerOpen}
             onClick={() => setStyleDrawerOpen(true)}
-            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 text-xs font-medium text-foreground shadow-sm lg:right-4 lg:top-auto lg:bottom-4 lg:shadow-md"
+            className="no-print absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-white/95 px-4 text-xs font-medium text-foreground shadow-sm lg:hidden"
             style={{ height: 44, minHeight: 44 }}
           >
             <SlidersHorizontal style={{ width: 14, height: 14 }} />
@@ -630,6 +596,8 @@ function BuilderPage() {
           <PreviewPanel
             data={data}
             onLightboxOpenChange={setLightboxOpen}
+            onOpenCustomize={() => setStyleDrawerOpen(true)}
+            customizeOpen={styleDrawerOpen}
           />
 
           {/* ── Style drawer (Step 7, scoped to this pane at >=1024px) ──────── */}
@@ -655,9 +623,12 @@ function BuilderPage() {
       <BottomCta
         mode={activeTab}
         onPress={handleDownload}
-        busy={downloading}
+        busy={false}
         hidden={lightboxOpen}
       />
+
+      {/* Hidden full-size CV copy — the only thing shown when printing. */}
+      <PrintableCv data={data} />
 
       {/* ── Mobile preview modal ──────────────────────────────────────────────── */}
       <MobilePreviewModal

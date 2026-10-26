@@ -6,7 +6,7 @@
  * Sections: left 3px solid #7c3aed accent stripe on each section heading.
  *
  * Custom colours apply to browser preview only.
- * PDF export uses ResumePDF.tsx with fixed styles.
+ * PDF export prints this same template (PrintableCv).
  */
 
 import { ResumeData } from '@/types/resume';

@@ -7,7 +7,7 @@
  * No fills, rules or icons — whitespace only. EB Garamond throughout.
  *
  * Custom colours apply to browser preview only.
- * PDF export uses ResumePDF.tsx with fixed styles.
+ * PDF export prints this same template (PrintableCv).
  */
 
 import { ResumeData } from '@/types/resume';

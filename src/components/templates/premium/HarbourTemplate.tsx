@@ -6,7 +6,7 @@
  * Main: experience, education, profile summary.
  *
  * Custom colours apply to browser preview only.
- * PDF export uses ResumePDF.tsx with fixed styles.
+ * PDF export prints this same template (PrintableCv).
  */
 
 import { ResumeData } from '@/types/resume';

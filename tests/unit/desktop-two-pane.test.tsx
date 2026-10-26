@@ -38,19 +38,6 @@ function resizeTo(next: number) {
 
 // ── Builder route mocks (mirrors download.test.tsx, minus StepProgress) ───────
 
-vi.mock('@react-pdf/renderer', () => ({
-  pdf: () => ({ toBlob: vi.fn() }),
-  PDFDownloadLink: () => null,
-  Document: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Page: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  View: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Text: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Image: () => null,
-  Link: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  StyleSheet: { create: (s: unknown) => s },
-  Font: { register: vi.fn(), registerHyphenationCallback: vi.fn() },
-}))
-vi.mock('@/lib/pdf/ResumePDF', () => ({ ResumePDF: () => null }))
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn(), loading: vi.fn(), dismiss: vi.fn() } }))
 vi.mock('@/lib/resume-store', () => ({
   useResumeStore: () => ({

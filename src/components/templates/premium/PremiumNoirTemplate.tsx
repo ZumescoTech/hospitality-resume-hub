@@ -9,7 +9,7 @@
  * Pair with ATS-safe PDF export for applications to large employers.
  *
  * Custom colours apply to browser preview only.
- * PDF export uses ResumePDF.tsx with fixed styles.
+ * PDF export prints this same template (PrintableCv).
  */
 
 import { ResumeData } from '@/types/resume';

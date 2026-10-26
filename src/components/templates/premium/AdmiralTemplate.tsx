@@ -6,7 +6,7 @@
  * Section dividers: 3px primary rule + 1px #e2e8f0 rule below it.
  *
  * Custom colours apply to browser preview only.
- * PDF export uses ResumePDF.tsx with fixed styles.
+ * PDF export prints this same template (PrintableCv).
  */
 
 import { ResumeData } from '@/types/resume';

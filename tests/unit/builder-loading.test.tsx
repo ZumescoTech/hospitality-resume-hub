@@ -8,7 +8,7 @@ import React from 'react'
 // We also render the skeleton directly to assert it has a visible element.
 
 // Unlike the other builder tests, this file imports the route with nothing
-// mocked, so the import pulls in @react-pdf/renderer and pdfjs for real —
+// mocked, so the import pulls in pdfjs for real —
 // ~5-6s cold. That overruns vitest's 5s default whenever the suite is under
 // parallel load, which reads as a failure of a test that is really just slow.
 const IMPORT_TIMEOUT = 20_000

@@ -84,7 +84,7 @@ export interface ResumeData {
   references?: string;
   /**
    * Per-template custom colour overrides. Keyed by template ID.
-   * Applies to browser preview only — PDF export uses ResumePDF.tsx with fixed styles.
+   * Applies to browser preview only — PDF export prints this same template (PrintableCv).
    * Optional so existing saved CVs without this field still load correctly.
    */
   templateColours?: Partial<Record<string, {

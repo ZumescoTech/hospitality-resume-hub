@@ -246,10 +246,23 @@ button, [role="button"] {
 }
 
 /* Print: only show preview when printing */
+.cv-print-root { display: none; }
+
 @media print {
   .no-print { display: none !important; }
   .print-area { box-shadow: none !important; }
   body { background: white !important; }
+
+  /* Builder: print only the full-size CV copy (PrintableCv), so the PDF
+     matches the preview instead of capturing the whole editor. */
+  @page { size: A4; margin: 0; }
+  body:has(> .cv-print-root) { margin: 0 !important; padding: 0 !important; }
+  body:has(> .cv-print-root) > *:not(.cv-print-root) { display: none !important; }
+  body > .cv-print-root {
+    display: block !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 
 /* ── Mobile mode switcher (< 1024px) ───────────────────────────────────────── */
