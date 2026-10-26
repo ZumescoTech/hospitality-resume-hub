@@ -149,3 +149,15 @@ describe('Golden-file regression — computeCvScore unaffected by adapter import
     expect(computeCvScore(llm, [], []).overallScore).toBe(78);
   });
 });
+
+// ─── Model selection ──────────────────────────────────────────────────────────
+
+describe('GroqAdapter model', () => {
+  it('requests the current model (not the retired llama-3.3-70b) with low reasoning effort', async () => {
+    mockFetchOk(VALID_EXTRACTION_JSON);
+    await adapter.extract('Bartender CV text that is long enough to parse.');
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);
+    expect(body.model).toBe('openai/gpt-oss-120b');
+    expect(body.reasoning_effort).toBe('low');
+  });
+});

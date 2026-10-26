@@ -1,10 +1,10 @@
 // gemini-adapter.ts
-// Gemini 2.5 Flash adapter implementing the AiProvider interface.
+// Gemini Flash adapter implementing the AiProvider interface.
 // Uses the Google Generative Language REST API (AI Studio free tier).
 //
-// Free-tier limits checked July 2026 (console.ai.google.dev):
-//   - gemini-2.5-flash: 15 RPM / 1 000 000 TPM / 250 requests/day
-//   - JSON response mode: supported via responseMimeType
+// gemini-2.5-flash was restricted to existing users in 2026; Google's
+// recommended replacement is gemini-3.8-flash. JSON mode via responseMimeType.
+// Thinking is kept low: thinking tokens count toward maxOutputTokens.
 //
 // Key: GEMINI_API_KEY (Cloudflare Worker secret; see .env.example for local dev).
 
@@ -20,7 +20,7 @@ import type { RawLlmResponse } from '@/lib/cruiseCvRubric';
 import type { ResumeData } from '@/types/resume';
 import { uid } from '@/lib/utils';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.8-flash';
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Server-side fetch timeout — prevents hung requests when the API is unreachable.
@@ -59,6 +59,7 @@ export class GeminiAdapter implements AiProvider {
         responseMimeType: 'application/json',
         maxOutputTokens: maxTokens,
         temperature: 0.1,
+        thinkingConfig: { thinkingLevel: 'low' },
       },
     });
 

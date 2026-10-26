@@ -7,7 +7,7 @@ import { groqChatCompletion } from '@/lib/ai/groq-client';
 import type { GroqChatBody } from '@/lib/ai/groq-client';
 
 const BODY: GroqChatBody = {
-  model: 'llama-3.3-70b-versatile',
+  model: 'openai/gpt-oss-120b',
   max_tokens: 100,
   temperature: 0,
   messages: [{ role: 'user', content: 'hi' }],

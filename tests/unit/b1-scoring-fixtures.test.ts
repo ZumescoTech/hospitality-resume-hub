@@ -159,7 +159,8 @@ async function scoreOnce(cvText: string, roleSlug: string): Promise<CvScoreResul
       Authorization: `Bearer ${GROQ_KEY}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
+      reasoning_effort: 'low',
       max_tokens: 1500,
       temperature: 0.1,
       messages: [

@@ -23,8 +23,8 @@ galley and F&B crew.
 - **Files stay in the browser.** PDF, DOCX and TXT files are parsed
   client-side (pdf.js, Mammoth, Tesseract OCR for scans). Only extracted
   text is sent to the server.
-- **AI with failover.** Groq (`llama-3.3-70b-versatile`) is the primary
-  provider, Gemini 2.5 Flash the fallback. Every response is
+- **AI with failover.** Groq (`openai/gpt-oss-120b`) is the primary
+  provider, Gemini 3.8 Flash the fallback. Every response is
   schema-validated. If both providers fail, the checker still shows the
   score and rule-based feedback, and the builder import falls back to a
   local parser.

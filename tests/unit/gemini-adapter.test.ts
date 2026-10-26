@@ -110,3 +110,17 @@ describe('GeminiAdapter.extract()', () => {
       .rejects.toMatchObject({ kind: 'bad_json' });
   });
 });
+
+// ─── Model selection ──────────────────────────────────────────────────────────
+
+describe('GeminiAdapter model', () => {
+  it('calls gemini-3.8-flash with JSON mode and a low thinking level', async () => {
+    vi.mocked(fetch).mockResolvedValue(geminiOkResponse(VALID_EXTRACTION_JSON) as Response);
+    await adapter.extract('Bartender CV text that is long enough to parse.');
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toContain('/models/gemini-3.8-flash:generateContent');
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body.generationConfig.responseMimeType).toBe('application/json');
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
+  });
+});

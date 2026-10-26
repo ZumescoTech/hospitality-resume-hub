@@ -2,7 +2,7 @@
 // Groq adapter implementing the AiProvider interface.
 // Wraps groq-client.ts; applies boundary validation for every response.
 
-import { groqChatCompletion } from './groq-client';
+import { groqChatCompletion, GROQ_MODEL } from './groq-client';
 import { CV_EXTRACT_SYSTEM_PROMPT } from './extract-prompt';
 import {
   validateAnalysis,
@@ -15,7 +15,6 @@ import type { RawLlmResponse } from '@/lib/cruiseCvRubric';
 import type { ResumeData } from '@/types/resume';
 import { uid } from '@/lib/utils';
 
-const MODEL = 'llama-3.3-70b-versatile';
 
 export class GroqAdapter implements AiProvider {
   readonly name = 'groq';
@@ -27,7 +26,7 @@ export class GroqAdapter implements AiProvider {
     try {
       content = await groqChatCompletion(
         this.apiKey,
-        { model: MODEL, max_tokens: 1500, temperature: 0.1,
+        { model: GROQ_MODEL, reasoning_effort: 'low', max_tokens: 1500, temperature: 0.1,
           messages: [{ role: 'system', content: system }, { role: 'user', content: user }] },
         { signal },
       );
@@ -41,7 +40,7 @@ export class GroqAdapter implements AiProvider {
     try {
       return await groqChatCompletion(
         this.apiKey,
-        { model: MODEL, max_tokens: 3000, temperature: 0.1,
+        { model: GROQ_MODEL, reasoning_effort: 'low', max_tokens: 3000, temperature: 0.1,
           messages: [{ role: 'system', content: system }, { role: 'user', content: user }] },
         { signal },
       );
@@ -55,7 +54,7 @@ export class GroqAdapter implements AiProvider {
     try {
       content = await groqChatCompletion(
         this.apiKey,
-        { model: MODEL, max_tokens: 2500, temperature: 0.0,
+        { model: GROQ_MODEL, reasoning_effort: 'low', max_tokens: 2500, temperature: 0.0,
           messages: [
             { role: 'system', content: CV_EXTRACT_SYSTEM_PROMPT },
             { role: 'user', content: `Parse this CV:\n\n"""\n${cvText.slice(0, 8000)}\n"""` },

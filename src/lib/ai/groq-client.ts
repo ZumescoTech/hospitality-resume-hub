@@ -18,11 +18,17 @@ const MAX_RETRY_DELAY_MS = 15_000;
 // unreachable or unresponsive (distinct from the client-side 35s timeout).
 const FETCH_TIMEOUT_MS = 20_000;
 
+// llama-3.3-70b-versatile was shut down on 2026-08-16; this is Groq's
+// recommended replacement. Single source for every Groq call.
+export const GROQ_MODEL = 'openai/gpt-oss-120b';
+
 export interface GroqChatBody {
   model: string;
   max_tokens: number;
   temperature: number;
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  /** gpt-oss reasoning budget. Reasoning tokens count toward max_tokens. */
+  reasoning_effort?: 'low' | 'medium' | 'high';
 }
 
 export interface GroqCallOptions {

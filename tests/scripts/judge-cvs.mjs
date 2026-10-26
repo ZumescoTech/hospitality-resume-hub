@@ -107,7 +107,8 @@ Score this CV. ${!includeAiQuality ? 'Skip ai_quality fields — this is a basel
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_KEY}` },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
+      reasoning_effort: 'low',
       temperature: 0,
       max_tokens: 2000,
       messages: [

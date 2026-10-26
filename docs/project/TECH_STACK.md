@@ -13,7 +13,7 @@
 | Database/auth | Supabase JS 2.108.0; Postgres Data API, email/password and Google OAuth | supabase.ts; sign-in/up; lead migration |
 | ORM | None found; Supabase query builder | resume-store.ts; cruise-cv-check.ts |
 | Cache/metrics | Workers KV CV_RESULT_CACHE | kv-cache.ts; telemetry.ts; upload-failure-kv.ts |
-| AI | REST Groq llama-3.3-70b-versatile; Gemini gemini-2.5-flash; optional Workers AI @cf/meta/llama-3.3-70b-instruct-fp8-fast | src/lib/ai; default public checker calls none |
+| AI | REST Groq openai/gpt-oss-120b; Gemini gemini-3.8-flash; optional Workers AI @cf/meta/llama-3.3-70b-instruct-fp8-fast | src/lib/ai; default public checker calls none |
 | Parsing | pdfjs-dist 4.10.38, Mammoth 1.12.0; lazy Tesseract 5.x English OCR; deterministic structured CV parser | extractCvText.ts; cvExtractDeterministic.ts |
 | PDF output | @react-pdf/renderer; separate HTML template preview system | src/lib/pdf; src/components/templates |
 | Analytics | Microsoft Clarity SDK + custom KV metrics; no Sentry/APM found | clarity.ts; telemetry.ts |

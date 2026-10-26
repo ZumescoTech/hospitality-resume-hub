@@ -20,7 +20,7 @@ the product, even if the code is elegant.
 
 - **Platform:** Cloudflare Workers (+ Pages assets, KV, secrets, R2 for media)
 - **App:** React SPA, Vite build, TypeScript
-- **AI:** Groq (llama-3.3-70b-versatile) primary; Gemini 2.5 Flash fallback
+- **AI:** Groq (openai/gpt-oss-120b) primary; Gemini 3.8 Flash fallback
   (being introduced); provider layer in `src/lib/ai/`
 - **Data:** Supabase (auth/persistence), optional configured lead notification webhook
 - **CV parsing:** fully client-side — pdfjs, Mammoth (DOCX), FileReader

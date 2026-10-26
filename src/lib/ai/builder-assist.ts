@@ -1,12 +1,12 @@
 // builder-assist.ts
 // Server functions for the two AI assistance layers in the Plate & Pen builder.
-// Both call Groq llama-3.3-70b-versatile via the OpenAI-compatible endpoint.
+// Both call Groq (GROQ_MODEL) via the OpenAI-compatible endpoint.
 // GROQ_API_KEY holds the Groq key.
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { buildRolePatternBlock } from '@/lib/ai/role-patterns';
-import { groqChatCompletion } from '@/lib/ai/groq-client';
+import { groqChatCompletion, GROQ_MODEL } from '@/lib/ai/groq-client';
 
 // ─── Shared types (exported for client components) ─────────────────────────────
 
@@ -72,7 +72,7 @@ const TAILOR_SYSTEM_BASE =
   `{"rewrittenText": "...", "suggestedSkills": ["skill1", "skill2"]}`;
 
 // ─── Layer 1: checkWritingFn ───────────────────────────────────────────────────
-// Groq llama-3.3-70b — spelling and grammar only.
+// Groq — spelling and grammar only.
 // Returns [] on any error (fail-silently contract).
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +92,8 @@ export const checkWritingFn = createServerFn({ method: 'POST' }).handler(async (
     const content = await groqChatCompletion(
       groqKey,
       {
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
+        reasoning_effort: 'low',
         max_tokens: 400,
         temperature: 0.0,
         messages: [
@@ -124,7 +125,7 @@ export const checkWritingFn = createServerFn({ method: 'POST' }).handler(async (
 });
 
 // ─── Layer 2: tailorContentFn ─────────────────────────────────────────────────
-// Groq llama-3.3-70b — role-aligned content tailoring.
+// Groq — role-aligned content tailoring.
 // Throws on API errors (caller shows UI feedback).
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,7 +179,8 @@ export const tailorContentFn = createServerFn({ method: 'POST' }).handler(async 
 
   // Retries on 429 — see groq-client.ts. Errors propagate to the caller's UI feedback.
   const content = await groqChatCompletion(groqKey, {
-    model: 'llama-3.3-70b-versatile',
+    model: GROQ_MODEL,
+        reasoning_effort: 'low',
     max_tokens: 800,
     temperature: 0.3,
     messages: [
