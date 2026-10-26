@@ -96,6 +96,8 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   useEffect(() => {
     initClarity();
+    // TEMPORARY: feeds the /tools/logs debug page.
+    void import("@/lib/client-log-capture").then((m) => m.installClientLogCapture());
   }, []);
 
   return (

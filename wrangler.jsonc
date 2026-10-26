@@ -7,7 +7,9 @@
 	],
 	"main": "@tanstack/react-start/server-entry",
 	"vars": {
-		"PRECHECK_ENABLED": "true"
+		"PRECHECK_ENABLED": "true",
+		// TEMPORARY: feeds /tools/logs. Set to "false" (or remove) to stop capture.
+		"DEBUG_LOGS_ENABLED": "true"
 	},
 	"kv_namespaces": [
 		{
