@@ -13,6 +13,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { ResumeData } from "@/types/resume";
 import { createRouter } from "@/lib/ai/router";
+import { ProviderError } from "@/lib/ai/provider";
 import {
   extractFieldsDeterministically,
   overlayDeterministicExtract,
@@ -33,23 +34,34 @@ export async function runParseCvForBuilder(cvText: string): Promise<ResumeData> 
 
   if (hybridEnabled && det.skipAi) {
     console.log("[parse-cv] hybrid: skipping AI extraction (high-confidence signals)");
-    const result = parseCvLocally(cvText);
-    return {
-      ...result,
-      experience: result.experience.map((e) => ({ ...e, id: e.id || uid() })),
-      education: result.education.map((e) => ({ ...e, id: e.id || uid() })),
-      certifications: result.certifications.map((c) => ({ ...c, id: c.id || uid() })),
-    };
+    return withIds(parseCvLocally(cvText));
   }
 
-  const router = await createRouter({
-    GROQ_API_KEY: process.env.GROQ_API_KEY,
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-    WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,
-  });
-
-  const aiResult = await router.extract(cvText);
+  let aiResult: ResumeData;
+  try {
+    const router = await createRouter({
+      GROQ_API_KEY: process.env.GROQ_API_KEY,
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      WORKERS_AI_ENABLED: process.env.WORKERS_AI_ENABLED,
+    });
+    aiResult = await router.extract(cvText);
+  } catch (err) {
+    // Graceful degradation: providers down or unconfigured → deterministic
+    // local parse instead of surfacing a raw provider error to the user.
+    const reason = err instanceof ProviderError ? err.kind : "router_unavailable";
+    console.log(`[parse-cv] AI extraction failed (${reason}); using local parse`);
+    return withIds(parseCvLocally(cvText));
+  }
   return overlayDeterministicExtract(aiResult, det);
+}
+
+function withIds(result: ResumeData): ResumeData {
+  return {
+    ...result,
+    experience: result.experience.map((e) => ({ ...e, id: e.id || uid() })),
+    education: result.education.map((e) => ({ ...e, id: e.id || uid() })),
+    certifications: result.certifications.map((c) => ({ ...c, id: c.id || uid() })),
+  };
 }
 
 export const parseCvForBuilder = createServerFn({ method: "POST" }).handler(

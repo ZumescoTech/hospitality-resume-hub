@@ -18,9 +18,19 @@ interface AttemptLog {
   outcome: Outcome;
 }
 
-function log(entry: AttemptLog) {
+/**
+ * Short, log-safe failure reason (HTTP status + provider error body).
+ * Provider error messages never contain CV text; API keys in URLs are redacted.
+ */
+export function failureDetail(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.replace(/key=[^&\s"]+/gi, 'key=REDACTED').replace(/\s+/g, ' ').slice(0, 200);
+}
+
+function log(entry: AttemptLog, detail?: string) {
   // CV text and personal fields never appear in logs.
-  console.log(`[ai-router] ${entry.provider} ${entry.outcome} ${entry.ms}ms`);
+  const suffix = detail ? ` — ${detail}` : '';
+  console.log(`[ai-router] ${entry.provider} ${entry.outcome} ${entry.ms}ms${suffix}`);
   recordApiAttempt(entry.provider, entry.outcome, entry.ms);
 }
 
@@ -38,7 +48,7 @@ async function attempt<T>(
     const kind: ProviderError['kind'] =
       err instanceof ProviderError ? err.kind : 'server_error';
     const entry: AttemptLog = { provider: name, ms: Date.now() - start, outcome: kind };
-    log(entry);
+    log(entry, failureDetail(err));
     return { ok: false, kind, log: entry };
   }
 }
