@@ -353,6 +353,13 @@ function BuilderPage() {
   }
 
   const onPatch = (patch: Partial<ResumeData>) => setData((d) => ({ ...d, ...patch }));
+
+  // The Customize drawer only renders in the Preview pane, so on mobile jump
+  // there first; on desktop both panes are visible and the tab is ignored.
+  const openCustomize = () => {
+    setActiveTab("preview");
+    setStyleDrawerOpen(true);
+  };
   const sectionProps = { data, onChange: onPatch };
 
   // ── PDF download ────────────────────────────────────────────────────────────
@@ -547,7 +554,11 @@ function BuilderPage() {
             style={{ paddingBottom: 'calc(var(--cta-h) + env(safe-area-inset-bottom, 0px))' }}
           >
             <Section id="personal" title="Personal details" isOpen={openSections.has('personal')} onToggle={() => toggleSection('personal')}>
-              <PersonalSection {...sectionProps} showErrors={false} />
+              <PersonalSection
+                {...sectionProps}
+                showErrors={false}
+                onOpenCustomize={openCustomize}
+              />
             </Section>
             <Section id="experience" title="Work experience" isOpen={openSections.has('experience')} onToggle={() => toggleSection('experience')}>
               <ExperienceSection {...sectionProps} showErrors={false} />

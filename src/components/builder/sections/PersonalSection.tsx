@@ -11,15 +11,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CRUISE_ROLE_OPTIONS } from "@/lib/cruise-role-options";
+import { Button } from "@/components/ui/button";
+import { SlidersHorizontal } from "lucide-react";
 
 interface Props {
   data: ResumeData;
   onChange: (next: Partial<ResumeData>) => void;
   /** When true, show required-field errors even without blur (triggered by Continue tap). */
   showErrors?: boolean;
+  /** Opens the Customize drawer (template, colours, formatting). */
+  onOpenCustomize?: () => void;
 }
 
-export function PersonalSection({ data, onChange, showErrors }: Props) {
+export function PersonalSection({ data, onChange, showErrors, onOpenCustomize }: Props) {
   const set = (patch: Partial<PersonalDetails>) =>
     onChange({ personal: { ...data.personal, ...patch } });
 
@@ -122,6 +126,21 @@ export function PersonalSection({ data, onChange, showErrors }: Props) {
           className="resize-none text-sm"
         />
       </Field>
+
+      {onOpenCustomize && (
+        <Button
+          type="button"
+          variant="outline"
+          id="personal-customize-btn"
+          data-testid="personal-customize-btn"
+          aria-haspopup="dialog"
+          className="w-full gap-2"
+          onClick={onOpenCustomize}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Customise your CV
+        </Button>
+      )}
 
       {/* Summary with Layer 1 + Layer 2 AI assistance */}
       <Field
